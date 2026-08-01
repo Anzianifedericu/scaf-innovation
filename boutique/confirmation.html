@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commande confirmée — SCAF Ménage</title>
+<link rel="stylesheet" href="/boutique/assets/style.css">
+</head>
+<body>
+<header class="site-header"><div id="site-header"></div></header>
+<main id="main">
+  <div class="wrap" style="max-width:640px;padding:70px 20px;text-align:center">
+    <div class="hero-tag" style="background:#EAF2ED;border-color:#CFE3D6;color:#2F5945">Commande enregistrée</div>
+    <h1>Merci, votre commande est bien reçue.</h1>
+    <p style="color:#495765;font-size:15px" id="order-ref"></p>
+    <p style="color:#495765;font-size:14.5px">SCAF vous recontacte sous peu par e-mail ou téléphone pour confirmer les modalités de règlement et de livraison.</p>
+    <a href="/boutique/" class="btn btn-dark" style="margin-top:20px">Retour au catalogue</a>
+  </div>
+</main>
+<footer class="site-footer"><div id="site-footer"></div></footer>
+<script src="/boutique/assets/app.js"></script>
+<script>
+  const order = new URLSearchParams(location.search).get("order");
+  if (order) document.getElementById("order-ref").textContent = "Numéro de commande : " + order;
+</script>
+</body>
+</html>

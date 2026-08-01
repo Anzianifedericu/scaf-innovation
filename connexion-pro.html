@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion espace pro — SCAF Innovation</title>
+<style>
+  :root{ --blue-900:#0A3D66; --blue-600:#1571BA; --gray-900:#1B2430; --gray-500:#68727D;
+    --gray-300:#D3DBE3; --red-600:#C0392B; --green-600:#1E8E5A; --sky-50:#F5F9FD; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--sky-50);
+    color:var(--gray-900);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(10,61,102,0.1);border:1px solid var(--gray-300);
+    padding:40px;max-width:420px;width:100%;}
+  h1{font-size:1.3rem;margin:0 0 8px;color:var(--blue-900);}
+  p.sub{color:var(--gray-500);font-size:0.9rem;margin:0 0 24px;}
+  label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;}
+  input[type="email"], input[type="text"]{
+    width:100%;padding:12px 14px;border-radius:8px;border:1.5px solid var(--gray-300);
+    font-size:1rem;margin-bottom:16px;}
+  input:focus{outline:none;border-color:var(--blue-600);box-shadow:0 0 0 3px rgba(21,113,186,0.14);}
+  #otpInput{letter-spacing:0.5em;text-align:center;font-size:1.4rem;font-variant-numeric:tabular-nums;}
+  button{width:100%;background:var(--blue-600);color:#fff;border:none;padding:14px;border-radius:8px;
+    font-weight:700;font-size:1rem;cursor:pointer;}
+  button:hover{background:var(--blue-900);}
+  button:disabled{background:var(--gray-300);cursor:not-allowed;}
+  .status{margin-top:14px;font-size:0.85rem;min-height:1.2em;}
+  .status.err{color:var(--red-600);}
+  .status.ok{color:var(--green-600);}
+  .link-btn{background:none;border:none;color:var(--blue-600);font-weight:600;font-size:0.85rem;
+    cursor:pointer;padding:0;margin-top:14px;text-decoration:underline;}
+  .link-btn:disabled{color:var(--gray-500);text-decoration:none;cursor:not-allowed;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Espace professionnel</h1>
+  <p class="sub">Connexion sécurisée sans mot de passe.</p>
+
+  <!-- ÉCRAN 1 : SAISIE EMAIL -->
+  <div class="screen active" id="screenEmail">
+    <form id="formEmail">
+      <label for="email">Adresse e-mail professionnelle</label>
+      <input type="email" id="email" required autocomplete="email" placeholder="contact@monentreprise.fr">
+      <button type="submit" id="btnRequestOtp">Recevoir mon code de connexion</button>
+      <div class="status" id="statusEmail"></div>
+    </form>
+  </div>
+
+  <!-- ÉCRAN 2 : SAISIE CODE OTP -->
+  <div class="screen" id="screenOtp">
+    <p class="sub" id="otpSentTo"></p>
+    <form id="formOtp">
+      <label for="otpInput">Code reçu par e-mail (6 chiffres)</label>
+      <input type="text" id="otpInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+             autocomplete="one-time-code" required placeholder="••••••">
+      <button type="submit" id="btnVerifyOtp">Valider et me connecter</button>
+      <div class="status" id="statusOtp"></div>
+      <button type="button" class="link-btn" id="btnResend">Renvoyer le code</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const MAKE_WEBHOOK = 'https://hook.eu1.make.com/h9t0hai8vsaqlhnmf6tfnyy6cjv581xm';
+  const REDIRECT_APRES_CONNEXION = 'commande-pro-nudura.html';
+  const RESEND_COOLDOWN_S = 60;
+
+  const screenEmail = document.getElementById('screenEmail');
+  const screenOtp = document.getElementById('screenOtp');
+  const formEmail = document.getElementById('formEmail');
+  const formOtp = document.getElementById('formOtp');
+  const btnRequestOtp = document.getElementById('btnRequestOtp');
+  const btnVerifyOtp = document.getElementById('btnVerifyOtp');
+  const btnResend = document.getElementById('btnResend');
+  const statusEmail = document.getElementById('statusEmail');
+  const statusOtp = document.getElementById('statusOtp');
+  const otpInput = document.getElementById('otpInput');
+
+  let currentEmail = '';
+  let resendTimer = null;
+
+  // Si une session valide existe déjà, on saute direct au catalogue —
+  // évite de renvoyer un pro déjà connecté sur cet écran.
+  if(localStorage.getItem('scaf_pro_access')){
+    window.location.href = REDIRECT_APRES_CONNEXION;
+    return;
+  }
+
+  function setStatus(el, msg, type){
+    el.textContent = msg;
+    el.className = 'status' + (type ? ' '+type : '');
+  }
+
+  function startResendCooldown(){
+    let remaining = RESEND_COOLDOWN_S;
+    btnResend.disabled = true;
+    btnResend.textContent = `Renvoyer le code (${remaining}s)`;
+    resendTimer = setInterval(() => {
+      remaining--;
+      if(remaining <= 0){
+        clearInterval(resendTimer);
+        btnResend.disabled = false;
+        btnResend.textContent = 'Renvoyer le code';
+      } else {
+        btnResend.textContent = `Renvoyer le code (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
+  async function requestOtp(email){
+    const res = await fetch(MAKE_WEBHOOK, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'requestOtp', email }),
+    });
+    if(!res.ok) throw new Error('network');
+    return res.json();
+  }
+
+  async function verifyOtp(email, code){
+    const res = await fetch(MAKE_WEBHOOK, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'verifyOtp', email, code }),
+    });
+    if(!res.ok) throw new Error('network');
+    return res.json();
+  }
+
+  formEmail.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    if(!email) return;
+
+    btnRequestOtp.disabled = true;
+    setStatus(statusEmail, 'Envoi en cours...', '');
+
+    try{
+      await requestOtp(email);
+      currentEmail = email;
+      // Réponse volontairement générique côté serveur (anti-énumération) :
+      // on affiche toujours ce même message, que le compte existe ou non.
+      document.getElementById('otpSentTo').textContent =
+        `Si ${email} est associé à un compte pro validé, un code vient de lui être envoyé.`;
+      screenEmail.classList.remove('active');
+      screenOtp.classList.add('active');
+      otpInput.focus();
+      startResendCooldown();
+    }catch(err){
+      setStatus(statusEmail, "Erreur d'envoi — réessayez dans un instant.", 'err');
+      btnRequestOtp.disabled = false;
+    }
+  });
+
+  formOtp.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = otpInput.value.trim();
+    if(!/^[0-9]{6}$/.test(code)){
+      setStatus(statusOtp, 'Le code doit comporter 6 chiffres.', 'err');
+      return;
+    }
+
+    btnVerifyOtp.disabled = true;
+    setStatus(statusOtp, 'Vérification...', '');
+
+    try{
+      const result = await verifyOtp(currentEmail, code);
+      if(result.ok && result.access){
+        // Réutilise exactement le mécanisme de session déjà en place
+        // (même clé localStorage que le lien magique existant) — les
+        // pages commande-pro-nudura.html / estimation-pro-nudura.html
+        // n'ont besoin d'aucune modification pour reconnaître cette session.
+        localStorage.setItem('scaf_pro_access', result.access);
+        if(result.siret) localStorage.setItem('scaf_pro_siret', result.siret);
+        setStatus(statusOtp, 'Connexion réussie, redirection...', 'ok');
+        setTimeout(() => { window.location.href = REDIRECT_APRES_CONNEXION; }, 600);
+      } else {
+        const messages = {
+          expired: 'Ce code a expiré — demandez-en un nouveau.',
+          too_many_attempts: 'Trop de tentatives — demandez un nouveau code.',
+          invalid_code: 'Code incorrect.',
+        };
+        setStatus(statusOtp, messages[result.error] || 'Code incorrect.', 'err');
+        btnVerifyOtp.disabled = false;
+        otpInput.value = '';
+        otpInput.focus();
+      }
+    }catch(err){
+      setStatus(statusOtp, "Erreur de vérification — réessayez.", 'err');
+      btnVerifyOtp.disabled = false;
+    }
+  });
+
+  btnResend.addEventListener('click', async () => {
+    btnResend.disabled = true;
+    try{
+      await requestOtp(currentEmail);
+      setStatus(statusOtp, 'Nouveau code envoyé.', 'ok');
+      startResendCooldown();
+    }catch(err){
+      setStatus(statusOtp, "Erreur d'envoi — réessayez.", 'err');
+      btnResend.disabled = false;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

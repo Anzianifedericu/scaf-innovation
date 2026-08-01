@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Produit — SCAF Ménage</title>
+<link rel="stylesheet" href="/boutique/assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu</a>
+<header class="site-header"><div id="site-header"></div></header>
+
+<main id="main">
+  <div class="wrap" id="product-root">
+    <div class="empty-state">Chargement du produit…</div>
+  </div>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="/boutique/assets/app.js"></script>
+<script>
+  const sku = new URLSearchParams(location.search).get("sku");
+
+  async function render() {
+    const root = document.getElementById("product-root");
+    if (!sku) {
+      root.innerHTML = `<div class="empty-state">Produit non spécifié. <a href="/boutique/">Retour au catalogue</a></div>`;
+      return;
+    }
+    try {
+      const p = await fetchProduct(sku);
+      if (!p) {
+        root.innerHTML = `<div class="empty-state">Ce produit n'est plus disponible. <a href="/boutique/">Retour au catalogue</a></div>`;
+        return;
+      }
+      document.title = (p.seo_title || p.name) + " — SCAF Ménage";
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement("meta");
+        metaDesc.setAttribute("name", "description");
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute("content", p.seo_description || p.name);
+      root.innerHTML = `
+        <div class="product-layout">
+          <div class="product-media">${productPhoto(p.sku, p.category)}</div>
+          <div class="product-info">
+            <div class="cat-label">${catLabel(p.category)}</div>
+            <h1>${p.name}</h1>
+            <div class="product-price">${priceDisplay(p.price_eur)}</div>
+            ${inStock(p) ? `
+            <div class="qty-row">
+              <div class="qty-control">
+                <button type="button" id="qty-minus" aria-label="Diminuer la quantité">−</button>
+                <input type="text" id="qty-input" value="1" inputmode="numeric" aria-label="Quantité">
+                <button type="button" id="qty-plus" aria-label="Augmenter la quantité">+</button>
+              </div>
+              <button class="btn btn-primary" id="add-btn">Ajouter au panier</button>
+            </div>
+            <div class="stock-badge"><span class="stock-dot"></span> En stock — expédition sous 3 à 5 jours</div>
+            ` : `
+            <div class="stock-out-actions" style="margin:16px 0">
+              <span class="badge-out-of-stock">Actuellement pas en stock</span>
+              <button class="btn btn-dark" onclick='addToPreorderCartFromCard(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Ajouter à ma pré-demande</button>
+            </div>
+            `}
+            ${shareButtons(location.href, p.name)}
+            <div class="product-desc">
+              ${p.description || ""}
+              ${p.weight_kg ? `<br><br>Poids : ${p.weight_kg} kg` : ""}
+            </div>
+          </div>
+        </div>
+      `;
+      const qtyInput = document.getElementById("qty-input");
+      if (qtyInput) {
+        document.getElementById("qty-minus").addEventListener("click", () => {
+          qtyInput.value = Math.max(1, parseInt(qtyInput.value || "1", 10) - 1);
+        });
+        document.getElementById("qty-plus").addEventListener("click", () => {
+          qtyInput.value = parseInt(qtyInput.value || "1", 10) + 1;
+        });
+        document.getElementById("add-btn").addEventListener("click", () => {
+          const qty = Math.max(1, parseInt(qtyInput.value || "1", 10));
+          addToCart(p, qty);
+        });
+      }
+    } catch (err) {
+      root.innerHTML = `<div class="empty-state">Erreur de chargement. <a href="/boutique/">Retour au catalogue</a></div>`;
+    }
+  }
+
+  (async () => {
+    await checkProAccess();
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commande — SCAF Ménage</title>
+<link rel="stylesheet" href="/boutique/assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu</a>
+<header class="site-header"><div id="site-header"></div></header>
+
+<main id="main">
+  <div class="wrap">
+    <h1 style="margin-top:32px">Finaliser la commande</h1>
+    <div class="checkout-layout" id="checkout-root"></div>
+  </div>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="/boutique/assets/app.js"></script>
+<script>
+  const MAKE_ORDER_WEBHOOK_URL = "https://hook.eu1.make.com/jiek8464atq9d2p7idq03c75mu6wp9jr";
+
+  function renderCheckout() {
+    const cart = getCart();
+    const root = document.getElementById("checkout-root");
+    if (cart.length === 0) {
+      root.innerHTML = `<div class="empty-state">Votre panier est vide. <a href="/boutique/">Retour au catalogue</a></div>`;
+      return;
+    }
+    const total = cartTotal(cart);
+    root.innerHTML = `
+      <form id="checkout-form">
+        <div class="form-group">
+          <label for="nom">Nom et prénom</label>
+          <input type="text" id="nom" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" required>
+          </div>
+          <div class="form-group">
+            <label for="telephone">Téléphone</label>
+            <input type="tel" id="telephone" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="adresse">Adresse de livraison</label>
+          <input type="text" id="adresse" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cp">Code postal</label>
+            <input type="text" id="cp" required>
+          </div>
+          <div class="form-group">
+            <label for="ville">Ville</label>
+            <input type="text" id="ville" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="notes">Message (optionnel)</label>
+          <textarea id="notes" rows="3"></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit" id="submit-btn" style="width:100%;justify-content:center">Valider la commande</button>
+        <div class="notice-box">
+          Le paiement en ligne par carte arrive bientôt. Pour l'instant, votre commande est enregistrée et SCAF vous recontacte pour convenir du règlement (virement ou à la livraison).
+        </div>
+      </form>
+      <div class="order-summary">
+        <strong class="display" style="font-size:16px">Récapitulatif</strong>
+        <div style="margin-top:14px">
+          ${cart.map((l) => `<div class="summary-line"><span>${l.qty} × ${l.name}</span><span>${eur(l.price_eur * l.qty)}</span></div>`).join("")}
+        </div>
+        <div class="summary-line total"><span>Total</span><strong>${eur(total)}</strong></div>
+      </div>
+    `;
+
+    document.getElementById("checkout-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true;
+      btn.textContent = "Envoi en cours…";
+      const orderNumber = "SM" + Date.now().toString().slice(-8);
+      const orderPayload = {
+        order_number: orderNumber,
+        nom: document.getElementById("nom").value,
+        email: document.getElementById("email").value,
+        telephone: document.getElementById("telephone").value,
+        adresse: document.getElementById("adresse").value,
+        code_postal: document.getElementById("cp").value,
+        ville: document.getElementById("ville").value,
+        notes: document.getElementById("notes").value || "",
+        total_eur: total,
+        items: cart.map((l) => ({
+          sku: l.sku,
+          nom: l.name,
+          quantite: l.qty,
+          prix_unitaire_eur: l.price_eur,
+        })),
+      };
+      try {
+        const res = await fetch(MAKE_ORDER_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderPayload),
+        });
+        if (!res.ok) throw new Error("webhook failed");
+
+        const data = await res.json();
+        localStorage.removeItem(CART_KEY);
+
+        if (data && data.paypal_approval_url) {
+          // Redirige le client vers PayPal pour finaliser le paiement
+          location.href = data.paypal_approval_url;
+        } else {
+          // Filet de securite si le lien PayPal n'a pas pu etre genere
+          location.href = "/boutique/confirmation.html?order=" + orderNumber;
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Valider la commande";
+        alert("Une erreur est survenue. Merci de réessayer.");
+      }
+    });
+  }
+
+  renderCheckout();
+</script>
+</body>
+</html>

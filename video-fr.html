@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vidéo — Le système Nudura en images | SCAF Innovation</title>
+<meta name="description" content="Découvrez en vidéo le principe du coffrage isolant Nudura, distribué en Corse par SCAF Innovation.">
+<meta name="author" content="SCAF Innovation">
+<link rel="canonical" href="https://www.scafinnovation.corsica/video-fr.html">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%232B2620'/%3E%3Ctext x='50' y='68' font-family='Georgia,serif' font-size='58' font-weight='700' fill='%23C1693E' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --sable:#F4EEE1;
+    --blanc-mur:#FBF7EC;
+    --terracotta:#C1693E;
+    --terracotta-soft:#E0A07C;
+    --maquis:#5C6B4F;
+    --maquis-dark:#46553B;
+    --nuit:#2B2620;
+    --ligne:#C7BCA4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'IBM Plex Sans', sans-serif; color:var(--nuit); background:var(--sable); line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1140px; margin:0 auto; padding:0 28px;}
+  h1,h2{font-family:'Fraunces', serif; font-weight:600; line-height:1.05;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;}
+  a:hover{color:var(--terracotta);}
+  :focus-visible{outline:3px solid var(--terracotta); outline-offset:3px;}
+  .skip-link{position:absolute; left:-9999px; top:0; background:var(--nuit); color:var(--blanc-mur); padding:12px 20px; z-index:100; text-decoration:none;}
+  .skip-link:focus{left:16px; top:16px;}
+
+  header{position:sticky; top:0; z-index:50; background:var(--sable); border-bottom:1px solid var(--ligne);}
+  nav{display:flex; align-items:center; justify-content:space-between; padding:18px 28px; max-width:1140px; margin:0 auto;}
+  .logo{font-family:'Fraunces', serif; font-weight:700; font-size:1.25rem; text-decoration:none;}
+  .logo span{color:var(--terracotta);}
+  .nav-links{display:flex; gap:30px; list-style:none; font-size:0.92rem;}
+  .nav-links a{text-decoration:none; padding-bottom:2px; border-bottom:2px solid transparent; color:var(--nuit);}
+  .nav-links a:hover{border-bottom-color:var(--terracotta); color:var(--nuit);}
+  .nav-links a.active{border-bottom-color:var(--terracotta); font-weight:600;}
+  .btn{display:inline-block; font-family:'IBM Plex Sans',sans-serif; font-weight:600; font-size:0.92rem; padding:12px 24px; background:var(--terracotta); color:var(--blanc-mur); text-decoration:none; border:none; cursor:pointer; transition:background .15s;}
+  .btn:hover{background:#a8572f; color:var(--blanc-mur);}
+  .nav-right{display:flex; align-items:center; gap:16px;}
+  .lang-switch{display:flex; gap:2px; font-family:'IBM Plex Mono',monospace; font-size:0.78rem;}
+  .lang-switch a{padding:4px 8px; text-decoration:none; border:1px solid var(--ligne); color:#6B675C;}
+  .lang-switch a.active{background:var(--nuit); color:var(--blanc-mur); border-color:var(--nuit);}
+  .lang-switch a:not(.active):hover{border-color:var(--terracotta); color:var(--terracotta);}
+  .burger{display:none; flex-direction:column; justify-content:center; gap:5px; width:32px; height:32px; background:none; border:none; cursor:pointer; padding:0;}
+  .burger span{display:block; width:100%; height:2px; background:var(--nuit); transition:transform .2s ease, opacity .2s ease;}
+  .burger[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .burger[aria-expanded="true"] span:nth-child(2){opacity:0;}
+  .burger[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+  .mobile-panel{display:none; flex-direction:column; gap:2px; background:var(--sable); border-bottom:1px solid var(--ligne); padding:6px 28px 20px;}
+  .mobile-panel a{display:block; padding:12px 0; text-decoration:none; font-size:1rem; border-bottom:1px solid var(--ligne); color:var(--nuit);}
+  .mobile-panel .btn{margin-top:14px; text-align:center;}
+  .mobile-panel.is-open{display:flex;}
+  @media (max-width:760px){
+    .nav-links{display:none;}
+    .nav-right .btn{display:none;}
+    .burger{display:flex;}
+  }
+
+  .page-hero{padding:64px 0 44px; border-bottom:1px solid var(--ligne);}
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--terracotta); display:block; margin-bottom:16px;}
+  .page-hero h1{font-size:clamp(2rem,4.4vw,3rem); margin-bottom:18px;}
+  .page-hero p.lede{font-size:1.05rem; max-width:62ch; color:#4B453B;}
+
+  .section{padding:76px 0;}
+  .video-wrap{max-width:860px; margin:0 auto;}
+  video{width:100%; display:block; border:1px solid var(--ligne); background:#000;}
+  .caption{font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:#6B675C; margin-top:14px; text-align:center;}
+
+  footer{background:var(--nuit); color:#A89F8E; padding:34px 0; font-size:0.82rem;}
+  .footer-row{display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Aller au contenu principal</a>
+
+<header>
+  <nav>
+    <a href="fr.html#top" class="logo">SCAF <span>Innovation</span></a>
+    <ul class="nav-links">
+      <li><a href="fr.html#pourquoi">Pourquoi Nudura</a></li>
+      <li><a href="produits-fr.html">Nos produits</a></li>
+      <li><a href="video-fr.html" class="active" aria-current="page">Vidéo</a></li>
+      <li><a href="fr.html#projets">Vos projets</a></li>
+      <li><a href="fr.html#chantier">Le chantier</a></li>
+      <li><a href="fr.html#scaf">Pourquoi SCAF</a></li>
+    </ul>
+    <div class="nav-right">
+      <div class="lang-switch">
+        <a href="index.html" hreflang="co" lang="co">CO</a>
+        <a href="video-fr.html" hreflang="fr" lang="fr" class="active" aria-current="page">FR</a>
+      </div>
+      <a href="fr.html#contact" class="btn">Étude gratuite</a>
+      <button class="burger" id="burger" aria-expanded="false" aria-controls="mobile-panel" aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="mobile-panel" id="mobile-panel">
+    <div class="lang-switch" style="margin-bottom:10px;">
+      <a href="index.html" hreflang="co" lang="co">CO</a>
+      <a href="video-fr.html" hreflang="fr" lang="fr" class="active" aria-current="page">FR</a>
+    </div>
+    <a href="fr.html#pourquoi">Pourquoi Nudura</a>
+    <a href="produits-fr.html">Nos produits</a>
+    <a href="video-fr.html" class="active" aria-current="page">Vidéo</a>
+    <a href="fr.html#projets">Vos projets</a>
+    <a href="fr.html#chantier">Le chantier</a>
+    <a href="fr.html#scaf">Pourquoi SCAF</a>
+    <a href="fr.html#contact" class="btn">Étude gratuite</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Voir le système en action</span>
+      <h1>Nudura, la vidéo</h1>
+      <p class="lede">Le principe du coffrage isolant Nudura, expliqué en images : montage, coulage, résultat fini.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="video-wrap">
+        <video controls playsinline preload="metadata">
+          <source src="nudura-video.mp4" type="video/mp4">
+        </video>
+        <p class="caption">NUDURA ICF — Innovation Makes the Difference</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <span>SCAF Innovation — SIRET 791 805 906 00058 — 20290 Borgo, Haute-Corse</span>
+    <span>© 2026 SCAF Innovation — Tous droits réservés</span>
+  </div>
+</footer>
+
+<script>
+  const burger = document.getElementById('burger');
+  const mobilePanel = document.getElementById('mobile-panel');
+  burger.addEventListener('click', function(){
+    const isOpen = mobilePanel.classList.toggle('is-open');
+    burger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    burger.setAttribute('aria-label', isOpen ? 'Fermer le menu' : 'Ouvrir le menu');
+  });
+  mobilePanel.querySelectorAll('a').forEach(function(link){
+    link.addEventListener('click', function(){
+      mobilePanel.classList.remove('is-open');
+      burger.setAttribute('aria-expanded', 'false');
+      burger.setAttribute('aria-label', 'Ouvrir le menu');
+    });
+  });
+</script>
+
+</body>
+</html>

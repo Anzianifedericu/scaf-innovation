@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demande d'étude personnalisée Nudura — SCAF Innovation</title>
+<meta name="description" content="Demandez une étude personnalisée pour votre projet de construction en système ICF Nudura en Corse. Réponse sous 48h ouvrées, sans engagement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue-900:#0A3D66;
+    --blue-700:#0F5FA0;
+    --blue-600:#1571BA;
+    --blue-500:#2E8FD6;
+    --sky-100:#EAF3FB;
+    --sky-50:#F5F9FD;
+    --white:#FFFFFF;
+    --gray-900:#1B2430;
+    --gray-700:#3D4753;
+    --gray-500:#68727D;
+    --gray-300:#D3DBE3;
+    --gray-200:#E6EBF0;
+    --gray-100:#F3F5F8;
+    --green-600:#1E8E5A;
+    --red-600:#C0392B;
+    --radius:10px;
+    --shadow:0 2px 6px rgba(10,61,102,0.06), 0 12px 32px rgba(10,61,102,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    color:var(--gray-900);
+    background:var(--sky-50);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  :focus-visible{outline:3px solid var(--blue-500); outline-offset:2px;}
+  a{color:var(--blue-700);}
+
+  /* ---------- HEADER / HERO ---------- */
+  .topbar{
+    background:var(--blue-900);
+    color:#DCEBF7;
+    font-size:0.82rem;
+    padding:8px 0;
+    text-align:center;
+    letter-spacing:0.02em;
+  }
+  .topbar strong{color:var(--white);}
+  header.hero{
+    background:linear-gradient(160deg, var(--blue-900) 0%, var(--blue-700) 55%, var(--blue-600) 100%);
+    color:var(--white);
+    padding:52px 24px 64px;
+  }
+  .hero-inner{max-width:760px; margin:0 auto; text-align:center;}
+  .logo-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:28px;}
+  .logo-link{display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;}
+  .pro-login-link{
+    display:flex; align-items:center; gap:7px;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.3);
+    color:var(--white); text-decoration:none;
+    padding:9px 16px; border-radius:100px;
+    font-size:0.84rem; font-weight:600;
+    transition:background .15s, border-color .15s;
+    white-space:nowrap;
+  }
+  .pro-login-link:hover{background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.5);}
+  .pro-login-link svg{flex:0 0 auto;}
+  .logo-mark{
+    width:38px; height:38px; border-radius:8px;
+    background:var(--white); color:var(--blue-700);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.05rem;
+  }
+  .logo-text{font-weight:700; font-size:1.05rem; letter-spacing:0.01em;}
+  .logo-text span{font-weight:400; opacity:0.85;}
+  .eyebrow{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:0.76rem;
+    letter-spacing:0.14em; text-transform:uppercase; color:#BFE0FA;
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.22);
+    padding:6px 14px; border-radius:100px; margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(28px,4vw,40px);
+    font-weight:800;
+    line-height:1.12;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  .hero-lede{
+    font-size:1.05rem; color:#DCEBF7; max-width:560px; margin:0 auto;
+  }
+  .hero-badges{
+    display:flex; flex-wrap:wrap; justify-content:center; gap:12px;
+    margin-top:30px;
+  }
+  .hero-badge{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.22);
+    padding:9px 16px; border-radius:100px; font-size:0.86rem; font-weight:500;
+  }
+  .hero-badge svg{flex:0 0 auto;}
+
+  /* ---------- LAYOUT ---------- */
+  main{max-width:760px; margin:-36px auto 80px; padding:0 20px;}
+  .form-card{
+    background:var(--white);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--gray-200);
+    padding:40px;
+  }
+  fieldset{border:none; margin:0 0 36px; padding:0;}
+  fieldset:last-of-type{margin-bottom:0;}
+  legend{
+    display:flex; align-items:center; gap:10px;
+    font-size:1.02rem; font-weight:700; color:var(--blue-900);
+    padding:0 0 18px; width:100%;
+    border-bottom:1px solid var(--gray-200);
+    margin-bottom:22px;
+  }
+  legend .step-num{
+    flex:0 0 26px; height:26px; width:26px; border-radius:50%;
+    background:var(--sky-100); color:var(--blue-700);
+    font-family:'IBM Plex Mono',monospace; font-size:0.78rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;}
+  .field{margin-bottom:18px;}
+  .field:last-child{margin-bottom:0;}
+  .field.full{grid-column:1 / -1;}
+  label{
+    display:block; font-size:0.86rem; font-weight:600; color:var(--gray-700);
+    margin-bottom:7px;
+  }
+  label .opt{font-weight:400; color:var(--gray-500);}
+  .req{color:var(--blue-600);}
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+  select, textarea{
+    width:100%; padding:12px 14px; border-radius:8px;
+    border:1.5px solid var(--gray-300); background:var(--white);
+    font-family:'Inter',sans-serif; font-size:0.95rem; color:var(--gray-900);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input::placeholder, textarea::placeholder{color:#9AA5B1;}
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--blue-600); box-shadow:0 0 0 3px rgba(21,113,186,0.14); outline:none;
+  }
+  input:invalid:not(:placeholder-shown){border-color:var(--red-600);}
+  textarea{resize:vertical; min-height:160px; line-height:1.6;}
+  select{appearance:none; background:var(--white) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" stroke="%2368727D" stroke-width="1.6" fill="none" fill-rule="evenodd"/></svg>') no-repeat right 14px center; padding-right:38px;}
+
+  .hint{font-size:0.8rem; color:var(--gray-500); margin-top:6px;}
+
+  /* Vous êtes — cards */
+  .role-group{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  .role-option{position:relative;}
+  .role-option input{position:absolute; opacity:0; inset:0; width:100%; height:100%; cursor:pointer; margin:0;}
+  .role-option label{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    text-align:center; padding:16px 8px; border-radius:10px;
+    border:1.5px solid var(--gray-300); background:var(--white);
+    font-weight:600; font-size:0.86rem; color:var(--gray-700);
+    cursor:pointer; transition:all .15s; margin:0;
+  }
+  .role-option label svg{color:var(--gray-500); transition:color .15s;}
+  .role-option input:checked + label{
+    border-color:var(--blue-600); background:var(--sky-100); color:var(--blue-900);
+  }
+  .role-option input:checked + label svg{color:var(--blue-600);}
+  .role-option input:focus-visible + label{outline:3px solid var(--blue-500); outline-offset:2px;}
+
+  /* File upload */
+  .dropzone{
+    border:1.5px dashed var(--gray-300); border-radius:10px; background:var(--sky-50);
+    padding:26px 20px; text-align:center; position:relative; transition:border-color .15s, background .15s;
+  }
+  .dropzone.drag-over{border-color:var(--blue-600); background:var(--sky-100);}
+  .dropzone input[type="file"]{position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;}
+  .dropzone svg{color:var(--blue-600); margin-bottom:10px;}
+  .dropzone .dz-title{font-weight:600; font-size:0.92rem; color:var(--gray-900);}
+  .dropzone .dz-title span{color:var(--blue-700); text-decoration:underline;}
+  .dropzone .dz-rules{font-size:0.78rem; color:var(--gray-500); margin-top:8px;}
+  #file-list{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  #file-list li{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--white); border:1px solid var(--gray-200); border-radius:6px;
+    padding:8px 12px; font-size:0.82rem; color:var(--gray-700);
+  }
+  #file-list li .file-remove{
+    background:none; border:none; color:var(--gray-500); cursor:pointer; font-size:0.95rem; line-height:1; padding:2px 4px;
+  }
+  #file-list li .file-remove:hover{color:var(--red-600);}
+  #file-error{color:var(--red-600); font-size:0.8rem; margin-top:8px; display:none;}
+
+  /* RGPD */
+  .consent{
+    display:flex; gap:12px; align-items:flex-start; background:var(--gray-100);
+    border-radius:10px; padding:16px 18px; margin-top:8px;
+  }
+  .consent input[type="checkbox"]{
+    flex:0 0 auto; width:20px; height:20px; margin-top:2px; accent-color:var(--blue-600); cursor:pointer;
+  }
+  .consent label{font-size:0.83rem; color:var(--gray-700); font-weight:400; margin:0; cursor:pointer;}
+  .consent a{color:var(--blue-700); font-weight:600;}
+
+  /* Submit */
+  .submit-row{margin-top:32px; text-align:center;}
+  button.submit-btn{
+    display:inline-flex; align-items:center; gap:10px; justify-content:center;
+    width:100%; background:var(--blue-600); color:var(--white); border:none;
+    padding:17px 28px; border-radius:10px; font-size:1.02rem; font-weight:700;
+    cursor:pointer; transition:background .15s, transform .1s;
+    box-shadow:0 8px 20px rgba(21,113,186,0.28);
+  }
+  button.submit-btn:hover{background:var(--blue-700);}
+  button.submit-btn:active{transform:translateY(1px);}
+  button.submit-btn:disabled{background:var(--gray-300); color:var(--gray-500); box-shadow:none; cursor:not-allowed;}
+  .submit-note{font-size:0.8rem; color:var(--gray-500); margin-top:14px;}
+  .submit-note svg{vertical-align:-3px; margin-right:4px; color:var(--blue-600);}
+
+  .form-error-banner{
+    display:none; background:#FCEEEC; border:1px solid #F1C4BD; color:var(--red-600);
+    border-radius:8px; padding:12px 16px; font-size:0.86rem; margin-bottom:24px; font-weight:600;
+  }
+
+  /* ---------- CONFIRMATION ---------- */
+  .confirm-card{
+    background:var(--white); border-radius:16px; box-shadow:var(--shadow);
+    border:1px solid var(--gray-200); padding:56px 40px; text-align:center; display:none;
+  }
+  .confirm-icon{
+    width:64px; height:64px; border-radius:50%; background:#E7F6EE; color:var(--green-600);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 22px;
+  }
+  .confirm-card h2{font-size:1.5rem; margin:0 0 12px; color:var(--gray-900);}
+  .confirm-card p{color:var(--gray-500); max-width:420px; margin:0 auto 6px;}
+  .confirm-ref{
+    display:inline-block; margin-top:18px; font-family:'IBM Plex Mono',monospace; font-size:0.8rem;
+    background:var(--gray-100); color:var(--gray-700); padding:8px 14px; border-radius:6px;
+  }
+  .confirm-steps{
+    text-align:left; max-width:420px; margin:28px auto 0; padding:20px 22px;
+    background:var(--sky-50); border-radius:10px; border:1px solid var(--sky-100);
+  }
+  .confirm-steps li{font-size:0.86rem; color:var(--gray-700); margin-bottom:8px;}
+  .confirm-steps li:last-child{margin-bottom:0;}
+  .confirm-actions{margin-top:30px;}
+  .btn-secondary{
+    display:inline-block; background:var(--white); color:var(--blue-700); border:1.5px solid var(--gray-300);
+    padding:12px 22px; border-radius:8px; font-weight:600; font-size:0.9rem; text-decoration:none; cursor:pointer;
+  }
+  .btn-secondary:hover{border-color:var(--blue-600);}
+
+  footer{text-align:center; padding:30px 20px 50px; color:var(--gray-500); font-size:0.8rem;}
+
+  @media (max-width:640px){
+    .grid, .grid-3{grid-template-columns:1fr;}
+    .role-group{grid-template-columns:1fr 1fr;}
+    .form-card, .confirm-card{padding:26px 20px;}
+    header.hero{padding:40px 18px 56px;}
+    .pro-login-link{padding:8px 12px; font-size:0.78rem;}
+    .logo-text{font-size:0.92rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">Système constructif <strong>Nudura ICF</strong> — Distributeur exclusif en Corse</div>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="logo-row">
+      <a href="fr.html" class="logo-link">
+        <div class="logo-mark">S</div>
+        <div class="logo-text">SCAF <span>Innovation</span></div>
+      </a>
+      <a href="connexion-pro.html" class="pro-login-link">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Espace Pro
+      </a>
+    </div>
+    <span class="eyebrow">Étude gratuite &amp; sans engagement</span>
+    <h1>Demande d'étude personnalisée Nudura</h1>
+    <p class="hero-lede">Décrivez votre projet en quelques minutes : nous revenons vers vous sous 48h ouvrées avec une première estimation et les prochaines étapes.</p>
+    <div class="hero-badges">
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Réponse sous 48h ouvrées
+      </span>
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+        Étude 100% gratuite
+      </span>
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        Données protégées (RGPD)
+      </span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- FORMULAIRE -->
+  <form class="form-card" id="etude-form" name="etude-nudura" method="POST" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data" action="/merci-fr.html" novalidate>
+
+    <input type="hidden" name="form-name" value="etude-nudura">
+    <p style="position:absolute; left:-9999px;" aria-hidden="true"><label>Ne pas remplir : <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+
+    <div class="form-error-banner" id="form-error-banner">Merci de vérifier les champs signalés en rouge avant d'envoyer votre demande.</div>
+    <div class="form-error-banner" id="form-network-error">Une erreur est survenue lors de l'envoi. Merci de réessayer, ou de nous contacter directement au 04 95 61 88 36 ou par email à scafinnovation@gmail.com.</div>
+
+    <!-- Étape 1 : Profil -->
+    <fieldset>
+      <legend><span class="step-num">1</span>Vous êtes</legend>
+      <div class="role-group" role="radiogroup" aria-label="Vous êtes">
+        <div class="role-option">
+          <input type="radio" id="role-particulier" name="Vous êtes" value="Particulier" checked>
+          <label for="role-particulier">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            Particulier
+          </label>
+        </div>
+        <div class="role-option">
+          <input type="radio" id="role-pro" name="Vous êtes" value="Professionnel">
+          <label for="role-pro">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Professionnel
+          </label>
+        </div>
+        <div class="role-option">
+          <input type="radio" id="role-artisan" name="Vous êtes" value="Artisan">
+          <label for="role-artisan">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6l4 4-9 9-4 1 1-4 8-8z"/><path d="M13 7l4 4"/></svg>
+            Artisan
+          </label>
+        </div>
+        <div class="role-option">
+          <input type="radio" id="role-promoteur" name="Vous êtes" value="Promoteur">
+          <label for="role-promoteur">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18"/><path d="M5 21V9l6-4 6 4v12"/><path d="M9 21v-5h4v5"/></svg>
+            Promoteur
+          </label>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Étape 2 : Coordonnées -->
+    <fieldset>
+      <legend><span class="step-num">2</span>Vos coordonnées</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="prenom">Prénom <span class="req">*</span></label>
+          <input type="text" id="prenom" name="Prénom" autocomplete="given-name" required>
+        </div>
+        <div class="field">
+          <label for="nom">Nom <span class="req">*</span></label>
+          <input type="text" id="nom" name="Nom" autocomplete="family-name" required>
+        </div>
+        <div class="field">
+          <label for="email">Email <span class="req">*</span></label>
+          <input type="email" id="email" name="Email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="tel">Téléphone <span class="req">*</span></label>
+          <input type="tel" id="tel" name="Téléphone" autocomplete="tel" placeholder="06 12 34 56 78" required>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Étape 3 : Localisation -->
+    <fieldset>
+      <legend><span class="step-num">3</span>Localisation du projet</legend>
+      <div class="field full">
+        <label for="adresse">Adresse du terrain <span class="opt">(optionnel)</span></label>
+        <input type="text" id="adresse" name="Adresse" placeholder="N°, rue ou lieu-dit">
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <label for="cp">Code postal <span class="req">*</span></label>
+          <input type="text" id="cp" name="Code postal" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="20290" required>
+        </div>
+        <div class="field">
+          <label for="ville">Ville <span class="req">*</span></label>
+          <input type="text" id="ville" name="Ville" placeholder="Borgo" required>
+        </div>
+        <div class="field">
+          <label for="departement">Département <span class="req">*</span></label>
+          <select id="departement" name="Département" required>
+            <option value="" disabled selected>Choisir...</option>
+            <optgroup label="Métropole">
+              <option value="01 - Ain">01 - Ain</option>
+              <option value="02 - Aisne">02 - Aisne</option>
+              <option value="03 - Allier">03 - Allier</option>
+              <option value="04 - Alpes-de-Haute-Provence">04 - Alpes-de-Haute-Provence</option>
+              <option value="05 - Hautes-Alpes">05 - Hautes-Alpes</option>
+              <option value="06 - Alpes-Maritimes">06 - Alpes-Maritimes</option>
+              <option value="07 - Ardèche">07 - Ardèche</option>
+              <option value="08 - Ardennes">08 - Ardennes</option>
+              <option value="09 - Ariège">09 - Ariège</option>
+              <option value="10 - Aube">10 - Aube</option>
+              <option value="11 - Aude">11 - Aude</option>
+              <option value="12 - Aveyron">12 - Aveyron</option>
+              <option value="13 - Bouches-du-Rhône">13 - Bouches-du-Rhône</option>
+              <option value="14 - Calvados">14 - Calvados</option>
+              <option value="15 - Cantal">15 - Cantal</option>
+              <option value="16 - Charente">16 - Charente</option>
+              <option value="17 - Charente-Maritime">17 - Charente-Maritime</option>
+              <option value="18 - Cher">18 - Cher</option>
+              <option value="19 - Corrèze">19 - Corrèze</option>
+              <option value="2A - Corse-du-Sud">2A - Corse-du-Sud</option>
+              <option value="2B - Haute-Corse">2B - Haute-Corse</option>
+              <option value="21 - Côte-d'Or">21 - Côte-d'Or</option>
+              <option value="22 - Côtes-d'Armor">22 - Côtes-d'Armor</option>
+              <option value="23 - Creuse">23 - Creuse</option>
+              <option value="24 - Dordogne">24 - Dordogne</option>
+              <option value="25 - Doubs">25 - Doubs</option>
+              <option value="26 - Drôme">26 - Drôme</option>
+              <option value="27 - Eure">27 - Eure</option>
+              <option value="28 - Eure-et-Loir">28 - Eure-et-Loir</option>
+              <option value="29 - Finistère">29 - Finistère</option>
+              <option value="30 - Gard">30 - Gard</option>
+              <option value="31 - Haute-Garonne">31 - Haute-Garonne</option>
+              <option value="32 - Gers">32 - Gers</option>
+              <option value="33 - Gironde">33 - Gironde</option>
+              <option value="34 - Hérault">34 - Hérault</option>
+              <option value="35 - Ille-et-Vilaine">35 - Ille-et-Vilaine</option>
+              <option value="36 - Indre">36 - Indre</option>
+              <option value="37 - Indre-et-Loire">37 - Indre-et-Loire</option>
+              <option value="38 - Isère">38 - Isère</option>
+              <option value="39 - Jura">39 - Jura</option>
+              <option value="40 - Landes">40 - Landes</option>
+              <option value="41 - Loir-et-Cher">41 - Loir-et-Cher</option>
+              <option value="42 - Loire">42 - Loire</option>
+              <option value="43 - Haute-Loire">43 - Haute-Loire</option>
+              <option value="44 - Loire-Atlantique">44 - Loire-Atlantique</option>
+              <option value="45 - Loiret">45 - Loiret</option>
+              <option value="46 - Lot">46 - Lot</option>
+              <option value="47 - Lot-et-Garonne">47 - Lot-et-Garonne</option>
+              <option value="48 - Lozère">48 - Lozère</option>
+              <option value="49 - Maine-et-Loire">49 - Maine-et-Loire</option>
+              <option value="50 - Manche">50 - Manche</option>
+              <option value="51 - Marne">51 - Marne</option>
+              <option value="52 - Haute-Marne">52 - Haute-Marne</option>
+              <option value="53 - Mayenne">53 - Mayenne</option>
+              <option value="54 - Meurthe-et-Moselle">54 - Meurthe-et-Moselle</option>
+              <option value="55 - Meuse">55 - Meuse</option>
+              <option value="56 - Morbihan">56 - Morbihan</option>
+              <option value="57 - Moselle">57 - Moselle</option>
+              <option value="58 - Nièvre">58 - Nièvre</option>
+              <option value="59 - Nord">59 - Nord</option>
+              <option value="60 - Oise">60 - Oise</option>
+              <option value="61 - Orne">61 - Orne</option>
+              <option value="62 - Pas-de-Calais">62 - Pas-de-Calais</option>
+              <option value="63 - Puy-de-Dôme">63 - Puy-de-Dôme</option>
+              <option value="64 - Pyrénées-Atlantiques">64 - Pyrénées-Atlantiques</option>
+              <option value="65 - Hautes-Pyrénées">65 - Hautes-Pyrénées</option>
+              <option value="66 - Pyrénées-Orientales">66 - Pyrénées-Orientales</option>
+              <option value="67 - Bas-Rhin">67 - Bas-Rhin</option>
+              <option value="68 - Haut-Rhin">68 - Haut-Rhin</option>
+              <option value="69 - Rhône">69 - Rhône</option>
+              <option value="70 - Haute-Saône">70 - Haute-Saône</option>
+              <option value="71 - Saône-et-Loire">71 - Saône-et-Loire</option>
+              <option value="72 - Sarthe">72 - Sarthe</option>
+              <option value="73 - Savoie">73 - Savoie</option>
+              <option value="74 - Haute-Savoie">74 - Haute-Savoie</option>
+              <option value="75 - Paris">75 - Paris</option>
+              <option value="76 - Seine-Maritime">76 - Seine-Maritime</option>
+              <option value="77 - Seine-et-Marne">77 - Seine-et-Marne</option>
+              <option value="78 - Yvelines">78 - Yvelines</option>
+              <option value="79 - Deux-Sèvres">79 - Deux-Sèvres</option>
+              <option value="80 - Somme">80 - Somme</option>
+              <option value="81 - Tarn">81 - Tarn</option>
+              <option value="82 - Tarn-et-Garonne">82 - Tarn-et-Garonne</option>
+              <option value="83 - Var">83 - Var</option>
+              <option value="84 - Vaucluse">84 - Vaucluse</option>
+              <option value="85 - Vendée">85 - Vendée</option>
+              <option value="86 - Vienne">86 - Vienne</option>
+              <option value="87 - Haute-Vienne">87 - Haute-Vienne</option>
+              <option value="88 - Vosges">88 - Vosges</option>
+              <option value="89 - Yonne">89 - Yonne</option>
+              <option value="90 - Territoire de Belfort">90 - Territoire de Belfort</option>
+              <option value="91 - Essonne">91 - Essonne</option>
+              <option value="92 - Hauts-de-Seine">92 - Hauts-de-Seine</option>
+              <option value="93 - Seine-Saint-Denis">93 - Seine-Saint-Denis</option>
+              <option value="94 - Val-de-Marne">94 - Val-de-Marne</option>
+              <option value="95 - Val-d'Oise">95 - Val-d'Oise</option>
+            </optgroup>
+            <optgroup label="Outre-mer">
+              <option value="971 - Guadeloupe">971 - Guadeloupe</option>
+              <option value="972 - Martinique">972 - Martinique</option>
+              <option value="973 - Guyane">973 - Guyane</option>
+              <option value="974 - La Réunion">974 - La Réunion</option>
+              <option value="976 - Mayotte">976 - Mayotte</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Étape 4 : Projet -->
+    <fieldset>
+      <legend><span class="step-num">4</span>Votre projet</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="type-projet">Type de projet <span class="req">*</span></label>
+          <select id="type-projet" name="Type de projet" required>
+            <option value="" disabled selected>Choisir...</option>
+            <option value="Construction neuve">Construction neuve</option>
+            <option value="Extension">Extension</option>
+            <option value="Rénovation / réhabilitation">Rénovation / réhabilitation</option>
+            <option value="Bâtiment professionnel">Bâtiment professionnel</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="surface">Surface envisagée <span class="opt">(m²)</span></label>
+          <input type="number" id="surface" name="Surface envisagée (m²)" min="1" placeholder="120">
+        </div>
+        <div class="field">
+          <label for="delai">Délai souhaité <span class="opt">(optionnel)</span></label>
+          <select id="delai" name="Délai souhaité">
+            <option value="" selected>Choisir...</option>
+            <option value="Dès que possible">Dès que possible</option>
+            <option value="Dans les 3 mois">Dans les 3 mois</option>
+            <option value="Dans les 6 mois">Dans les 6 mois</option>
+            <option value="Dans plus d'un an">Dans plus d'un an</option>
+            <option value="Pas encore défini">Pas encore défini</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="budget">Budget indicatif <span class="opt">(optionnel)</span></label>
+          <select id="budget" name="Budget indicatif">
+            <option value="" selected>Choisir...</option>
+            <option value="Moins de 150 000 €">Moins de 150 000 €</option>
+            <option value="150 000 – 250 000 €">150 000 – 250 000 €</option>
+            <option value="250 000 – 400 000 €">250 000 – 400 000 €</option>
+            <option value="Plus de 400 000 €">Plus de 400 000 €</option>
+            <option value="Non défini">Non défini</option>
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Étape 5 : Documents -->
+    <fieldset>
+      <legend><span class="step-num">5</span>Documents <span class="opt" style="font-weight:400;font-size:0.85rem;">(optionnel)</span></legend>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fichiers" name="Fichiers[]" multiple accept=".pdf,.jpg,.jpeg,.png,.dwg">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3m0 0L7 8m5-5l5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <div class="dz-title">Glissez vos fichiers ici ou <span>parcourez</span></div>
+        <div class="dz-rules">Plans, extrait cadastral, photos du terrain — PDF, JPG, PNG ou DWG · 5 fichiers max · 10 Mo par fichier (25 Mo au total)</div>
+      </div>
+      <ul id="file-list"></ul>
+      <p id="file-error">Limite atteinte : 5 fichiers maximum ou 25 Mo au total. Certains fichiers n'ont pas été ajoutés.</p>
+    </fieldset>
+
+    <!-- Étape 6 : Précisions -->
+    <fieldset>
+      <legend><span class="step-num">6</span>Précisions sur votre projet</legend>
+      <div class="field full">
+        <label for="precisions">Décrivez votre projet <span class="opt">(optionnel mais recommandé)</span></label>
+        <textarea id="precisions" name="Précisions" placeholder="Ex : Nous souhaitons construire une villa de plain-pied d'environ 120 m² sur un terrain en pente, avec 3 chambres, un garage et une piscine. Le terrain est viabilisé / non viabilisé. Nous avons déjà un permis de construire déposé / à déposer. Nous sommes intéressés par l'isolation renforcée Nudura pour le climat corse. Toute contrainte particulière (accès chantier, zone sismique, PLU, servitude...) est utile à connaître."></textarea>
+        <p class="hint">Plus votre description est précise, plus notre première estimation sera fiable.</p>
+      </div>
+    </fieldset>
+
+    <!-- RGPD -->
+    <div class="consent">
+      <input type="checkbox" id="rgpd" name="Consentement RGPD" required>
+      <label for="rgpd">J'accepte que les informations transmises via ce formulaire soient utilisées par SCAF Innovation pour traiter ma demande d'étude, conformément à la <a href="#confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>. Ces données ne seront ni revendues ni transmises à des tiers, et sont conservées le temps nécessaire au traitement de la demande. <span class="req">*</span></label>
+    </div>
+
+    <div class="submit-row">
+      <button type="submit" class="submit-btn" id="submit-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Envoyer ma demande d'étude
+      </button>
+      <p class="submit-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Vos données sont transmises de façon sécurisée. Aucun engagement, aucun frais.
+      </p>
+    </div>
+  </form>
+
+  <!-- CONFIRMATION -->
+  <div class="confirm-card" id="confirm-card">
+    <div class="confirm-icon">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <h2>Votre demande a bien été envoyée</h2>
+    <p>Merci, nous avons bien reçu les informations de votre projet. Un membre de l'équipe SCAF Innovation revient vers vous sous <strong>48h ouvrées</strong>.</p>
+    <div class="confirm-ref" id="confirm-ref">Référence : —</div>
+    <ul class="confirm-steps">
+      <li>1. Nous étudions les éléments transmis (localisation, surface, documents).</li>
+      <li>2. Nous vous contactons par téléphone ou email pour affiner le projet.</li>
+      <li>3. Vous recevez une première estimation et les prochaines étapes.</li>
+    </ul>
+    <div class="confirm-actions">
+      <button type="button" class="btn-secondary" id="new-request-btn">Envoyer une nouvelle demande</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  SCAF Innovation — SIRET 791 805 906 00058 — 775 Avenue de Valrose, 20290 Borgo, Haute-Corse<br>
+  Distributeur exclusif du système constructif Nudura en Corse
+</footer>
+
+<script>
+(function(){
+  const form = document.getElementById('etude-form');
+  const formCard = form;
+  const confirmCard = document.getElementById('confirm-card');
+  const errorBanner = document.getElementById('form-error-banner');
+  const networkError = document.getElementById('form-network-error');
+  const submitBtn = document.getElementById('submit-btn');
+
+  /* ---- Gestion des fichiers ---- */
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fichiers');
+  const fileListEl = document.getElementById('file-list');
+  const fileError = document.getElementById('file-error');
+  const MAX_FILES = 5;
+  const MAX_TOTAL = 25 * 1024 * 1024;
+  let selectedFiles = [];
+
+  function formatSize(bytes){
+    if(bytes < 1024*1024) return Math.round(bytes/1024) + ' Ko';
+    return (bytes/(1024*1024)).toFixed(1) + ' Mo';
+  }
+
+  function renderFileList(){
+    fileListEl.innerHTML = '';
+    selectedFiles.forEach((file, idx) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + file.name + ' — ' + formatSize(file.size) + '</span>';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'file-remove';
+      btn.setAttribute('aria-label', 'Retirer ' + file.name);
+      btn.innerHTML = '✕';
+      btn.addEventListener('click', () => { selectedFiles.splice(idx,1); renderFileList(); });
+      li.appendChild(btn);
+      fileListEl.appendChild(li);
+    });
+    syncFileInput();
+  }
+
+  function syncFileInput(){
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    fileInput.files = dt.files;
+  }
+
+  function addFiles(newFiles){
+    fileError.style.display = 'none';
+    let rejected = false;
+    for(const f of Array.from(newFiles)){
+      if(selectedFiles.length >= MAX_FILES){ rejected = true; break; }
+      const total = selectedFiles.reduce((s,x)=>s+x.size,0) + f.size;
+      if(total > MAX_TOTAL){ rejected = true; continue; }
+      selectedFiles.push(f);
+    }
+    if(rejected){ fileError.style.display = 'block'; }
+    renderFileList();
+  }
+
+  fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+  ['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, (e) => {
+    e.preventDefault(); dropzone.classList.add('drag-over');
+  }));
+  ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, (e) => {
+    e.preventDefault(); dropzone.classList.remove('drag-over');
+  }));
+  dropzone.addEventListener('drop', (e) => { if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  /* ---- Code postal → suggestion simple ---- */
+  document.getElementById('cp').addEventListener('input', function(){
+    this.value = this.value.replace(/[^0-9]/g,'').slice(0,5);
+  });
+
+  /* ---- Validation + envoi ---- */
+  form.addEventListener('submit', function(e){
+    if(!form.checkValidity()){
+      e.preventDefault();
+      form.reportValidity();
+      errorBanner.style.display = 'block';
+      return;
+    }
+    errorBanner.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi en cours...';
+    // Pas de preventDefault ici : le navigateur envoie le formulaire nativement
+    // (nécessaire pour que Netlify traite correctement les fichiers joints),
+    // puis redirige vers merci-fr.html.
+  });
+
+  document.getElementById('new-request-btn').addEventListener('click', function(){
+    form.reset();
+    selectedFiles = [];
+    renderFileList();
+    confirmCard.style.display = 'none';
+    formCard.style.display = 'block';
+    formCard.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+})();
+</script>
+
+</body>
+</html>

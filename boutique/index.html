@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCAF Ménage — Produits d'entretien pour la maison, livrés en Corse</title>
+<meta name="description" content="Sacs, éponges, chiffons, kits de nettoyage et accessoires ménagers. Catalogue complet, livraison en Corse, par SCAF Innovation.">
+<link rel="stylesheet" href="/boutique/assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu</a>
+<header class="site-header"><div id="site-header"></div></header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="hero-tag">Nouveau · Livré en Corse</span>
+        <h1>Le nécessaire du ménage, sans y penser deux fois.</h1>
+        <p>Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse.</p>
+        <a href="#catalogue" class="btn btn-primary">Voir le catalogue</a>
+        <div id="hero-share"></div>
+      </div>
+      <div class="clothesline" aria-hidden="true">
+        <svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg">
+          <line x1="10" y1="40" x2="310" y2="40" stroke="#7C93B8" stroke-width="2"/>
+          <g class="peg" style="transform-origin:70px 40px">
+            <rect x="50" y="40" width="40" height="55" rx="3" fill="#D9C74A"/>
+            <line x1="70" y1="30" x2="70" y2="42" stroke="#7C93B8" stroke-width="2"/>
+          </g>
+          <g class="peg" style="transform-origin:160px 40px">
+            <rect x="135" y="40" width="50" height="65" rx="3" fill="#F0EEE4"/>
+            <line x1="160" y1="30" x2="160" y2="42" stroke="#7C93B8" stroke-width="2"/>
+          </g>
+          <g class="peg" style="transform-origin:250px 40px">
+            <rect x="230" y="40" width="40" height="48" rx="3" fill="#4F7A6B"/>
+            <line x1="250" y1="30" x2="250" y2="42" stroke="#7C93B8" stroke-width="2"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="filter-row" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <input type="search" id="search-box" class="filter-select" placeholder="Rechercher un produit, une référence…" style="flex:1;min-width:220px;cursor:text" autocomplete="off">
+      <select id="dept-select" class="filter-select"></select>
+      <select id="cat-select" class="filter-select"></select>
+    </div>
+
+    <div class="section-title" id="catalogue">
+      <div>
+        <div class="eyebrow" id="cat-count-label">Catalogue</div>
+        <h2 id="section-heading" style="font-size:22px">Tous les produits</h2>
+      </div>
+    </div>
+
+    <div id="grid" class="grid" aria-live="polite"></div>
+  </div>
+
+  <section class="trust-strip">
+    <div class="wrap trust-grid">
+      <div class="trust-item"><strong>Livraison Corse</strong>Toute l'île, y compris les communes rurales</div>
+      <div class="trust-item"><strong>Marques Parex &amp; Trend</strong>Fournisseur historique du secteur ménager</div>
+      <div class="trust-item"><strong>Par SCAF Innovation</strong>SARL établie à Borgo depuis plusieurs années</div>
+      <div class="trust-item"><strong>Commande simple</strong>Sans compte obligatoire</div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="/boutique/assets/app.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const activeCategory = params.get("cat");
+  const activeDepartment = params.get("dept") || "menage";
+
+  function renderDeptStrip() {
+    const sel = document.getElementById("dept-select");
+    sel.innerHTML = Object.keys(DEPARTMENTS)
+      .map((d) => `<option value="${d}" ${activeDepartment === d ? "selected" : ""}>${deptLabel(d)}</option>`)
+      .join("");
+    sel.addEventListener("change", () => {
+      location.href = `/boutique/?dept=${encodeURIComponent(sel.value)}`;
+    });
+  }
+
+  async function renderCategoryStrip() {
+    const cats = await fetchCategories(activeDepartment);
+    const sel = document.getElementById("cat-select");
+    let options = `<option value="">Toutes les catégories</option>`;
+    options += cats
+      .map((c) => `<option value="${c}" ${activeCategory === c ? "selected" : ""}>${catLabel(c)}</option>`)
+      .join("");
+    sel.innerHTML = options;
+    sel.disabled = cats.length === 0;
+    sel.addEventListener("change", () => {
+      const deptQs = `dept=${encodeURIComponent(activeDepartment)}`;
+      const catQs = sel.value ? `&cat=${encodeURIComponent(sel.value)}` : "";
+      location.href = `/boutique/?${deptQs}${catQs}`;
+    });
+  }
+
+  let currentProducts = []; // cache des produits du departement+categorie actifs, pour un filtrage recherche instantane
+
+  function normalize(s) {
+    return (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function matchesSearch(p, q) {
+    if (!q) return true;
+    return (
+      normalize(p.name).includes(q) ||
+      normalize(p.sku).includes(q) ||
+      normalize(p.description).includes(q)
+    );
+  }
+
+  function renderProductList(products) {
+    const grid = document.getElementById("grid");
+    const q = normalize(document.getElementById("search-box").value);
+    const filtered = products.filter((p) => matchesSearch(p, q));
+
+    if (filtered.length === 0) {
+      grid.innerHTML = q
+        ? `<div class="empty-state">Aucun résultat pour « ${document.getElementById("search-box").value} ». Essayez un autre mot-clé ou une référence.</div>`
+        : activeDepartment === "btp"
+        ? `<div class="empty-state">Le rayon BTP / Matériaux arrive bientôt. En attendant, contactez-nous directement pour vos besoins en matériaux de construction.</div>`
+        : `<div class="empty-state">Aucun produit dans cette catégorie pour l'instant.</div>`;
+      document.getElementById("cat-count-label").textContent = "0 produit";
+      return;
+    }
+
+    document.getElementById("section-heading").textContent = activeCategory ? catLabel(activeCategory) : "Tous les produits";
+    document.getElementById("cat-count-label").textContent = `${filtered.length} produit${filtered.length > 1 ? "s" : ""}`;
+    grid.innerHTML = filtered.map(productCard).join("");
+    grid.querySelectorAll(".card-add").forEach((btn) =>
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sku = btn.dataset.sku;
+        const product = filtered.find((p) => p.sku === sku);
+        if (product) addToCart(product, 1);
+      })
+    );
+  }
+
+  function productCard(p) {
+    return `
+    <a class="card" href="/boutique/product.html?sku=${encodeURIComponent(p.sku)}">
+      <div class="card-media">
+        <span class="card-cat">${catLabel(p.category)}</span>
+        ${productPhoto(p.sku, p.category)}
+      </div>
+      <div class="card-body">
+        <div class="card-name">${p.name}</div>
+        <div class="card-foot">
+          ${priceDisplay(p.price_eur)}
+          ${stockBlock(p)}
+        </div>
+      </div>
+    </a>`;
+  }
+
+  async function renderGrid() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = `<div class="empty-state">Chargement du catalogue…</div>`;
+    try {
+      currentProducts = await fetchProducts({ department: activeDepartment, category: activeCategory });
+      renderProductList(currentProducts);
+    } catch (err) {
+      grid.innerHTML = `<div class="empty-state">Le catalogue n'a pas pu être chargé. Réessayez dans un instant.</div>`;
+    }
+  }
+
+  // Recherche en temps reel, sans re-appel reseau : filtre currentProducts a chaque frappe, sans delai
+  document.getElementById("search-box").addEventListener("input", () => {
+    renderProductList(currentProducts);
+  });
+
+  document.getElementById("hero-share").innerHTML = shareButtons(location.origin + "/boutique/", "SCAF Ménage — produits d'entretien livrés en Corse");
+  (async () => {
+    await checkProAccess();
+    renderDeptStrip();
+    renderCategoryStrip();
+    renderGrid();
+  })();
+</script>
+</body>
+</html>

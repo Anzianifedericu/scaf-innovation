@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prévisionnel — Pré-demandes SCAF Ménage</title>
+<link rel="stylesheet" href="/boutique/assets/style.css">
+<style>
+  .prev-wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px}
+  .prev-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+  .prev-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+  .kpi{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .kpi .num{font-size:22px;font-weight:700;color:var(--bleu-lessive)}
+  .kpi .label{font-size:12.5px;color:#495765;margin-top:2px}
+  table{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:var(--chalk-2);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:#495765;cursor:pointer;user-select:none}
+  th:hover{color:var(--bleu-lessive)}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right}
+  .btn-refresh{border:1px solid var(--line);background:var(--white);border-radius:var(--radius);padding:8px 14px;font-size:13px;cursor:pointer}
+  .btn-refresh:hover{border-color:var(--bleu-lessive)}
+  .empty{padding:40px;text-align:center;color:#495765}
+</style>
+</head>
+<body>
+<header class="site-header"><div id="site-header"></div></header>
+<main>
+  <div class="prev-wrap">
+    <div class="prev-head">
+      <div>
+        <h1 style="margin:0 0 4px">Prévisionnel — Pré-demandes</h1>
+        <p style="margin:0;color:#495765;font-size:14px">Produits demandés hors stock, non traités. Page interne — non liée dans le menu du site.</p>
+      </div>
+      <button class="btn-refresh" onclick="load()">↻ Actualiser</button>
+    </div>
+
+    <div class="prev-kpis" id="kpis"></div>
+    <div id="table-wrap"><div class="empty">Chargement…</div></div>
+  </div>
+</main>
+<footer class="site-footer"><div id="site-footer"></div></footer>
+<script src="/boutique/assets/app.js"></script>
+<script>
+  let rows = [];
+  let sortKey = "montant_potentiel_eur";
+  let sortDir = "desc";
+
+  async function load() {
+    document.getElementById("table-wrap").innerHTML = `<div class="empty">Chargement…</div>`;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/stock_previsionnel?select=*`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      });
+      if (!res.ok) throw new Error("fetch failed");
+      rows = await res.json();
+      renderKpis();
+      renderTable();
+    } catch (err) {
+      document.getElementById("table-wrap").innerHTML = `<div class="empty">Erreur de chargement. Réessayez.</div>`;
+    }
+  }
+
+  function renderKpis() {
+    const nbProduits = rows.length;
+    const qteTotale = rows.reduce((s, r) => s + Number(r.quantite_totale), 0);
+    const montantTotal = rows.reduce((s, r) => s + Number(r.montant_potentiel_eur), 0);
+    const nbDemandes = rows.reduce((s, r) => s + Number(r.nb_demandes), 0);
+    document.getElementById("kpis").innerHTML = `
+      <div class="kpi"><div class="num">${nbProduits}</div><div class="label">Produits demandés</div></div>
+      <div class="kpi"><div class="num">${qteTotale}</div><div class="label">Quantité totale</div></div>
+      <div class="kpi"><div class="num">${eur(montantTotal)}</div><div class="label">Montant potentiel</div></div>
+      <div class="kpi"><div class="num">${nbDemandes}</div><div class="label">Nombre de demandes</div></div>
+    `;
+  }
+
+  function sortRows() {
+    const sorted = [...rows].sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      const cmp = typeof va === "string" ? va.localeCompare(vb) : va - vb;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  function setSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+    } else {
+      sortKey = key;
+      sortDir = "desc";
+    }
+    renderTable();
+  }
+
+  function renderTable() {
+    const wrap = document.getElementById("table-wrap");
+    if (rows.length === 0) {
+      wrap.innerHTML = `<div class="empty">Aucune pré-demande en attente pour le moment.</div>`;
+      return;
+    }
+    const sorted = sortRows();
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th onclick="setSort('nom_produit')">Produit</th>
+            <th onclick="setSort('sku')">Référence</th>
+            <th class="num" onclick="setSort('quantite_totale')">Quantité totale</th>
+            <th class="num" onclick="setSort('montant_potentiel_eur')">Montant potentiel</th>
+            <th class="num" onclick="setSort('nb_demandes')">Nb. demandes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map(r => `
+            <tr>
+              <td>${r.nom_produit || "—"}</td>
+              <td>${r.sku}</td>
+              <td class="num">${r.quantite_totale}</td>
+              <td class="num">${eur(r.montant_potentiel_eur)}</td>
+              <td class="num">${r.nb_demandes}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  load();
+</script>
+</body>
+</html>

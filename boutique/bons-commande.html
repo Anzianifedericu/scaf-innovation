@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bon de commande fournisseur — SCAF Ménage</title>
+<link rel="stylesheet" href="/boutique/assets/style.css">
+<style>
+  .prev-wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px}
+  .prev-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+  .prev-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+  .kpi{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .kpi .num{font-size:22px;font-weight:700;color:var(--bleu-lessive)}
+  .kpi .label{font-size:12.5px;color:#495765;margin-top:2px}
+  table{width:100%;border-collapse:collapse;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+  th{background:var(--chalk-2);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:#495765}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right}
+  .btn-refresh{border:1px solid var(--line);background:var(--white);border-radius:var(--radius);padding:8px 14px;font-size:13px;cursor:pointer}
+  .btn-refresh:hover{border-color:var(--bleu-lessive)}
+  .empty{padding:40px;text-align:center;color:#495765}
+  input.qty-order{width:64px;padding:5px 6px;border:1px solid var(--line);border-radius:4px;text-align:right;font-size:14px}
+  input.qty-order.modified{border-color:var(--bleu-lessive);background:#EAF0FA}
+  .src-tag{display:inline-block;font-size:10.5px;padding:2px 6px;border-radius:3px;margin-right:4px}
+  .src-pred{background:#F5E4E0;color:#A3392F}
+  .src-vente{background:#EAF2ED;color:#2F5945}
+  .notice-soon{background:var(--chalk-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:#495765;margin-top:16px}
+</style>
+</head>
+<body>
+<header class="site-header"><div id="site-header"></div></header>
+<main>
+  <div class="prev-wrap" id="gate-wrap" style="max-width:360px;text-align:center;padding-top:80px">
+    <h1 style="font-size:20px">Accès bons de commande</h1>
+    <p style="color:#495765;font-size:14px;margin-bottom:16px">Page interne — mot de passe requis.</p>
+    <input type="password" id="gate-password" placeholder="Mot de passe" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px" autocomplete="off">
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="checkPassword()">Accéder</button>
+    <p id="gate-error" style="color:#A3392F;font-size:13px;margin-top:10px;display:none">Mot de passe incorrect.</p>
+  </div>
+
+  <div class="prev-wrap" id="dashboard-wrap" style="display:none"></div>
+</main>
+<footer class="site-footer"><div id="site-footer"></div></footer>
+<script src="/boutique/assets/app.js"></script>
+<script>
+  const DASHBOARD_PASSWORD = "scaf2026previ"; // même mot de passe que le prévisionnel
+  const GATE_SESSION_KEY = "scaf_previsionnel_unlocked";
+
+  function checkPassword() {
+    const val = document.getElementById("gate-password").value;
+    if (val === DASHBOARD_PASSWORD) {
+      sessionStorage.setItem(GATE_SESSION_KEY, "1");
+      unlockDashboard();
+    } else {
+      document.getElementById("gate-error").style.display = "block";
+    }
+  }
+  document.getElementById("gate-password").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") checkPassword();
+  });
+
+  let rows = [];
+  const adjustedQty = {}; // sku -> quantité modifiée manuellement
+
+  function unlockDashboard() {
+    document.getElementById("gate-wrap").style.display = "none";
+    const dash = document.getElementById("dashboard-wrap");
+    dash.style.display = "block";
+    dash.innerHTML = `
+      <div class="prev-head">
+        <div>
+          <h1 style="margin:0 0 4px">Bon de commande fournisseur</h1>
+          <p style="margin:0;color:#495765;font-size:14px">Quantités proposées = pré-demandes + ventes réelles. Ajustables ci-dessous avant envoi au fournisseur.</p>
+        </div>
+        <button class="btn-refresh" onclick="load()">↻ Actualiser</button>
+      </div>
+      <div class="prev-kpis" id="kpis"></div>
+      <div id="table-wrap"><div class="empty">Chargement…</div></div>
+      <div class="notice-soon">Export PDF / envoi direct au fournisseur : à venir. Pour l'instant, ce tableau sert de base de préparation — les quantités ajustées restent dans cette page tant qu'elle est ouverte.</div>
+    `;
+    load();
+  }
+
+  if (sessionStorage.getItem(GATE_SESSION_KEY) === "1") {
+    unlockDashboard();
+  }
+
+  async function load() {
+    const tw = document.getElementById("table-wrap");
+    tw.innerHTML = `<div class="empty">Chargement…</div>`;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/purchase_order_suggestions?select=*`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      });
+      if (!res.ok) throw new Error("fetch failed");
+      rows = await res.json();
+      renderKpis();
+      renderTable();
+    } catch (err) {
+      tw.innerHTML = `<div class="empty">Erreur de chargement. Réessayez.</div>`;
+    }
+  }
+
+  function currentQty(r) {
+    return adjustedQty[r.sku] !== undefined ? adjustedQty[r.sku] : r.qte_suggeree;
+  }
+
+  function renderKpis() {
+    const nbProduits = rows.length;
+    const qteTotale = rows.reduce((s, r) => s + currentQty(r), 0);
+    const montantTotal = rows.reduce((s, r) => s + currentQty(r) * Number(r.prix_unitaire_eur), 0);
+    document.getElementById("kpis").innerHTML = `
+      <div class="kpi"><div class="num">${nbProduits}</div><div class="label">Références à commander</div></div>
+      <div class="kpi"><div class="num">${qteTotale}</div><div class="label">Quantité totale</div></div>
+      <div class="kpi"><div class="num">${eur(montantTotal)}</div><div class="label">Montant estimé</div></div>
+    `;
+  }
+
+  function renderTable() {
+    const wrap = document.getElementById("table-wrap");
+    if (rows.length === 0) {
+      wrap.innerHTML = `<div class="empty">Aucune demande (pré-demande ou vente) à couvrir pour le moment.</div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Référence</th>
+            <th class="num">Origine de la demande</th>
+            <th class="num">Prix unitaire</th>
+            <th class="num">Qté à commander</th>
+            <th class="num">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${r.nom_produit || "—"}</td>
+              <td>${r.sku}</td>
+              <td class="num">
+                ${r.qte_predemandes > 0 ? `<span class="src-tag src-pred">Pré-demande ${r.qte_predemandes}</span>` : ""}
+                ${r.qte_ventes > 0 ? `<span class="src-tag src-vente">Vente ${r.qte_ventes}</span>` : ""}
+              </td>
+              <td class="num">${eur(r.prix_unitaire_eur)}</td>
+              <td class="num">
+                <input type="number" min="0" class="qty-order" data-sku="${r.sku}" value="${currentQty(r)}"
+                  onchange="updateQty('${r.sku}', this.value, ${r.qte_suggeree})">
+              </td>
+              <td class="num" id="montant-${r.sku}">${eur(currentQty(r) * r.prix_unitaire_eur)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function updateQty(sku, value, suggested) {
+    const qty = Math.max(0, parseInt(value, 10) || 0);
+    adjustedQty[sku] = qty;
+    const input = document.querySelector(`input[data-sku="${sku}"]`);
+    if (input) input.classList.toggle("modified", qty !== suggested);
+    const row = rows.find((r) => r.sku === sku);
+    if (row) document.getElementById(`montant-${sku}`).textContent = eur(qty * row.prix_unitaire_eur);
+    renderKpis();
+  }
+</script>
+</body>
+</html>
