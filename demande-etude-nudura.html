@@ -158,7 +158,7 @@
   .hint{font-size:0.8rem; color:var(--gray-500); margin-top:6px;}
 
   /* Vous êtes — cards */
-  .role-group{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  .role-group{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
   .role-option{position:relative;}
   .role-option input{position:absolute; opacity:0; inset:0; width:100%; height:100%; cursor:pointer; margin:0;}
   .role-option label{
@@ -331,20 +331,6 @@
           <label for="role-pro">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             Professionnel
-          </label>
-        </div>
-        <div class="role-option">
-          <input type="radio" id="role-artisan" name="Vous êtes" value="Artisan">
-          <label for="role-artisan">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6l4 4-9 9-4 1 1-4 8-8z"/><path d="M13 7l4 4"/></svg>
-            Artisan
-          </label>
-        </div>
-        <div class="role-option">
-          <input type="radio" id="role-promoteur" name="Vous êtes" value="Promoteur">
-          <label for="role-promoteur">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18"/><path d="M5 21V9l6-4 6 4v12"/><path d="M9 21v-5h4v5"/></svg>
-            Promoteur
           </label>
         </div>
       </div>
@@ -680,6 +666,13 @@
     e.preventDefault(); dropzone.classList.remove('drag-over');
   }));
   dropzone.addEventListener('drop', (e) => { if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  /* ---- Redirection vers l'espace professionnel ---- */
+  document.getElementById('role-pro').addEventListener('change', function(){
+    if(this.checked){
+      window.location.href = 'connexion-pro.html';
+    }
+  });
 
   /* ---- Code postal → suggestion simple ---- */
   document.getElementById('cp').addEventListener('input', function(){
