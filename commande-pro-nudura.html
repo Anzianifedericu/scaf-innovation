@@ -962,6 +962,44 @@
       Catalogue réservé aux <strong>clients professionnels</strong> (artisans, entreprises du bâtiment, architectes). Renseignez le relevé de côtes de chaque niveau ci-dessous pour calculer automatiquement le quantitatif de blocs, puis passez à l'onglet Compléments.
     </div>
 
+    <div class="wizard-pills no-print" style="display:flex;gap:8px;margin:14px 0;">
+      <button class="tab-btn wizard-pill active" id="wizPillA" onclick="switchWizardStep('a')">A. Gamme du projet</button>
+      <button class="tab-btn wizard-pill" id="wizPillB" onclick="switchWizardStep('b')">B. Niveaux</button>
+      <button class="tab-btn wizard-pill" id="wizPillC" onclick="switchWizardStep('c')">C. Plan du niveau</button>
+    </div>
+
+    <div class="wizard-step estim-panel" id="wizStepA">
+      <div class="estim-title" style="padding:14px 16px 0;">Gamme et épaisseur par défaut du projet</div>
+      <div class="niveau-grid" style="padding:10px 16px;">
+        <div class="estim-field"><label>Gamme</label>
+          <select id="gammeProjetSelect" onchange="onGammeProjetSelect(this.value)">
+            ${GAMMES.map(g=>`<option value="${g.key}" ${gammeProjet===g.key?'selected':''}>${g.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="estim-field"><label>Épaisseur de voile béton</label>
+          <select id="epaisseurProjetSelect" onchange="onEpaisseurProjetSelect(this.value)">
+            ${(EPAISSEURS_PAR_GAMME[gammeProjet]||[]).map(e=>`<option value="${e}" ${epaisseurMmProjet===e?'selected':''}>${e} mm</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="option-toggle" style="padding:0 16px;">
+        <input type="checkbox" id="chkVideSanitaire" ${projetAvecVideSanitaire?'checked':''} onchange="onToggleVideSanitaire(this.checked)">
+        <label for="chkVideSanitaire">Projet avec vide sanitaire</label>
+      </div>
+      <div class="note" style="padding:0 16px 14px;">Ce choix pré-remplit chaque nouveau niveau ; vous pourrez toujours ajuster la gamme/épaisseur niveau par niveau ensuite. Le vide sanitaire est automatiquement exclu du calcul de surface habitable.</div>
+    </div>
+
+    <div class="wizard-step estim-panel" id="wizStepB" style="display:none;">
+      <div class="estim-title" style="padding:14px 16px 0;">Niveaux du bâtiment</div>
+      <div id="niveauxListeResume" style="padding:10px 16px;"></div>
+      <div style="padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-mini" onclick="ajouterNiveau('R+1','etage')">+ Étage (R+1)</button>
+        <button class="btn-mini" onclick="ajouterNiveau('Combles / attique','combles')">+ Combles</button>
+        <button class="btn-mini" onclick="ajouterNiveau()">+ Autre niveau</button>
+      </div>
+    </div>
+
+    <div class="wizard-step" id="wizStepC" style="display:none;">
     <div class="estim-panel" id="estimPanel">
       <div class="estim-head" onclick="toggleEstim()">
         <span class="estim-title">Estimation gros œuvre — calcul automatique des blocs</span>
@@ -977,6 +1015,7 @@
 
         <div id="estimResults"></div>
       </div>
+    </div>
     </div>
 
     <button class="btn terre" onclick="switchTab('complements')">Continuer vers les compléments →</button>
@@ -1072,6 +1111,7 @@
 
 <script>
 const MAKE_WEBHOOK = 'https://hook.eu1.make.com/h9t0hai8vsaqlhnmf6tfnyy6cjv581xm';
+const APP_SECRET = 'scaf-pro-2026-x7k'; // filtre anti-spam basique côté Make (visible côté client, ne remplace pas une vraie auth)
 
 function showScreen(id){
   ['gateLoading','gateRegister','gatePending','gateInvalid','mainApp'].forEach(s=>{
@@ -1125,11 +1165,24 @@ async function initGate(){
 
   if(urlToken){
     localStorage.setItem('scaf_pro_access', urlToken);
+    localStorage.setItem('scaf_pro_access_ts', Date.now().toString());
     url.searchParams.delete('access');
     window.history.replaceState({}, '', url);
   }
 
   const storedToken = localStorage.getItem('scaf_pro_access');
+  const storedTs = parseInt(localStorage.getItem('scaf_pro_access_ts')||'0');
+  const TOKEN_MAX_AGE_MS = 30*24*60*60*1000; // 30 jours
+  if(storedToken && storedTs && (Date.now()-storedTs) > TOKEN_MAX_AGE_MS){
+    localStorage.removeItem('scaf_pro_access');
+    localStorage.removeItem('scaf_pro_access_ts');
+    showScreen('gateRegister');
+    return;
+  }
+
+  if(storedToken && !storedTs){
+    localStorage.setItem('scaf_pro_access_ts', Date.now().toString()); // session pré-existante, on initialise la fenêtre de 30j à partir de maintenant
+  }
 
   if(storedToken){
     const result = await checkAccess(storedToken);
@@ -1140,6 +1193,9 @@ async function initGate(){
       renderCatalog('');
       renderSummary();
       chargerMesDevis();
+      // Le pro arrive sur l'étape A (choix de gamme) avec un RDC déjà prêt à être
+      // dessiné dès qu'il passe à l'étape C.
+      if(niveaux.length === 0){ ajouterNiveau('RDC', 'rdc'); }
       return;
     } else if(!result.networkError){
       localStorage.removeItem('scaf_pro_access');
@@ -1208,7 +1264,7 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
    il faut valider ce mail avant que le formulaire ne fonctionne.
    Documentation : https://formsubmit.co/
    ============================================================ */
-const FORM_ENDPOINT = 'https://formsubmit.co/CHANGE-MOI@scaf-innovation.fr';
+const FORM_ENDPOINT = null; // remplacé par MAKE_WEBHOOK action:'commandePro'
 
 // Catalogue public : uniquement le prix de vente HT (prixHT).
 // Aucune donnée de coût d'achat n'est présente dans ce fichier.
@@ -1265,6 +1321,39 @@ function switchTab(tab){
   window.scrollTo({top:0});
 }
 
+// ---- Wizard Chantier : navigation libre entre A (gamme), B (niveaux), C (plan) ----
+function switchWizardStep(step){
+  const steps = ['a','b','c'];
+  steps.forEach(s=>{
+    document.getElementById('wizStep'+s.toUpperCase()).style.display = (s===step) ? 'block' : 'none';
+    document.getElementById('wizPill'+s.toUpperCase()).classList.toggle('active', s===step);
+  });
+  if(step === 'b') renderNiveauxListeResume();
+  if(step === 'c') { document.getElementById('estimBody').style.display = 'block'; document.getElementById('estimToggleIcon').textContent = '▾'; }
+}
+
+function renderWizardStepA(){
+  const sel = document.getElementById('epaisseurProjetSelect');
+  if(sel){
+    sel.innerHTML = (EPAISSEURS_PAR_GAMME[gammeProjet]||[]).map(e=>`<option value="${e}" ${epaisseurMmProjet===e?'selected':''}>${e} mm</option>`).join('');
+  }
+}
+
+function renderNiveauxListeResume(){
+  const root = document.getElementById('niveauxListeResume');
+  if(!root) return;
+  if(niveaux.length === 0){
+    root.innerHTML = '<div class="empty-note">Aucun niveau pour l\'instant.</div>';
+    return;
+  }
+  const typeLabel = { videsanitaire:'Vide sanitaire', rdc:'RDC', etage:'Étage', combles:'Combles' };
+  root.innerHTML = niveaux.map(n => `
+    <div class="lot-line">
+      <span class="lbl">${n.nom} <span style="color:var(--beton);font-size:11px;">(${typeLabel[n.typeNiveau]||n.typeNiveau})</span></span>
+      <span class="amt">${n.releve.murs.length} mur(s)${n.typeNiveau!=='videsanitaire' ? '' : ' · exclu de la surface habitable'}</span>
+    </div>`).join('');
+}
+
 const CAT_ICON_PALETTE = ['#a8481f','#6b7a72','#3f6b4a','#8a7c60','#c97a4f','#4a6a8a'];
 function catIconHTML(cat){
   let hash = 0;
@@ -1315,8 +1404,9 @@ function updateProgressBar(){
   const hasCoords = cliNomEl && cliEmailEl && cliNomEl.value.trim() && cliEmailEl.value.trim();
   const confirmEl = document.getElementById('confirmScreen');
   const envoye = confirmEl && confirmEl.style.display === 'block';
-  const steps = [hasChantier || hasComplements, hasChantier || hasComplements, !!hasCoords, !!envoye];
-  track.innerHTML = steps.map(done=>`<div class="progress-step ${done?'done':''}"></div>`).join('');
+  const steps = [!!hasChantier, !!hasComplements, !!hasCoords, !!envoye];
+  const currentIdx = steps.findIndex(d=>!d);
+  track.innerHTML = steps.map((done,i)=>`<div class="progress-step ${done?'done':''} ${!done && i===currentIdx?'current':''}"></div>`).join('');
 }
 
 function snapshotEtatComplet(){
@@ -1325,6 +1415,7 @@ function snapshotEtatComplet(){
       nom: document.getElementById('cliNom').value, email: document.getElementById('cliEmail').value,
       tel: document.getElementById('cliTel').value, clientFinal: document.getElementById('cliClientFinal').value,
       chantier: document.getElementById('cliChantier').value, notes: document.getElementById('cliNotes').value,
+      transport: (document.querySelector('input[name="cliTransport"]:checked')||{}).value || 'livraison',
     },
   };
 }
@@ -1360,12 +1451,23 @@ function reprendreBrouillon(id){
   if(!b) return;
   qty = {...b.etat.qty};
   niveaux = JSON.parse(JSON.stringify(b.etat.niveaux));
+  // Compat brouillons anciens : murIndex/offsetM/segments absents
+  niveaux.forEach(n=>{
+    (n.ouvertures||[]).forEach(o=>{
+      if(o.murIndex == null) o.murIndex = 0;
+      if(o.offsetM == null) o.offsetM = 0;
+    });
+    if(!n.refend) n.refend = { actif:false, lineaire:0, hauteur:2.5, gamme:'standard', epaisseurMm:152, rajoutPSE:25, segments:[] };
+    if(!n.refend.segments) n.refend.segments = [];
+  });
   document.getElementById('cliNom').value = b.etat.cli.nom||'';
   document.getElementById('cliEmail').value = b.etat.cli.email||'';
   document.getElementById('cliTel').value = b.etat.cli.tel||'';
   document.getElementById('cliClientFinal').value = b.etat.cli.clientFinal||'';
   document.getElementById('cliChantier').value = b.etat.cli.chantier||'';
   document.getElementById('cliNotes').value = b.etat.cli.notes||'';
+  const transportRadio = document.querySelector(`input[name="cliTransport"][value="${b.etat.cli.transport||'livraison'}"]`);
+  if(transportRadio) transportRadio.checked = true;
   renderNiveaux();
   renderCatalog(document.getElementById('search').value);
   renderSummary();
@@ -1847,11 +1949,16 @@ function getCorniche(gamme, epaisseurMm){
 }
 
 let niveaux = [];
+// ---- State projet (Étape 1 du wizard) ----
+let gammeProjet = 'standard';
+let epaisseurMmProjet = 152; // 6" = 152mm = bloc SCAF 284mm hors-tout (défaut confirmé)
+let projetAvecVideSanitaire = false;
 let niveauIdSeq = 0;
 let ouvIdSeq = 0;
 let murReleveIdSeq = 0;
 const TOURNANTS_RELEVE = { droit:0, sortant90:90, rentrant90:-90, sortant45:45, rentrant45:-45 };
 const TOURNANT_LABEL = { droit:'0°', sortant90:'90°', rentrant90:'90°', sortant45:'45°', rentrant45:'45°' };
+const TOURNANT_LABEL_FULL = { droit:'Tout droit', sortant90:'Sortant 90°', rentrant90:'Rentrant 90°', sortant45:'Sortant 45°', rentrant45:'Rentrant 45°' };
 const PSE_PANEL_MM = 67; // épaisseur d'un panneau PSE Nudura (confirmée SCAF), présent des deux côtés du voile béton
 
 function epaisseurCoreMm(n){
@@ -1908,6 +2015,96 @@ function calculerReleveNiveau(n){
 function synchroniserLineaireReleve(n){
   const r = calculerReleveNiveau(n);
   n.lineaire = parseFloat(r.perimetre.toFixed(2));
+  syncRefendLineaire(n);
+}
+
+// Anneau fermé (sans point de fermeture dupliqué) depuis calculerReleveNiveau
+function ringPointsFromReleve(r){
+  return r.points.slice(0, -1);
+}
+
+// Point 2D sur le mur murIndex, à offsetM metres depuis le debut du mur (sens du releve)
+function pointSurMur(n, murIndex, offsetM){
+  const r = calculerReleveNiveau(n);
+  const ring = ringPointsFromReleve(r);
+  const i = Math.max(0, Math.min(murIndex||0, ring.length-1));
+  const p1 = ring[i], p2 = ring[(i+1)%ring.length];
+  const L = Math.hypot(p2.x-p1.x, p2.y-p1.y) || 1;
+  const t = Math.max(0, Math.min((offsetM||0)/L, 1));
+  return { x: p1.x + (p2.x-p1.x)*t, y: p1.y + (p2.y-p1.y)*t };
+}
+
+function epaisseurRefendM(n){
+  return (epaisseurCoreMm(n.refend) || n.refend.epaisseurMm || 152) / 1000;
+}
+
+// refend.lineaire = somme des longueurs des segments (mur<->mur), sinon valeur manuelle conservee
+function syncRefendLineaire(n){
+  if(!n.refend.segments || n.refend.segments.length === 0) return;
+  let total = 0;
+  n.refend.segments.forEach(s=>{
+    const a = pointSurMur(n, s.murA||0, s.offsetA||0);
+    const b = pointSurMur(n, s.murB||0, s.offsetB||0);
+    total += Math.hypot(b.x-a.x, b.y-a.y);
+  });
+  n.refend.lineaire = parseFloat(total.toFixed(2));
+}
+
+let segIdSeq = 0;
+function ajouterSegmentRefend(niveauId){
+  const n = niveaux.find(x=>x.id===niveauId);
+  if(!n) return;
+  segIdSeq++;
+  n.refend.segments.push({ id: segIdSeq, murA:0, offsetA:0, murB:0, offsetB:0 });
+  syncRefendLineaire(n);
+  renderNiveaux();
+}
+function majSegmentRefend(niveauId, segId, champ, valeur){
+  const n = niveaux.find(x=>x.id===niveauId);
+  if(!n) return;
+  const s = n.refend.segments.find(x=>x.id===segId);
+  if(!s) return;
+  s[champ] = valeur;
+  syncRefendLineaire(n);
+  renderNiveaux();
+}
+function supprimerSegmentRefend(niveauId, segId){
+  const n = niveaux.find(x=>x.id===niveauId);
+  if(!n) return;
+  n.refend.segments = n.refend.segments.filter(x=>x.id!==segId);
+  syncRefendLineaire(n);
+  renderNiveaux();
+}
+
+// Offset d'un polygone fermé vers l'intérieur (jointure miter) — sert à tracer
+// le mur en double-trait (paroi extérieure/intérieure) sur le canevas du plan.
+function offsetPolygon(poly, d){
+  // poly = polygone SANS point de fermeture dupliqué (dernier ≠ premier)
+  const n = poly.length;
+  if(n < 3) return poly;
+  let area2 = 0;
+  for(let i=0;i<n;i++){
+    const p1 = poly[i], p2 = poly[(i+1)%n];
+    area2 += p1.x*p2.y - p2.x*p1.y;
+  }
+  const sens = area2 > 0 ? 1 : -1;
+  const result = [];
+  for(let i=0;i<n;i++){
+    const prev = poly[(i-1+n)%n], curr = poly[i], next = poly[(i+1)%n];
+    const e1 = {x: curr.x-prev.x, y: curr.y-prev.y};
+    const len1 = Math.hypot(e1.x, e1.y) || 1;
+    const n1 = {x: -e1.y/len1 * sens, y: e1.x/len1 * sens};
+    const e2 = {x: next.x-curr.x, y: next.y-curr.y};
+    const len2 = Math.hypot(e2.x, e2.y) || 1;
+    const n2 = {x: -e2.y/len2 * sens, y: e2.x/len2 * sens};
+    let bx = n1.x + n2.x, by = n1.y + n2.y;
+    const blen = Math.hypot(bx,by) || 1;
+    bx/=blen; by/=blen;
+    const cosHalf = bx*n1.x + by*n1.y;
+    const miter = Math.abs(cosHalf) > 0.05 ? d / cosHalf : d;
+    result.push({ x: curr.x + bx*miter, y: curr.y + by*miter });
+  }
+  return result;
 }
 
 function ajouterMurReleve(niveauId){
@@ -1947,6 +2144,142 @@ function majAngleDepart(niveauId, valeur){
   renderNiveaux();
 }
 
+function fx(v){ return (Math.abs(v) < 0.0005 ? 0 : v).toFixed(4); } // évite la notation scientifique (ex: 8.8e-16) qui casse le path SVG
+
+function genererPlanSVG(n, r){
+  if(n.releve.murs.length < 3) return ''; // pas assez de segments pour un plan fermé exploitable
+
+  // Nettoyage du bruit flottant (ex: 8.8e-16 au lieu de 0, dû aux sin/cos successifs) —
+  // sans ça, les calculs de normale (cotations, offset) peuvent basculer de façon erratique
+  // et casser le path SVG (notation scientifique invalide dans un attribut "d").
+  const clean = v => Math.round(v * 1000) / 1000;
+  const poly = r.points.slice(0, -1).map(p => ({ x: clean(p.x), y: clean(p.y) }));
+  const epaisseurM = (epaisseurCoreMm(n) || 152) / 1000;
+  const inner = offsetPolygon(poly, epaisseurM);
+
+  const xs = poly.map(p=>p.x), ys = poly.map(p=>p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const w = Math.max(0.1, maxX-minX), h = Math.max(0.1, maxY-minY);
+  const dim = Math.max(w,h);
+  const cotOffset = dim*0.12 + 0.5;
+  const pad = cotOffset + dim*0.14;
+  const vb = `${minX-pad} ${-(maxY+pad)} ${w+2*pad} ${h+2*pad}`;
+  const fontSize = dim/28;
+  const dotR = dim/55;
+  const cx = xs.reduce((a,b)=>a+b,0)/poly.length, cy = ys.reduce((a,b)=>a+b,0)/poly.length;
+
+  // --- mur double-trait : un seul path even-odd (extérieur direct + intérieur inversé) ---
+  const outerPts = poly.map(p=>`${p.x},${-p.y}`).join(' L ');
+  const innerPts = inner.slice().reverse().map(p=>`${p.x},${-p.y}`).join(' L ');
+  const murPath = `M ${outerPts} Z M ${innerPts} Z`;
+
+  // --- cotations extérieures par tronçon ---
+  const nPts = poly.length;
+  let cotations = '';
+  for(let i=0;i<nPts;i++){
+    const p1 = poly[i], p2 = poly[(i+1)%nPts];
+    const L = Math.hypot(p2.x-p1.x, p2.y-p1.y);
+    if(L < 0.01) continue;
+    let nx = -(p2.y-p1.y)/L, ny = (p2.x-p1.x)/L;
+    const midx = (p1.x+p2.x)/2, midy = (p1.y+p2.y)/2;
+    if(nx*(midx-cx) + ny*(midy-cy) < 0){ nx=-nx; ny=-ny; } // normale vers l'extérieur
+    const q1 = { x: p1.x + nx*cotOffset, y: p1.y + ny*cotOffset };
+    const q2 = { x: p2.x + nx*cotOffset, y: p2.y + ny*cotOffset };
+    const tMidX = (q1.x+q2.x)/2, tMidY = (q1.y+q2.y)/2;
+    let angleDeg = Math.atan2(-(q2.y-q1.y), q2.x-q1.x) * 180/Math.PI;
+    if(angleDeg > 90 || angleDeg < -90) angleDeg += 180;
+    cotations += `
+      <line x1="${p1.x+nx*cotOffset*0.7}" y1="${-(p1.y+ny*cotOffset*0.7)}" x2="${q1.x}" y2="${-q1.y}" stroke="#6b7a72" stroke-width="${dim/500}" vector-effect="non-scaling-stroke"></line>
+      <line x1="${p2.x+nx*cotOffset*0.7}" y1="${-(p2.y+ny*cotOffset*0.7)}" x2="${q2.x}" y2="${-q2.y}" stroke="#6b7a72" stroke-width="${dim/500}" vector-effect="non-scaling-stroke"></line>
+      <line x1="${q1.x}" y1="${-q1.y}" x2="${q2.x}" y2="${-q2.y}" stroke="#6b7a72" stroke-width="${dim/400}" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)" vector-effect="non-scaling-stroke"></line>
+      <text x="${tMidX}" y="${-tMidY - fontSize*0.35}" font-size="${fontSize}" text-anchor="middle" fill="#3a332b" font-family="IBM Plex Mono, monospace" transform="rotate(${-angleDeg} ${tMidX} ${-tMidY - fontSize*0.35})">${L.toFixed(2)}m</text>`;
+  }
+
+  // --- angles aux sommets ---
+  const cornerKeys = [n.releve.angleDepart];
+  for(let i=1;i<poly.length;i++) cornerKeys.push(n.releve.murs[i-1].angle);
+  let angleMarkers = '';
+  cornerKeys.forEach((key,i)=>{
+    const p = poly[i];
+    const color = key==='droit' ? '#6b7a72' : (key.startsWith('sortant') ? '#a8481f' : '#3f6b4a');
+    angleMarkers += `<circle cx="${p.x}" cy="${-p.y}" r="${dotR}" fill="${color}" vector-effect="non-scaling-stroke"></circle>`;
+    if(key !== 'droit'){
+      angleMarkers += `<text x="${p.x}" y="${-p.y - dotR*2.6}" font-size="${fontSize*0.8}" text-anchor="middle" fill="${color}" font-family="IBM Plex Mono, monospace">${TOURNANT_LABEL_FULL[key]}</text>`;
+    }
+  });
+
+  // --- ouvertures : rupture de mur au point exact (murIndex, offsetM), jambages + libelle + cote ---
+  let ouvSymbols = '';
+  (n.ouvertures||[]).forEach(o=>{
+    const mi = o.murIndex ?? 0;
+    if(mi >= n.releve.murs.length) return;
+    const p1 = poly[mi], p2 = poly[(mi+1)%poly.length];
+    const L = Math.hypot(p2.x-p1.x, p2.y-p1.y) || 1;
+    const ux = (p2.x-p1.x)/L, uy = (p2.y-p1.y)/L;
+    const off = Math.max(0, Math.min(o.offsetM||0, L));
+    const largeur = Math.min(o.largeur||1, L - off);
+    const ax = p1.x + ux*off, ay = p1.y + uy*off;
+    const bx = ax + ux*largeur, by = ay + uy*largeur;
+    const estPorte = (o.type||'').toLowerCase().startsWith('port');
+    const coul = estPorte ? '#4a6a5a' : '#4a6a8a'; // porte = vert gris, fenetre = bleu gris
+    const nx = -uy, ny = ux; // normale pour les jambages
+    const jamb = epaisseurM*0.55;
+    const midx = (ax+bx)/2, midy = (ay+by)/2;
+    ouvSymbols += `
+      <line x1="${ax}" y1="${-ay}" x2="${bx}" y2="${-by}" stroke="${coul}" stroke-width="${dim/45}" vector-effect="non-scaling-stroke"></line>
+      <line x1="${ax-nx*jamb}" y1="${-(ay-ny*jamb)}" x2="${ax+nx*jamb}" y2="${-(ay+ny*jamb)}" stroke="${coul}" stroke-width="${dim/300}" vector-effect="non-scaling-stroke"></line>
+      <line x1="${bx-nx*jamb}" y1="${-(by-ny*jamb)}" x2="${bx+nx*jamb}" y2="${-(by+ny*jamb)}" stroke="${coul}" stroke-width="${dim/300}" vector-effect="non-scaling-stroke"></line>
+      <text x="${midx+nx*jamb*1.8}" y="${-(midy+ny*jamb*1.8)}" font-size="${fontSize*0.7}" text-anchor="middle" fill="${coul}" font-family="IBM Plex Mono, monospace">${estPorte?'Porte':'Fen.'} ${(o.largeur||0).toFixed(2)}×${(o.hauteur||0).toFixed(2)}</text>`;
+  });
+
+  // --- mur de refend : segments reels (mur<->mur), bande d'epaisseur epaisseurRefendM ---
+  let refendSvg = '';
+  if(n.refend && n.refend.actif && (n.refend.segments||[]).length > 0){
+    const epR = epaisseurRefendM(n);
+    n.refend.segments.forEach(s=>{
+      const a = pointSurMur(n, s.murA||0, s.offsetA||0);
+      const b = pointSurMur(n, s.murB||0, s.offsetB||0);
+      const segL = Math.hypot(b.x-a.x, b.y-a.y);
+      if(segL < 0.01) return;
+      const ux = (b.x-a.x)/segL, uy = (b.y-a.y)/segL;
+      const nx = -uy*epR/2, ny = ux*epR/2;
+      const poly4 = [
+        {x:a.x+nx, y:a.y+ny}, {x:b.x+nx, y:b.y+ny}, {x:b.x-nx, y:b.y-ny}, {x:a.x-nx, y:a.y-ny}
+      ].map(p=>`${p.x},${-p.y}`).join(' ');
+      const midx = (a.x+b.x)/2, midy = (a.y+b.y)/2;
+      refendSvg += `<polygon points="${poly4}" fill="rgba(63,107,74,0.25)" stroke="#3f6b4a" stroke-width="${dim/300}" vector-effect="non-scaling-stroke"></polygon>
+        <text x="${midx}" y="${-midy - fontSize*0.5}" font-size="${fontSize*0.8}" text-anchor="middle" fill="#3f6b4a" font-family="IBM Plex Mono, monospace">Refend ${segL.toFixed(2)} m</text>`;
+    });
+  } else if(n.refend && n.refend.actif && n.refend.lineaire > 0){
+    refendSvg = `<text x="${(minX+maxX)/2}" y="${-(minY+maxY)/2}" font-size="${fontSize*0.8}" text-anchor="middle" fill="#3f6b4a" font-family="IBM Plex Mono, monospace">Refend ${n.refend.lineaire.toFixed(2)} m (tracé non positionné)</text>`;
+  }
+
+  // --- boussole nord ---
+  const nx0 = minX+w+pad*0.6, ny0 = -(maxY+pad*0.6);
+  const cR = dim/22;
+  const compass = `<circle cx="${nx0}" cy="${ny0}" r="${cR}" fill="var(--paper)" stroke="#6b7a72" stroke-width="${cR/12}" vector-effect="non-scaling-stroke"></circle>
+    <line x1="${nx0}" y1="${ny0+cR*0.7}" x2="${nx0}" y2="${ny0-cR*0.7}" stroke="#3a332b" stroke-width="${cR/8}" marker-end="url(#arrowEnd)" vector-effect="non-scaling-stroke"></line>
+    <text x="${nx0}" y="${ny0-cR*0.95}" font-size="${cR*0.75}" text-anchor="middle" fill="#3a332b" font-family="IBM Plex Mono, monospace">N</text>`;
+
+  return `<div style="width:100%;overflow:auto;">
+  <svg viewBox="${vb}" style="width:100%;max-height:70vh;display:block;margin:10px auto;background:var(--paper-dim);border-radius:4px;" preserveAspectRatio="xMidYMid meet" vector-effect="non-scaling-stroke">
+    <defs>
+      <pattern id="hatchMur${n.id}" patternUnits="userSpaceOnUse" width="${dim/60}" height="${dim/60}" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="${dim/60}" stroke="rgba(168,72,31,0.35)" stroke-width="${dim/500}" vector-effect="non-scaling-stroke"></line>
+      </pattern>
+      <marker id="arrowStart" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M5,0 L1,3 L5,6" fill="none" stroke="#6b7a72" stroke-width="1" vector-effect="non-scaling-stroke"></path></marker>
+      <marker id="arrowEnd" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M1,0 L5,3 L1,6" fill="none" stroke="#6b7a72" stroke-width="1" vector-effect="non-scaling-stroke"></path></marker>
+    </defs>
+    <path d="${murPath}" fill="url(#hatchMur${n.id})" fill-rule="evenodd" stroke="var(--terre)" stroke-width="${dim/160}" vector-effect="non-scaling-stroke"></path>
+    ${refendSvg}
+    ${ouvSymbols}
+    ${angleMarkers}
+    ${cotations}
+    ${compass}
+  </svg>
+  </div>`;
+}
+
 function renderReleveNiveauHTML(n){
   const r = calculerReleveNiveau(n);
   const fermetureOk = r.closureErr < 0.15;
@@ -1971,7 +2304,9 @@ function renderReleveNiveauHTML(n){
   }).join('');
 
   let svgBlock = '';
-  if(n.releve.murs.length > 0){
+  if(n.releve.murs.length >= 3){
+    svgBlock = genererPlanSVG(n, r);
+  } else if(n.releve.murs.length > 0){
     const xs = r.points.map(p=>p.x), ys = r.points.map(p=>p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
     const w = Math.max(0.1, maxX - minX), h = Math.max(0.1, maxY - minY);
@@ -1988,7 +2323,10 @@ function renderReleveNiveauHTML(n){
       const label = TOURNANT_LABEL[key] || '';
       return `<circle cx="${p.x}" cy="${-p.y}" r="${dotR}" fill="${color}"></circle>${label && key!=='droit' ? `<text x="${p.x}" y="${-p.y - dotR*2}" font-size="${fontSize}" text-anchor="middle" fill="${color}" font-family="IBM Plex Mono, monospace">${label}</text>` : ''}`;
     }).join('');
-    svgBlock = `<svg viewBox="${vb}" style="width:100%;max-width:300px;height:170px;display:block;margin:10px auto;background:var(--paper-dim);border-radius:4px;" preserveAspectRatio="xMidYMid meet"><polygon points="${svgPoints}" fill="rgba(168,72,31,0.18)" stroke="var(--terre)" stroke-width="${Math.max(w,h)/120}"></polygon>${markers}</svg>`;
+    svgBlock = `<div style="width:100%;overflow:auto;"><svg viewBox="${vb}" style="width:100%;max-height:70vh;display:block;margin:10px auto;background:var(--paper-dim);border-radius:4px;" preserveAspectRatio="xMidYMid meet" vector-effect="non-scaling-stroke"><polygon points="${svgPoints}" fill="rgba(168,72,31,0.18)" stroke="var(--terre)" stroke-width="${Math.max(w,h)/120}" vector-effect="non-scaling-stroke"></polygon>${markers}</svg></div>
+      <div class="note" style="margin-top:2px;">Plan simplifié — le double-trait et les cotations s'affichent à partir de 3 murs.</div>`;
+  } else {
+    svgBlock = `<div class="empty-note">Ajoutez au moins un mur pour voir apparaître le plan.</div>`;
   }
 
   return `
@@ -2100,11 +2438,12 @@ function toggleEstim(){
   icon.textContent = open ? '▸' : '▾';
 }
 
-function creerNiveau(nom){
+function creerNiveau(nom, typeNiveau){
   niveauIdSeq++;
   return {
     id: niveauIdSeq, nom: nom || 'RDC',
-    gamme: 'standard', epaisseurMm: 152, rajoutPSE: 25,
+    typeNiveau: typeNiveau || (nom === 'Vide sanitaire' ? 'videsanitaire' : 'rdc'),
+    gamme: gammeProjet, epaisseurMm: epaisseurMmProjet, rajoutPSE: 25,
     conditionBas: 'fondation', conditionHaut: 'plancher',
     lineaire: 0, hauteur: 2.5, hauteurSousSol: 0, distanceParging: 0,
     ajustement: 'exact',
@@ -2113,7 +2452,7 @@ function creerNiveau(nom){
     coins: { int90:0, ext90:0, int45:0, ext45:0 },
     ouvertures: [],
     armature: { actif:false, espaceH:457, espaceV:406, nappe:'simple', diametre:'HA10' },
-    refend: { actif:false, lineaire:0, hauteur:2.5, gamme:'standard', epaisseurMm:152, rajoutPSE:25 },
+    refend: { actif:false, lineaire:0, hauteur:2.5, gamme:'standard', epaisseurMm:152, rajoutPSE:25, segments:[] },
     options: {
       brickLedge: { actif:false, lineaire:0 },
       taperTop: { actif:false, lineaire:0 },
@@ -2124,10 +2463,45 @@ function creerNiveau(nom){
   };
 }
 
-function ajouterNiveau(nom){
-  const n = creerNiveau(nom);
+function ajouterNiveau(nom, typeNiveau){
+  const n = creerNiveau(nom, typeNiveau);
   niveaux.push(n);
   renderNiveaux();
+}
+
+function genererVideSanitaire(){
+  const rdc = niveaux.find(x => x.typeNiveau === 'rdc') || niveaux[0];
+  const vs = creerNiveau('Vide sanitaire', 'videsanitaire');
+  if(rdc){
+    // Duplication du tracé du RDC (point 3/4 validés) — deep clone pour indépendance totale (point 2)
+    vs.releve = JSON.parse(JSON.stringify(rdc.releve));
+    vs.releve.murs.forEach(m => { murReleveIdSeq++; m.id = murReleveIdSeq; });
+  }
+  niveaux.unshift(vs);
+  renderNiveaux();
+}
+
+function retirerVideSanitaire(){
+  niveaux = niveaux.filter(n => n.typeNiveau !== 'videsanitaire');
+  renderNiveaux();
+}
+
+function onToggleVideSanitaire(checked){
+  projetAvecVideSanitaire = checked;
+  const dejaPresent = niveaux.some(n => n.typeNiveau === 'videsanitaire');
+  if(checked && !dejaPresent){ genererVideSanitaire(); }
+  else if(!checked && dejaPresent){ retirerVideSanitaire(); }
+}
+
+function onGammeProjetSelect(v){
+  gammeProjet = v;
+  const options = EPAISSEURS_PAR_GAMME[gammeProjet] || [];
+  if(!options.includes(epaisseurMmProjet)) epaisseurMmProjet = options[0];
+  renderWizardStepA();
+}
+
+function onEpaisseurProjetSelect(v){
+  epaisseurMmProjet = v === 'custom' ? 'custom' : parseInt(v);
 }
 
 function onNiveauNomSelect(id, value){
@@ -2143,7 +2517,7 @@ function supprimerNiveau(id){
 function ajouterOuverture(niveauId){
   const n = niveaux.find(x=>x.id===niveauId);
   ouvIdSeq++;
-  n.ouvertures.push({ id: ouvIdSeq, type:'Fenêtre', largeur:1, hauteur:1, qte:1 });
+  n.ouvertures.push({ id: ouvIdSeq, type:'Fenêtre', largeur:1.2, hauteur:1.4, qte:1, murIndex:0, offsetM:0.5 });
   renderNiveaux();
 }
 
@@ -2202,6 +2576,7 @@ function coursesInfo(hauteur){
 function renderNiveaux(){
   const root = document.getElementById('niveauxContainer');
   root.innerHTML = niveaux.map(n => renderNiveauCard(n)).join('');
+  renderNiveauxListeResume();
   debouncedCalcul();
 }
 
@@ -2250,14 +2625,24 @@ function renderNiveauCard(n){
       <label><input type="radio" name="ajust-${n.id}" value="down" ${n.ajustement==='down'?'checked':''} onchange="majNiveauChamp(${n.id},'ajustement',this.value)"> Arrondir inf. (${ci.floor} cours = ${(ci.floor*HAUTEUR_BLOC_M).toFixed(3)}m)</label>
     </div>`;
 
-  const ouvRows = n.ouvertures.map(o => `
+  const ouvRows = n.ouvertures.map(o => {
+    const mi = o.murIndex ?? 0;
+    const off = o.offsetM ?? 0;
+    const mur = n.releve.murs[mi];
+    const depasse = mur && (off + (o.largeur||0)) > (mur.longueur||0) + 0.001;
+    return `
     <tr>
-      <td><input type="text" value="${o.type}" onchange="ouvChamp(${n.id},${o.id},'type',this.value)"></td>
-      <td><input type="number" step="0.01" value="${o.largeur}" onchange="ouvChamp(${n.id},${o.id},'largeur',parseFloat(this.value)||0)"></td>
+      <td><input type="text" value="${o.type}" onchange="ouvChamp(${n.id},${o.id},'type',this.value); renderNiveaux();"></td>
+      <td><input type="number" step="0.01" value="${o.largeur}" onchange="ouvChamp(${n.id},${o.id},'largeur',parseFloat(this.value)||0); renderNiveaux();"></td>
       <td><input type="number" step="0.01" value="${o.hauteur}" onchange="ouvChamp(${n.id},${o.id},'hauteur',parseFloat(this.value)||0)"></td>
       <td><input type="number" step="1" value="${o.qte}" onchange="ouvChamp(${n.id},${o.id},'qte',parseFloat(this.value)||0)"></td>
+      <td><select onchange="ouvChamp(${n.id},${o.id},'murIndex',parseInt(this.value)); renderNiveaux();">
+        ${n.releve.murs.map((m,i)=>`<option value="${i}" ${mi===i?'selected':''}>Mur ${i+1} (${(m.longueur||0).toFixed(1)}m)</option>`).join('')}
+      </select></td>
+      <td><input type="number" step="0.1" value="${off}" onchange="ouvChamp(${n.id},${o.id},'offsetM',parseFloat(this.value)||0); renderNiveaux();">${depasse?' <span title="Largeur + offset dépasse la longueur du mur" style="color:#a8481f;">⚠</span>':''}</td>
       <td><button class="rm-row" onclick="supprimerOuverture(${n.id},${o.id})">✕</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   const optHtml = (key, label, extra) => `
     <div class="option-toggle">
@@ -2267,6 +2652,20 @@ function renderNiveauCard(n){
     ${n.options[key].actif ? extra : ''}
   `;
 
+  const segRows = (n.refend.segments||[]).map(s => `
+    <tr>
+      <td><select onchange="majSegmentRefend(${n.id},${s.id},'murA',parseInt(this.value))">
+        ${n.releve.murs.map((m,i)=>`<option value="${i}" ${s.murA===i?'selected':''}>Mur ${i+1}</option>`).join('')}
+      </select></td>
+      <td><input type="number" step="0.1" value="${s.offsetA}" onchange="majSegmentRefend(${n.id},${s.id},'offsetA',parseFloat(this.value)||0)"></td>
+      <td><select onchange="majSegmentRefend(${n.id},${s.id},'murB',parseInt(this.value))">
+        ${n.releve.murs.map((m,i)=>`<option value="${i}" ${s.murB===i?'selected':''}>Mur ${i+1}</option>`).join('')}
+      </select></td>
+      <td><input type="number" step="0.1" value="${s.offsetB}" onchange="majSegmentRefend(${n.id},${s.id},'offsetB',parseFloat(this.value)||0)"></td>
+      <td>${(()=>{ const a=pointSurMur(n,s.murA||0,s.offsetA||0), b=pointSurMur(n,s.murB||0,s.offsetB||0); return Math.hypot(b.x-a.x,b.y-a.y).toFixed(2); })()} m</td>
+      <td><button class="rm-row" onclick="supprimerSegmentRefend(${n.id},${s.id})">✕</button></td>
+    </tr>`).join('');
+
   const refendHtml = `
     <div class="option-toggle">
       <input type="checkbox" id="refend-${n.id}" ${n.refend.actif?'checked':''} onchange="majNiveauChamp(${n.id},'refend.actif',this.checked); renderNiveaux();">
@@ -2274,7 +2673,13 @@ function renderNiveauCard(n){
     </div>
     ${n.refend.actif ? `
       <div class="option-fields">
-        <div class="estim-field"><label>Linéaire refend (m)</label><input type="number" step="0.1" value="${n.refend.lineaire}" onchange="majNiveauChamp(${n.id},'refend.lineaire',parseFloat(this.value)||0)"></div>
+        <table class="mini-table">
+          <thead><tr><th>Mur A</th><th>Offset A (m)</th><th>Mur B</th><th>Offset B (m)</th><th>Longueur</th><th></th></tr></thead>
+          <tbody>${segRows}</tbody>
+        </table>
+        <button class="btn-mini" onclick="ajouterSegmentRefend(${n.id})">+ Segment de refend</button>
+        <div class="estim-field"><label>Linéaire refend (m)${(n.refend.segments||[]).length ? ' — auto (segments)' : ''}</label>
+          <input type="number" step="0.1" value="${n.refend.lineaire}" ${(n.refend.segments||[]).length ? 'readonly' : ''} onchange="majNiveauChamp(${n.id},'refend.lineaire',parseFloat(this.value)||0)"></div>
         <div class="estim-field"><label>Hauteur refend (m)</label><input type="number" step="0.01" value="${n.refend.hauteur}" onchange="majNiveauChamp(${n.id},'refend.hauteur',parseFloat(this.value)||0)"></div>
         ${renderGammeEpaisseurFields(n, 'refend.', n.refend)}
       </div>
@@ -2327,7 +2732,7 @@ function renderNiveauCard(n){
 
         <div class="subsection-title">Ouvertures (portes / fenêtres)</div>
         <table class="ouv-table">
-          <thead><tr><th>Type</th><th>Largeur (m)</th><th>Hauteur (m)</th><th>Qté</th><th></th></tr></thead>
+          <thead><tr><th>Type</th><th>Larg. (m)</th><th>Haut. (m)</th><th>Qté</th><th>Mur</th><th>Offset (m)</th><th></th></tr></thead>
           <tbody>${ouvRows}</tbody>
         </table>
         <button class="btn-mini" onclick="ajouterOuverture(${n.id})">+ Ouverture</button>
@@ -2503,8 +2908,7 @@ function calculerNiveauUnique(n, gabaritFlag){
   }
 
   let surfaceRefend = 0;
-  let qAppoint = 0;
-  if(coursAppoint > 0){
+  let qAppoint = 0;  if(coursAppoint > 0){
     qAppoint = arrondiSupTolerant(n.lineaire, LONGUEUR_AJUSTEUR_M);
     ajouter(panier, REF_APPOINT, qAppoint);
     if(refs && refs.entretoiseAjusteur){
@@ -2523,6 +2927,7 @@ function calculerNiveauUnique(n, gabaritFlag){
     }
   }
 
+  syncRefendLineaire(n);
   if(n.refend.actif && n.refend.lineaire > 0){
     surfaceRefend = n.refend.lineaire * n.refend.hauteur;
     if(n.refend.gamme === 'one1'){
@@ -2680,7 +3085,7 @@ function renderLignesPanier(panier, details){
 
 function calculerGrosOeuvre(){
   const gabaritFlag = { necessaire:false };
-  const resultatsParNiveau = niveaux.map(n=>({ nom:n.nom, r: calculerNiveauUnique(n, gabaritFlag) }));
+  const resultatsParNiveau = niveaux.map(n=>({ nom:n.nom, typeNiveau:n.typeNiveau, r: calculerNiveauUnique(n, gabaritFlag) }));
 
   let chantierPanier = {};
   resultatsParNiveau.forEach(({r})=>{
@@ -2693,8 +3098,12 @@ function calculerGrosOeuvre(){
   const chantierTotalHT = totalPanier(chantierPanier);
   const chantierSurfaceTotale = resultatsParNiveau.reduce((s,{r})=>s + r.surfaceNette + r.surfaceRefend, 0);
   const locationTotalHT = resultatsParNiveau.reduce((s,{r})=>s + (r.locationMontant||0), 0);
-  const footprintHorsToutTotal = resultatsParNiveau.reduce((s,{r})=>s + (r.footprintHorsTout||0), 0);
-  const footprintHabitableTotal = resultatsParNiveau.reduce((s,{r})=>s + (r.footprintHabitable||0), 0);
+  // Hors tout / habitable = emprise au sol du BÂTIMENT, pas une somme d'étages.
+  // Niveau de référence : RDC si présent, sinon celui avec le plus grand footprint hors tout.
+  const niveauRef = resultatsParNiveau.find(x => x.typeNiveau === 'rdc')
+    || resultatsParNiveau.reduce((max,x) => (!max || (x.r.footprintHorsTout||0) > (max.r.footprintHorsTout||0)) ? x : max, null);
+  const footprintHorsToutTotal = niveauRef ? (niveauRef.r.footprintHorsTout||0) : 0;
+  const footprintHabitableTotal = niveauRef ? (niveauRef.r.footprintHabitable||0) : 0;
   window._chantierPanier = chantierPanier;
   window._resultatsParNiveau = resultatsParNiveau;
   window._chantierTotalHT = chantierTotalHT;
@@ -2774,6 +3183,9 @@ document.getElementById('search').addEventListener('input', e=>{
 
 document.getElementById('customerForm').addEventListener('submit', async e=>{
   e.preventDefault();
+  if(window._envoiEnCours) return; // garde anti-double-soumission
+  window._envoiEnCours = true;
+  document.getElementById('btnEnvoyer').disabled = true;
   const toutesEntreesComplements = Object.keys(qty).map(ref=>{
     const p = PRODUCTS.find(x=>x.ref===ref);
     return { p, q: qty[ref] };
@@ -2789,17 +3201,15 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
   if(entriesComplements.length === 0 && entriesMateriel.length === 0 && entriesChantier.length === 0){
     document.getElementById('sendStatus').textContent = 'Renseignez au moins un niveau dans l\u2019estimation chantier ou ajoutez un produit en complément.';
     document.getElementById('sendStatus').className = 'status err';
+    window._envoiEnCours = false; document.getElementById('btnEnvoyer').disabled = false;
     return;
   }
-  if(FORM_ENDPOINT.includes('CHANGE-MOI')){
-    document.getElementById('sendStatus').textContent = "Configuration en attente : l'adresse email de réception n'a pas encore été renseignée par SCAF Innovation.";
-    document.getElementById('sendStatus').className = 'status err';
-    return;
-  }
+  // (vérification de configuration retirée — envoi via MAKE_WEBHOOK, toujours configuré)
   if(!navigator.onLine){
     document.getElementById('sendStatus').textContent = "Vous semblez hors ligne — vérifiez votre connexion puis réessayez.";
     document.getElementById('sendStatus').className = 'status err';
     toast("Pas de connexion — réessayez", 'err');
+    window._envoiEnCours = false; document.getElementById('btnEnvoyer').disabled = false;
     return;
   }
 
@@ -2856,8 +3266,6 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
     'Sous-total location étaiement HT': totLocationHT.toFixed(2) + ' €',
     'Total HT': totHT.toFixed(2) + ' €',
     'Total TTC estimé (hors transport)': totTTC.toFixed(2) + ' €',
-    '_template': 'table',
-    '_captcha': 'false',
   };
 
   const btn = document.getElementById('btnEnvoyer');
@@ -2866,10 +3274,10 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
   document.getElementById('sendStatus').className = 'status';
 
   try{
-    const res = await fetch(FORM_ENDPOINT, {
+    const res = await fetch(MAKE_WEBHOOK, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify(payload),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'commandePro', secret: APP_SECRET, payloadHtml: Object.entries(payload).map(([k,v])=>`<b>${k}</b> : ${String(v).replace(/\n/g,'<br>')}`).join('<br><br>') }),
     });
     if(res.ok){
       const snapshot = construireSnapshotDevis();
@@ -2882,7 +3290,7 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
           await fetch(MAKE_WEBHOOK, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ action:'envoiDevisClient', email: clientEmail, refDevis: snapshot.refDevis, devisHtml: genererDevisHTML(snapshot) }),
+            body: JSON.stringify({ action:'envoiDevisClient', secret: APP_SECRET, email: clientEmail, refDevis: snapshot.refDevis, devisHtml: genererDevisHTML(snapshot) }),
           });
         }catch(errClient){
           // silencieux : la commande est bien envoyée à SCAF, seule la copie client a pu échouer
@@ -2896,7 +3304,7 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({
-              action:'saveDevis', siret: siretConnu,
+              action:'saveDevis', secret: APP_SECRET, siret: siretConnu,
               refDevis: snapshot.refDevis, raisonSociale: snapshot.entreprise.nom,
               clientFinal: snapshot.clientFinal, chantier: snapshot.chantierAdresse,
               montant: totTTC, detailJson: JSON.stringify(snapshot),
@@ -2908,9 +3316,11 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
       }
 
       toast('Devis envoyé avec succès', 'ok');
-      document.querySelector('.layout').style.display = 'none';
-      document.querySelector('header.top').style.display = 'none';
+      Array.from(document.getElementById('mainApp').children).forEach(el=>{
+        if(el.id !== 'confirmScreen') el.style.display = 'none';
+      });
       document.getElementById('confirmScreen').style.display = 'block';
+      window.scrollTo({top:0});
       updateProgressBar();
     } else {
       throw new Error('Réponse serveur invalide');
@@ -2920,6 +3330,7 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
     document.getElementById('sendStatus').className = 'status err';
     toast("Erreur d'envoi, réessayez", 'err');
     btn.disabled = false;
+    window._envoiEnCours = false;
   }
 });
 </script>
