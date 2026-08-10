@@ -55,7 +55,8 @@ const CATEGORIES = {
 // Départements de la boutique unifiée. D'autres pourront être ajoutés ici plus tard.
 const DEPARTMENTS = {
   "menage": { label: "Ménage", tag: "Entretien & maison" },
-  "btp": { label: "BTP / Matériaux", tag: "Construction & rénovation" },
+  "nudura": { label: "Nudura ICF", tag: "Coffrage isolant" },
+  "etancheite": { label: "Étanchéité TEXSA", tag: "Membranes & drainage" },
 };
 
 function deptLabel(dept) {
