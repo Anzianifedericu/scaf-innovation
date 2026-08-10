@@ -15,9 +15,9 @@
   <section class="hero">
     <div class="wrap">
       <div>
-        <span class="hero-tag">Nouveau · Livré en Corse</span>
-        <h1>Le nécessaire du ménage, sans y penser deux fois.</h1>
-        <p>Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse.</p>
+        <span class="hero-tag" id="hero-tag">Nouveau · Livré en Corse</span>
+        <h1 id="hero-title">Le nécessaire du ménage, sans y penser deux fois.</h1>
+        <p id="hero-sub">Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse.</p>
         <a href="#catalogue" class="btn btn-primary">Voir le catalogue</a>
         <div id="hero-share"></div>
       </div>
@@ -42,6 +42,7 @@
   </section>
 
   <div class="wrap">
+    <div id="pro-bar" style="background:#f4f6f8;border:1px solid #e4e9ee;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a"></div>
     <div class="filter-row" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
       <input type="search" id="search-box" class="filter-select" placeholder="Rechercher un produit, une référence…" style="flex:1;min-width:220px;cursor:text" autocomplete="off">
       <select id="dept-select" class="filter-select"></select>
@@ -71,6 +72,7 @@
 <footer class="site-footer"><div id="site-footer"></div></footer>
 
 <script src="/boutique/assets/app.js"></script>
+<script src="/boutique/assets/pro-btp.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
   const activeCategory = params.get("cat");
@@ -87,7 +89,16 @@
   }
 
   async function renderCategoryStrip() {
-    const cats = await fetchCategories(activeDepartment);
+    let cats;
+    if (activeDepartment === "btp") {
+      if (!proConnecte()) { document.getElementById("cat-select").disabled = true; return; }
+      const r = btpData || (await chargerBTP());
+      cats = r && r.status === "ok"
+        ? [...new Set((r.marques || []).flatMap((m) => (m.familles || []).map((f) => f.titre)))]
+        : [];
+    } else {
+      cats = await fetchCategories(activeDepartment);
+    }
     const sel = document.getElementById("cat-select");
     let options = `<option value="">Toutes les catégories</option>`;
     options += cats
@@ -139,6 +150,18 @@
     document.getElementById("section-heading").textContent = activeCategory ? catLabel(activeCategory) : "Tous les produits";
     document.getElementById("cat-count-label").textContent = `${filtered.length} produit${filtered.length > 1 ? "s" : ""}`;
     grid.innerHTML = filtered.map(productCard).join("");
+    grid.querySelectorAll(".btp-qty").forEach((inp) => {
+      const l = getBtpCart().find((x) => x.code === inp.dataset.sku);
+      if (l) inp.value = l.qty;
+      inp.addEventListener("input", () => {
+        const prod = filtered.find((x) => x.sku === inp.dataset.sku);
+        if (!prod) return;
+        const v = parseFloat(inp.value) || 0;
+        const dedans = getBtpCart().some((x) => x.code === prod.sku && x.marque === prod._marque);
+        if (dedans) updateBtpQty(prod.sku, prod._marque, v);
+        else if (v > 0) addToBtpCart(prod, v);
+      });
+    });
     grid.querySelectorAll(".card-add").forEach((btn) =>
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -151,6 +174,33 @@
   }
 
   function productCard(p) {
+    if (p._btp) {
+      const prix = p._surDemande
+        ? `<span class="card-price" style="font-size:13px;font-style:italic">Nous consulter</span>`
+        : (p.price_eur != null
+            ? `<span class="card-price">${eurP(p.price_eur)} <span style="font-size:11px;color:#495765;font-weight:400">HT</span></span>`
+            : `<span class="card-price" style="font-size:13px">Tarif à activer</span>`);
+      return `
+      <div class="card">
+        <div class="card-media">
+          <span class="card-cat">${p._marque === "nudura" ? "Nudura" : "TEXSA"}</span>
+          ${productPhoto(p.sku, p.category)}
+        </div>
+        <div class="card-body">
+          <div class="card-name">${p.name}</div>
+          ${p.description ? `<div style="font-size:12px;color:#8895a3;margin-top:2px">${p.description}</div>` : ""}
+          <div style="font-size:11px;color:#a3aeb9;font-family:ui-monospace,monospace;margin-top:2px">${p.sku}</div>
+          <div class="card-foot">
+            ${prix}
+            <span style="display:flex;align-items:center;gap:6px">
+              <input type="number" min="0" step="any" class="btp-qty" data-sku="${p.sku}"
+                     style="width:70px;padding:6px 8px;border:1px solid #cfd8e0;border-radius:6px;text-align:right">
+              <span style="font-size:11px;color:#8895a3">${p._unite}</span>
+            </span>
+          </div>
+        </div>
+      </div>`;
+    }
     return `
     <a class="card" href="/boutique/product.html?sku=${encodeURIComponent(p.sku)}">
       <div class="card-media">
@@ -160,7 +210,7 @@
       <div class="card-body">
         <div class="card-name">${p.name}</div>
         <div class="card-foot">
-          ${priceDisplay(p.price_eur)}
+          ${priceDisplay(p.price_eur, p.sku)}
           ${stockBlock(p)}
         </div>
       </div>
@@ -171,6 +221,25 @@
     const grid = document.getElementById("grid");
     grid.innerHTML = `<div class="empty-state">Chargement du catalogue…</div>`;
     try {
+      if (activeDepartment === "btp") {
+        if (!proConnecte()) {
+          grid.innerHTML = `<div class="empty-state">
+            Le rayon BTP / Matériaux est réservé aux professionnels.<br><br>
+            <button onclick="ouvrirConnexionPro()" style="padding:10px 20px;border:0;border-radius:8px;
+              background:#3f6b4a;color:#fff;font-weight:600;cursor:pointer">Accès professionnel</button>
+            </div>`;
+          document.getElementById("cat-count-label").textContent = "";
+          return;
+        }
+        const r = await chargerBTP();
+        if (!r || r.status !== "ok") {
+          grid.innerHTML = `<div class="empty-state">Catalogue indisponible. Reconnecte-toi.</div>`;
+          return;
+        }
+        currentProducts = btpProduits(activeCategory || null);
+        renderProductList(currentProducts);
+        return;
+      }
       currentProducts = await fetchProducts({ department: activeDepartment, category: activeCategory });
       renderProductList(currentProducts);
     } catch (err) {
@@ -184,8 +253,30 @@
   });
 
   document.getElementById("hero-share").innerHTML = shareButtons(location.origin + "/boutique/", "SCAF Ménage — produits d'entretien livrés en Corse");
+  const HERO = {
+    menage: { tag: "Nouveau · Livré en Corse",
+              titre: "Le nécessaire du ménage, sans y penser deux fois.",
+              sous: "Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse." },
+    btp:    { tag: "Réservé aux professionnels",
+              titre: "Matériaux de construction et d'étanchéité.",
+              sous: "Coffrage isolant Nudura et étanchéité TEXSA, à votre tarif professionnel. Commandez directement ou demandez un devis." }
+  };
+  function majHero() {
+    const h = HERO[activeDepartment] || HERO.menage;
+    const t = document.getElementById("hero-tag");
+    const ti = document.getElementById("hero-title");
+    const su = document.getElementById("hero-sub");
+    if (t) t.textContent = h.tag;
+    if (ti) ti.textContent = h.titre;
+    if (su) su.textContent = h.sous;
+    document.title = activeDepartment === "btp"
+      ? "SCAF Innovation — Matériaux BTP, Nudura & TEXSA"
+      : "SCAF Ménage — Produits d'entretien pour la maison, livrés en Corse";
+  }
+
   (async () => {
-    await checkProAccess();
+    await initPro();
+    majHero();
     renderDeptStrip();
     renderCategoryStrip();
     renderGrid();
