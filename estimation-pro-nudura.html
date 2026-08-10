@@ -1213,20 +1213,46 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
 });
 </script>
 
+<script src="/nudura-engine.js"></script>
 <script>
 /* ============================================================
-   IMPORTANT — CONFIGURATION AVANT MISE EN LIGNE
-   Remplacer l'adresse ci-dessous par l'adresse email réelle de
-   réception des commandes. FormSubmit envoie un email de
-   confirmation d'activation à cette adresse au premier envoi :
-   il faut valider ce mail avant que le formulaire ne fonctionne.
-   Documentation : https://formsubmit.co/
+   Envoi des devis : passe par le webhook Make (action 'commandePro'),
+   comme commande-pro-nudura.html. L'ancien FormSubmit n'a jamais ete
+   configure — l'adresse etait restee sur un gabarit et l'envoi etait
+   bloque par un garde-fou.
    ============================================================ */
-const FORM_ENDPOINT = 'https://formsubmit.co/CHANGE-MOI@scaf-innovation.fr';
+const FORM_ENDPOINT = null; // remplace par MAKE_WEBHOOK action:'commandePro'
+const APP_SECRET = 'scaf-pro-2026-x7k'; // filtre anti-spam cote Make (visible cote client, ne remplace pas une auth)
 
-// Catalogue public : uniquement le prix de vente HT (prixHT).
-// Aucune donnée de coût d'achat n'est présente dans ce fichier.
-const PRODUCTS = [{"cat": "BLOCS STANDARDS 102mm", "ref": "NUS I0096 04", "label": "Bloc droit voile béton 102mm (PSE 67mm)", "prixHT": 144.94, "pkg": "unit", "qtePkg": 3, "kg": 20.41}, {"cat": "BLOCS STANDARDS 102mm", "ref": "NUS I0090 04", "label": "Bloc angle 90° voile béton 102mm (PSE 67mm)", "prixHT": 64.88, "pkg": "unit", "qtePkg": 6, "kg": 16.33}, {"cat": "BLOCS STANDARDS 102mm", "ref": "NUS I0045 04", "label": "Bloc angle 45° voile béton 102mm (PSE 67mm)", "prixHT": 64.66, "pkg": "unit", "qtePkg": 6, "kg": 15.42}, {"cat": "BLOCS STANDARDS 102mm", "ref": "NUS I0RAD 04", "label": "Bloc courbe voile béton 102mm (PSE 67mm)", "prixHT": 195.63, "pkg": "unit", "qtePkg": 3, "kg": 13.61}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0096 06", "label": "Bloc droit voile béton 152mm (PSE 67mm)", "prixHT": 115.25, "pkg": "unit", "qtePkg": 3, "kg": 21.77}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0090 06", "label": "Bloc angle 90° voile béton 152mm (PSE 67mm)", "prixHT": 59.51, "pkg": "unit", "qtePkg": 6, "kg": 18.59}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0045 06", "label": "Bloc angle 45° voile béton 152mm (PSE 67mm)", "prixHT": 59.76, "pkg": "unit", "qtePkg": 6, "kg": 15.42}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0B96 06", "label": "Bloc corniche voile béton 152mm", "prixHT": 156.9, "pkg": "unit", "qtePkg": 2, "kg": 14.97}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0T96 06", "label": "Bloc droit un fuseau voile béton 152mm", "prixHT": 130.9, "pkg": "unit", "qtePkg": 3, "kg": 20.86}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0D96 06", "label": "Bloc droit double fuseau voile béton 152mm", "prixHT": 138.92, "pkg": "unit", "qtePkg": 3, "kg": 20.41}, {"cat": "BLOCS STANDARDS 152mm", "ref": "NUS I0RAD 06", "label": "Bloc courbe voile béton 152mm", "prixHT": 183.24, "pkg": "unit", "qtePkg": 3, "kg": 13.61}, {"cat": "BLOCS STANDARDS 203mm", "ref": "NUS I0096 08", "label": "Bloc droit voile béton 203mm (PSE 67mm)", "prixHT": 115.25, "pkg": "unit", "qtePkg": 3, "kg": 22.22}, {"cat": "BLOCS STANDARDS 203mm", "ref": "NUS I0090 08", "label": "Bloc angle 90° voile béton 203mm (PSE 67mm)", "prixHT": 64.21, "pkg": "unit", "qtePkg": 6, "kg": 18.14}, {"cat": "BLOCS STANDARDS 203mm", "ref": "NUS I0045 08", "label": "Bloc angle 45° voile béton 203mm (PSE 67mm)", "prixHT": 66.03, "pkg": "unit", "qtePkg": 6, "kg": 15.42}, {"cat": "BLOCS STANDARDS 203mm", "ref": "NUS I0RAD 08", "label": "Bloc courbe voile béton 203mm", "prixHT": 179.78, "pkg": "unit", "qtePkg": 3, "kg": 14.06}, {"cat": "BLOCS STANDARDS 254mm", "ref": "NUS I0096 10", "label": "Bloc droit voile béton 254mm (PSE 67mm)", "prixHT": 141.9, "pkg": "unit", "qtePkg": 3, "kg": 22.68}, {"cat": "BLOCS STANDARDS 254mm", "ref": "NUS I0090 10", "label": "Bloc angle 90° voile béton 254mm", "prixHT": 91.07, "pkg": "unit", "qtePkg": 4, "kg": 12.28}, {"cat": "BLOCS STANDARDS 254mm", "ref": "NUS I0045 10", "label": "Bloc angle 45° voile béton 254mm", "prixHT": 73.82, "pkg": "unit", "qtePkg": 4, "kg": 10.89}, {"cat": "BLOCS STANDARDS 254mm", "ref": "NUS I0RAD 10", "label": "Bloc courbe voile béton 254mm", "prixHT": 191.0, "pkg": "unit", "qtePkg": 3, "kg": 14.97}, {"cat": "BLOCS STANDARDS 305mm", "ref": "NUS I0096 12", "label": "Bloc droit voile béton 305mm", "prixHT": 166.11, "pkg": "unit", "qtePkg": 3, "kg": 22.68}, {"cat": "BLOCS STANDARDS 305mm", "ref": "NUS I0090 12", "label": "Bloc angle 90° voile béton 305mm", "prixHT": 107.97, "pkg": "unit", "qtePkg": 4, "kg": 13.15}, {"cat": "BLOCS STANDARDS 305mm", "ref": "NUS I0045 12", "label": "Bloc angle 45° voile béton 305mm", "prixHT": 73.43, "pkg": "unit", "qtePkg": 4, "kg": 11.34}, {"cat": "BLOCS STANDARDS 305mm", "ref": "NUS I0RAD 12", "label": "Bloc courbe voile béton 305mm", "prixHT": 215.21, "pkg": "unit", "qtePkg": 3, "kg": 14.97}, {"cat": "BLOCS XR35 152mm", "ref": "NUS IX496 06", "label": "Bloc droit XR35 voile béton 152mm (PSE 102mm)", "prixHT": 156.02, "pkg": "unit", "qtePkg": 2, "kg": 19.05}, {"cat": "BLOCS XR35 152mm", "ref": "NUS IX490 06", "label": "Bloc angle 90° XR35 voile béton 152mm", "prixHT": 112.11, "pkg": "unit", "qtePkg": 4, "kg": 24.04}, {"cat": "BLOCS XR35 203mm", "ref": "NUS IX496 08", "label": "Bloc droit XR35 voile béton 203mm", "prixHT": 156.02, "pkg": "unit", "qtePkg": 2, "kg": 19.05}, {"cat": "BLOCS XR35 203mm", "ref": "NUS IX490 08", "label": "Bloc angle 90° XR35 voile béton 203mm", "prixHT": 112.11, "pkg": "unit", "qtePkg": 4, "kg": 24.04}, {"cat": "BLOCS PLUS R+25 152mm", "ref": "NUS P1096 06", "label": "Bloc droit R+25mm voile béton 152mm", "prixHT": 207.71, "pkg": "unit", "qtePkg": 3, "kg": 24.95}, {"cat": "BLOCS PLUS R+25 152mm", "ref": "NUS P1L90 06", "label": "Bloc angle 90° Sortant R+25mm voile béton 152mm", "prixHT": 102.9, "pkg": "unit", "qtePkg": 6, "kg": 20.41}, {"cat": "BLOCS PLUS R+25 152mm", "ref": "NUS P1S90 06", "label": "Bloc angle 90° Entrant R+25mm voile béton 152mm", "prixHT": 90.41, "pkg": "unit", "qtePkg": 6, "kg": 19.05}, {"cat": "BLOCS PLUS R+51 152mm", "ref": "NUS P2096 06", "label": "Bloc droit R+51mm voile béton 152mm", "prixHT": 232.7, "pkg": "unit", "qtePkg": 3, "kg": 26.31}, {"cat": "BLOCS PLUS R+51 152mm", "ref": "NUS P2L90 06", "label": "Bloc angle 90° Sortant R+51mm voile béton 152mm", "prixHT": 113.09, "pkg": "unit", "qtePkg": 6, "kg": 22.68}, {"cat": "BLOCS PLUS R+51 152mm", "ref": "NUS P2S90 06", "label": "Bloc angle 90° Entrant R+51mm voile béton 152mm", "prixHT": 92.0, "pkg": "unit", "qtePkg": 6, "kg": 19.96}, {"cat": "BLOCS PLUS R+102 152mm", "ref": "NUS P4096 06", "label": "Bloc droit R+102mm voile béton 152mm", "prixHT": 274.79, "pkg": "unit", "qtePkg": 3, "kg": 32.66}, {"cat": "BLOCS PLUS R+102 152mm", "ref": "NUS P4L90 06", "label": "Bloc angle 90° Sortant R+102mm voile béton 152mm", "prixHT": 136.29, "pkg": "unit", "qtePkg": 6, "kg": 27.67}, {"cat": "BLOCS PLUS R+102 152mm", "ref": "NUS P4S90 06", "label": "Bloc angle 90° Entrant R+102mm voile béton 152mm", "prixHT": 104.93, "pkg": "unit", "qtePkg": 6, "kg": 21.77}, {"cat": "BLOCS PLUS R+152 152mm", "ref": "NUS P6096 06", "label": "Bloc droit R+152mm voile béton 152mm", "prixHT": 329.72, "pkg": "unit", "qtePkg": 3, "kg": 37.65}, {"cat": "BLOCS PLUS R+152 152mm", "ref": "NUS P6L90 06", "label": "Bloc angle 90° Sortant R+152mm voile béton 152mm", "prixHT": 169.61, "pkg": "unit", "qtePkg": 6, "kg": 33.56}, {"cat": "BLOCS PLUS R+152 152mm", "ref": "NUS P6S90 06", "label": "Bloc angle 90° Entrant R+152mm voile béton 152mm", "prixHT": 114.91, "pkg": "unit", "qtePkg": 6, "kg": 23.13}, {"cat": "BLOCS PLUS R+25 203mm", "ref": "NUS P1096 08", "label": "Bloc droit R+25mm voile béton 203mm", "prixHT": 185.51, "pkg": "unit", "qtePkg": 3, "kg": 25.4}, {"cat": "BLOCS PLUS R+25 203mm", "ref": "NUS P1L90 08", "label": "Bloc angle 90° Sortant R+25mm voile béton 203mm", "prixHT": 125.91, "pkg": "unit", "qtePkg": 6, "kg": 21.32}, {"cat": "BLOCS PLUS R+25 203mm", "ref": "NUS P1S90 08", "label": "Bloc angle 90° Entrant R+25mm voile béton 203mm", "prixHT": 113.21, "pkg": "unit", "qtePkg": 6, "kg": 19.5}, {"cat": "BLOCS PLUS R+51 203mm", "ref": "NUS P2096 08", "label": "Bloc droit R+51mm voile béton 203mm", "prixHT": 229.25, "pkg": "unit", "qtePkg": 3, "kg": 26.31}, {"cat": "BLOCS PLUS R+51 203mm", "ref": "NUS P2L90 08", "label": "Bloc angle 90° Sortant R+51mm voile béton 203mm", "prixHT": 135.9, "pkg": "unit", "qtePkg": 6, "kg": 24.49}, {"cat": "BLOCS PLUS R+51 203mm", "ref": "NUS P2S90 08", "label": "Bloc angle 90° Entrant R+51mm voile béton 203mm", "prixHT": 114.81, "pkg": "unit", "qtePkg": 6, "kg": 21.77}, {"cat": "BLOCS PLUS R+102 203mm", "ref": "NUS P4096 08", "label": "Bloc droit R+102mm voile béton 203mm", "prixHT": 271.34, "pkg": "unit", "qtePkg": 3, "kg": 33.11}, {"cat": "BLOCS PLUS R+102 203mm", "ref": "NUS P4L90 08", "label": "Bloc angle 90° Sortant R+102mm voile béton 203mm", "prixHT": 161.9, "pkg": "unit", "qtePkg": 6, "kg": 28.58}, {"cat": "BLOCS PLUS R+102 203mm", "ref": "NUS P4S90 08", "label": "Bloc angle 90° Entrant R+102mm voile béton 203mm", "prixHT": 126.71, "pkg": "unit", "qtePkg": 6, "kg": 23.13}, {"cat": "BLOCS PLUS R+152 203mm", "ref": "NUS P6096 08", "label": "Bloc droit R+152mm voile béton 203mm", "prixHT": 323.77, "pkg": "unit", "qtePkg": 3, "kg": 37.65}, {"cat": "BLOCS PLUS R+152 203mm", "ref": "NUS P6L90 08", "label": "Bloc angle 90° Sortant R+152mm voile béton 203mm", "prixHT": 189.46, "pkg": "unit", "qtePkg": 6, "kg": 33.57}, {"cat": "BLOCS PLUS R+152 203mm", "ref": "NUS P6S90 08", "label": "Bloc angle 90° Entrant R+152mm voile béton 203mm", "prixHT": 136.51, "pkg": "unit", "qtePkg": 6, "kg": 37.65}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS I0PAN 00", "label": "Lot de 2 Planelles bloc droit standard (PSE 67mm)", "prixHT": 104.69, "pkg": "lot", "qtePkg": 3, "kg": 17.69}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IXPAN 00", "label": "Lot de 2 Planelles bloc droit XR35 (PSE 102mm)", "prixHT": 122.94, "pkg": "lot", "qtePkg": 2, "kg": 19.05}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS P4PAN 00", "label": "Lot de 2 Planelles Plus R+102", "prixHT": 407.56, "pkg": "lot", "qtePkg": 3, "kg": 26.31}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS I0T96 00", "label": "Bloc droit un fuseau non-assemblé", "prixHT": 115.08, "pkg": "unit", "qtePkg": 3, "kg": 17.24}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS I0D96 00", "label": "Bloc droit double fuseau non-assemblé", "prixHT": 120.44, "pkg": "unit", "qtePkg": 3, "kg": 15.87}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS I0B96 00", "label": "Bloc simple corniche non-assemblé", "prixHT": 122.18, "pkg": "unit", "qtePkg": 2, "kg": 12.25}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS I0STW 00", "label": "Planelle angle 90° côté court (PSE 67mm)", "prixHT": 107.97, "pkg": "unit", "qtePkg": 16, "kg": 14.06}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBS 04", "label": "Carton 100 Entretoises voile béton 102mm", "prixHT": 99.59, "pkg": "carton", "qtePkg": 1, "kg": 5.89}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBL 04", "label": "Carton 957 Entretoises voile béton 102mm", "prixHT": 765.06, "pkg": "carton", "qtePkg": 1, "kg": 62.14}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBS 06", "label": "Carton 100 Entretoises voile béton 152mm", "prixHT": 107.02, "pkg": "carton", "qtePkg": 1, "kg": 7.71}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBL 06", "label": "Carton 655 Entretoises voile béton 152mm", "prixHT": 525.01, "pkg": "carton", "qtePkg": 1, "kg": 48.99}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBS 08", "label": "Carton 100 Entretoises voile béton 203mm", "prixHT": 114.44, "pkg": "carton", "qtePkg": 1, "kg": 8.62}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBL 08", "label": "Carton 465 Entretoises voile béton 203mm", "prixHT": 418.39, "pkg": "carton", "qtePkg": 1, "kg": 39.46}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBS 10", "label": "Carton 100 Entretoises voile béton 254mm", "prixHT": 140.46, "pkg": "carton", "qtePkg": 1, "kg": 9.98}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBL 10", "label": "Carton 388 Entretoises voile béton 254mm", "prixHT": 480.08, "pkg": "carton", "qtePkg": 1, "kg": 38.55}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBS 12", "label": "Carton 100 Entretoises voile béton 305mm", "prixHT": 147.93, "pkg": "carton", "qtePkg": 1, "kg": 11.79}, {"cat": "PRODUITS NON-ASSEMBLES", "ref": "NUS IWEBL 12", "label": "Carton 295 Entretoises voile béton 305mm", "prixHT": 378.11, "pkg": "carton", "qtePkg": 1, "kg": 34.47}, {"cat": "OPTIMIZER", "ref": "NUS I0OPT 00", "label": "Bloc Optimizer non-assemblé 305x1219mm", "prixHT": 38.83, "pkg": "unit", "qtePkg": 6, "kg": 6.8}, {"cat": "OPTIMIZER", "ref": "NUS IOWEB 06", "label": "Carton 120 Entretoises Optimizer voile béton 152mm", "prixHT": 129.83, "pkg": "carton", "qtePkg": 1, "kg": 9.07}, {"cat": "OPTIMIZER", "ref": "NUS IOWEB 08", "label": "Carton 120 Entretoises Optimizer voile béton 203mm", "prixHT": 129.83, "pkg": "carton", "qtePkg": 1, "kg": 10.43}, {"cat": "OPTIMIZER", "ref": "NUS IOWEB 10", "label": "Carton 84 Entretoises Optimizer voile béton 254mm", "prixHT": 92.22, "pkg": "carton", "qtePkg": 1, "kg": 8.62}, {"cat": "OPTIMIZER", "ref": "NUS IOWEB 12", "label": "Carton 84 Entretoises Optimizer voile béton 305mm", "prixHT": 98.88, "pkg": "carton", "qtePkg": 1, "kg": 9.98}, {"cat": "AJUSTEUR", "ref": "NUS AHDJF 00", "label": "Planelle Ajusteur de hauteur 76mm (carton 80)", "prixHT": 9.78, "pkg": "unit", "qtePkg": 80, "kg": 14.97}, {"cat": "AJUSTEUR", "ref": "NUS AHADT 04", "label": "Carton 100 Entretoises Ajusteur voile béton 102mm", "prixHT": 84.16, "pkg": "carton", "qtePkg": 1, "kg": 4.08}, {"cat": "AJUSTEUR", "ref": "NUS AHADT 06", "label": "Carton 100 Entretoises Ajusteur voile béton 152mm", "prixHT": 74.68, "pkg": "carton", "qtePkg": 1, "kg": 4.08}, {"cat": "AJUSTEUR", "ref": "NUS AHADT 08", "label": "Carton 100 Entretoises Ajusteur voile béton 203mm", "prixHT": 87.12, "pkg": "carton", "qtePkg": 1, "kg": 4.99}, {"cat": "AJUSTEUR", "ref": "NUS AHADT 10", "label": "Carton 100 Entretoises Ajusteur voile béton 254mm", "prixHT": 94.47, "pkg": "carton", "qtePkg": 1, "kg": 4.99}, {"cat": "AJUSTEUR", "ref": "NUS AHADT 12", "label": "Carton 80 Entretoises Ajusteur voile béton 305mm", "prixHT": 86.34, "pkg": "carton", "qtePkg": 1, "kg": 4.99}, {"cat": "NUDURA ONE SERIES", "ref": "NUS EMULT 00", "label": "Carton 96 DURA Multi-Link Ties", "prixHT": 165.4, "pkg": "carton", "qtePkg": 1, "kg": 11.34}, {"cat": "NUDURA ONE SERIES", "ref": "NUS ASHEX 20", "label": "Seau 1000 Vis Nudura 51mm hexagonale", "prixHT": 208.84, "pkg": "seau", "qtePkg": 1, "kg": 6.8}, {"cat": "NUDURA ONE SERIES", "ref": "NUS APLYN 00", "label": "Panneau contreplaqué 2438x457mm", "prixHT": 129.65, "pkg": "unit", "qtePkg": 1, "kg": 6.8}, {"cat": "NUDURA ONE SERIES", "ref": "NUS E0E90 00", "label": "Planelle angle 90° sortant côté long", "prixHT": 41.55, "pkg": "pqt", "qtePkg": 4, "kg": 8.16}, {"cat": "NUDURA ONE SERIES", "ref": "NUS AONEJ 00", "label": "Gabarit de montage One-side métal", "prixHT": 316.81, "pkg": "unit", "qtePkg": 1, "kg": 13.61}, {"cat": "NUDURA ONE SERIES", "ref": "NUS AONEC 00", "label": "Connecteur d'angle contreplaqué (3m)", "prixHT": 98.98, "pkg": "unit", "qtePkg": 1, "kg": 5.9}, {"cat": "NUDURA ONE SERIES", "ref": "NUS APLIN 00", "label": "Carton 2400 Inserts plastique contreplaqué", "prixHT": 1055.26, "pkg": "carton", "qtePkg": 1, "kg": 5.9}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS P1FOM 00", "label": "Plaque de PSE 25mm", "prixHT": 21.29, "pkg": "unit", "qtePkg": 48, "kg": 29.0}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS P2FOM 00", "label": "Plaque de PSE 51mm", "prixHT": 39.35, "pkg": "unit", "qtePkg": 15, "kg": 20.4}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS P4FOM 00", "label": "Plaque de PSE 102mm", "prixHT": 80.68, "pkg": "unit", "qtePkg": 6, "kg": 18.6}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS PIN32 01", "label": "Insert PSE 25mm", "prixHT": 3.77, "pkg": "unit", "qtePkg": 85, "kg": 7.26}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS PIN32 02", "label": "Insert PSE 51mm", "prixHT": 6.74, "pkg": "unit", "qtePkg": 48, "kg": 11.34}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS PIN32 04", "label": "Insert PSE 102mm", "prixHT": 12.3, "pkg": "unit", "qtePkg": 24, "kg": 8.16}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS PIN32 06", "label": "Insert PSE 152mm", "prixHT": 16.56, "pkg": "unit", "qtePkg": 24, "kg": 11.34}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FNANO 00", "label": "Plaque à plots Hydrofoam 9.5mm", "prixHT": 19.75, "pkg": "unit", "qtePkg": 18, "kg": 9.07}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS F0RHF 25", "label": "Plaque à plots Hydrofoam 64mm", "prixHT": 64.44, "pkg": "unit", "qtePkg": 10, "kg": 22.68}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS F0RHF 40", "label": "Plaque à plots Hydrofoam 102mm", "prixHT": 92.61, "pkg": "unit", "qtePkg": 6, "kg": 21.77}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCW25 81", "label": "Plaque Homega 67mm lattes bois", "prixHT": 122.23, "pkg": "unit", "qtePkg": 6, "kg": 40.82}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCP25 81", "label": "Plaque Homega 67mm lattes plastique", "prixHT": 133.3, "pkg": "unit", "qtePkg": 6, "kg": 40.82}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCW31 21", "label": "Plaque Homega 89mm lattes bois", "prixHT": 151.21, "pkg": "unit", "qtePkg": 4, "kg": 31.3}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCP31 21", "label": "Plaque Homega 89mm lattes plastique", "prixHT": 161.48, "pkg": "unit", "qtePkg": 4, "kg": 31.3}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCW37 81", "label": "Plaque Homega 98mm lattes bois", "prixHT": 163.88, "pkg": "unit", "qtePkg": 4, "kg": 37.65}, {"cat": "INTEGRATED SERIES ET PSE", "ref": "NUS FCP37 81", "label": "Plaque Homega 98mm lattes plastique", "prixHT": 174.0, "pkg": "unit", "qtePkg": 4, "kg": 37.65}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ASHEX 25", "label": "Seau 1000 Vis Nudura 64mm hexagonale", "prixHT": 357.14, "pkg": "seau", "qtePkg": 1, "kg": 6.35}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ASHEX 30", "label": "Seau 1000 Vis Nudura 76mm hexagonale", "prixHT": 398.47, "pkg": "seau", "qtePkg": 1, "kg": 8.16}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0VJC 00", "label": "Carton 200 Clips de liaison inter-blocs", "prixHT": 113.8, "pkg": "carton", "qtePkg": 1, "kg": 9.53}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ATSTP 00", "label": "Carton 30 Bandes renfort mur T (T-strap)", "prixHT": 105.79, "pkg": "carton", "qtePkg": 1, "kg": 7.25}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ABLOK 06", "label": "Lot 10 Raidisseurs voile béton 152mm", "prixHT": 123.41, "pkg": "lot", "qtePkg": 1, "kg": 15.88}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ABLOK 08", "label": "Lot 10 Raidisseurs voile béton 203mm", "prixHT": 139.85, "pkg": "lot", "qtePkg": 1, "kg": 17.24}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ABLOK 10", "label": "Lot 10 Raidisseurs voile béton 254mm", "prixHT": 208.32, "pkg": "lot", "qtePkg": 1, "kg": 20.57}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS ABLOK 12", "label": "Lot 10 Raidisseurs voile béton 305mm", "prixHT": 220.79, "pkg": "lot", "qtePkg": 1, "kg": 25.4}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0ECF 04", "label": "Bouchon voile béton 102mm (57/carton)", "prixHT": 5.27, "pkg": "unit", "qtePkg": 57, "kg": 11.79}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0ECF 06", "label": "Bouchon voile béton 152mm (40/carton)", "prixHT": 6.39, "pkg": "unit", "qtePkg": 40, "kg": 9.98}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0ECF 08", "label": "Bouchon voile béton 203mm (30/carton)", "prixHT": 7.13, "pkg": "unit", "qtePkg": 30, "kg": 9.07}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0ECF 10", "label": "Bouchon voile béton 254mm (35/carton)", "prixHT": 8.67, "pkg": "unit", "qtePkg": 35, "kg": 12.25}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS A0ECF 12", "label": "Bouchon voile béton 305mm (30/carton)", "prixHT": 9.46, "pkg": "unit", "qtePkg": 30, "kg": 11.79}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS PLINT 04", "label": "Fond de linteau 51mm voile béton 102mm", "prixHT": 6.74, "pkg": "unit", "qtePkg": 84, "kg": 19.05}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS PLINT 06", "label": "Fond de linteau 51mm voile béton 152mm", "prixHT": 7.35, "pkg": "unit", "qtePkg": 60, "kg": 19.5}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS PLINT 08", "label": "Fond de linteau 51mm voile béton 203mm", "prixHT": 9.43, "pkg": "unit", "qtePkg": 48, "kg": 20.41}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS PLINT 10", "label": "Fond de linteau 51mm voile béton 254mm", "prixHT": 16.0, "pkg": "unit", "qtePkg": 36, "kg": 19.05}, {"cat": "ACCESSOIRES INDISPENSABLES", "ref": "NUS PLINT 12", "label": "Fond de linteau 51mm voile béton 305mm", "prixHT": 18.45, "pkg": "unit", "qtePkg": 36, "kg": 24.49}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ABLEX 00", "label": "Extension corniche longueur 813mm", "prixHT": 15.7, "pkg": "unit", "qtePkg": 14, "kg": 6.35}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS A4XWC 00", "label": "Carton 100 Connecteurs inter-entretoises 4 directions", "prixHT": 473.83, "pkg": "carton", "qtePkg": 1, "kg": 6.8}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AIHIP 00", "label": "Carton 50 Platines droites à sceller", "prixHT": 149.84, "pkg": "carton", "qtePkg": 1, "kg": 11.79}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AISBB 00", "label": "Carton 20 Sabots perforés", "prixHT": 110.54, "pkg": "carton", "qtePkg": 1, "kg": 5.9}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AIHIP 45", "label": "Carton 20 Platines 45° à sceller", "prixHT": 138.6, "pkg": "carton", "qtePkg": 1, "kg": 9.07}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AIRFB 00", "label": "Carton 12 Platines à fixer", "prixHT": 68.33, "pkg": "carton", "qtePkg": 1, "kg": 4.08}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ATRBR 00", "label": "Carton 100 Supports de transition", "prixHT": 145.19, "pkg": "carton", "qtePkg": 1, "kg": 5.44}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCRW 40", "label": "Seau 500 Vis #10 102mm", "prixHT": 108.53, "pkg": "seau", "qtePkg": 1, "kg": 5.9}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCRW 50", "label": "Seau 500 Vis #10 127mm", "prixHT": 117.38, "pkg": "seau", "qtePkg": 1, "kg": 6.35}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCRW 60", "label": "Seau 500 Vis #10 152mm", "prixHT": 168.02, "pkg": "seau", "qtePkg": 1, "kg": 7.26}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCPW 00", "label": "Seau 250 Rosaces plastique ITE", "prixHT": 111.18, "pkg": "seau", "qtePkg": 1, "kg": 0.91}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCCS 50", "label": "Pot 50 Vis béton 127x6mm", "prixHT": 32.39, "pkg": "pot", "qtePkg": 1, "kg": 2.27}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCCL 50", "label": "Seau 30 Vis béton 127x6mm", "prixHT": 170.57, "pkg": "seau", "qtePkg": 1, "kg": 7.26}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASCCS 60", "label": "Pot 50 Vis béton 152x6mm", "prixHT": 56.33, "pkg": "pot", "qtePkg": 1, "kg": 1.36}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AVCLP 00", "label": "Carton 250 Connection plancher (V-Clip)", "prixHT": 435.02, "pkg": "carton", "qtePkg": 1, "kg": 21.77}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ARCLP 00", "label": "Carton 20 Crochets support aciers horizontaux", "prixHT": 101.92, "pkg": "carton", "qtePkg": 1, "kg": 3.6}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ABRKG 00", "label": "Kit 100 Bases retenue parement briques Galva", "prixHT": 332.59, "pkg": "kit", "qtePkg": 1, "kg": 13.15}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ABRKS 00", "label": "Kit 100 Bases retenue parement briques Inox", "prixHT": 837.63, "pkg": "kit", "qtePkg": 1, "kg": 13.61}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ASBRK 00", "label": "Carton 100 Bases retenue à visser parement briques", "prixHT": 290.79, "pkg": "carton", "qtePkg": 1, "kg": 4.54}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS APNTL 00", "label": "Carton 100 Crochets retenue parement briques", "prixHT": 177.75, "pkg": "carton", "qtePkg": 1, "kg": 6.35}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ATAPE 01", "label": "Carton 36 Rubans adhésif fibré 24mmx55m", "prixHT": 262.44, "pkg": "carton", "qtePkg": 1, "kg": 6.35}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS ATPCL 04", "label": "Carton 18 Rubans adhésif protection 96mmx66m", "prixHT": 229.69, "pkg": "carton", "qtePkg": 1, "kg": 5.9}, {"cat": "ACCESSOIRES DIVERS", "ref": "NUS AREBC 00", "label": "Guillotine à aciers d'armatures (cintreuse)", "prixHT": 954.1, "pkg": "unit", "qtePkg": 1, "kg": 14.97}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BRACN 00", "label": "Kit étaiement contreventements carrées (20) sans montants", "prixHT": 8430.92, "pkg": "palette", "qtePkg": 1, "kg": 430.9}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSTRN 10", "label": "Kit étaiement (20) montants 3.05m inclus", "prixHT": 12713.15, "pkg": "rack", "qtePkg": 1, "kg": 748.4}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSTRN 12", "label": "Kit étaiement (20) montants 3.66m inclus", "prixHT": 14526.52, "pkg": "rack", "qtePkg": 1, "kg": 884.51}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BRCKS 10", "label": "Rack métal vide pour kit étaiement de 20", "prixHT": 2176.95, "pkg": "rack", "qtePkg": 1, "kg": 136.8}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSCHA 08", "label": "Kit 20 Montants seuls 2.44m", "prixHT": 2306.92, "pkg": "kit", "qtePkg": 1, "kg": 140.16}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSCHA 10", "label": "Kit 20 Montants seuls 3.05m", "prixHT": 3317.08, "pkg": "kit", "qtePkg": 1, "kg": 229.06}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BFFPN 00", "label": "Carton 40 Axes support garde-corps avant", "prixHT": 443.74, "pkg": "carton", "qtePkg": 1, "kg": 22.68}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSGPN 00", "label": "Carton 50 Axes d'assemblage", "prixHT": 301.23, "pkg": "carton", "qtePkg": 1, "kg": 13.61}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BDCLP 00", "label": "Seau 100 Goupilles d'assemblage", "prixHT": 349.98, "pkg": "seau", "qtePkg": 1, "kg": 3.18}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BSTTK 00", "label": "Carton 40 Supports de plinthe", "prixHT": 736.32, "pkg": "carton", "qtePkg": 1, "kg": 22.68}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BNTCR 00", "label": "Mur haut: platines perforées et écrous (carton)", "prixHT": 678.18, "pkg": "carton", "qtePkg": 1, "kg": 1.36}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BTWKT 00", "label": "Kit mur haut: adaptateurs échafaudage (20)", "prixHT": 5717.15, "pkg": "palette", "qtePkg": 1, "kg": 272.16}, {"cat": "SYSTEME ALIGNEMENT ETAIEMENT", "ref": "NUS BTWCW 00", "label": "Kit mur haut: tiges filetées crochetées (carton 100)", "prixHT": 147.0, "pkg": "carton", "qtePkg": 1, "kg": 5.44}];
+// Catalogue public : uniquement le prix de vente HT (prix_ht).
+// Aucune donnee de cout d'achat n'est exposee ici.
+const SUPABASE_URL = "https://crbvlowxxmspjnyculzl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Yy93MFm1TIrNPN3_hvCGkg_h5vvCSOp";
+
+// Catalogue charge depuis Supabase, plus jamais code en dur ici : les prix
+// etaient figes dans cette page et divergeaient de nudura_pro_products.
+// Une seule table fait foi, comme pour commande-pro-nudura.html.
+let PRODUCTS = [];
+let catalogueCharge = false;
+
+async function chargerCatalogue(){
+  const url = `${SUPABASE_URL}/rest/v1/nudura_pro_products?select=ref,cat,label,prix_ht,pkg,qte_pkg,kg&active=eq.true&order=cat.asc,label.asc`;
+  const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+  if(!res.ok) throw new Error('catalogue indisponible (' + res.status + ')');
+  const rows = await res.json();
+  if(!rows.length) throw new Error('catalogue vide');
+  PRODUCTS = rows.map(r=>({ cat:r.cat, ref:r.ref, label:r.label, prixHT:Number(r.prix_ht), pkg:r.pkg, qtePkg:r.qte_pkg, kg:r.kg }));
+  catalogueCharge = true;
+}
+
+// Sans catalogue, tout prix affiche serait faux : on bloque plutot que de montrer 0 €.
+function echecCatalogue(err){
+  const root = document.getElementById('catalogRoot');
+  if(root) root.innerHTML = '<div class="status err">Catalogue indisponible : ' + err.message +
+    '. Rechargez la page. Si le probleme persiste, contactez SCAF Innovation.</div>';
+  const btn = document.getElementById('btnEnvoyer');
+  if(btn) btn.disabled = true;
+}
 
 const REMISE_PRO = 0.55; // 45% de remise pro unifiée, appliquée au prix public à l'affichage/au calcul, jamais réécrite dans PRODUCTS
 const ESCOMPTE_COMPTANT = 0.97; // 3% supplémentaire si paiement comptant à la commande (appliqué sur le net pro, pas cumulé en points de %)
@@ -1729,197 +1755,24 @@ function removeItem(ref){
 }
 
 // ---- Estimation gros œuvre ----
-const LOCATION_PRIX_ENSEMBLE = 75; // € par ensemble loué (montant, garde-corps, support de passerelle, contreventement, axes d'assemblage), pour toute la durée du chantier
-const LONGUEUR_BLOC_M = 2.438; // longueur standard des blocs Nudura (hors Optimizer, qui fait 1.219m et n'est pas utilisé ici)
-const HAUTEUR_BLOC_M = 0.4572; // hauteur de bloc = 18 po exact (manuel officiel Nudura)
-const RENDEMENT_BLOC_M2 = LONGUEUR_BLOC_M * HAUTEUR_BLOC_M;
-const HAUTEUR_CORRECTEUR_M = 0.0762; // hauteur du correcteur = 3 po exact (manuel officiel, page 29)
-const PERTE_PCT = 5;
-const WASTE_OUVERTURE_PCT = 75; // % de la surface d'ouverture non réutilisable, déduite de la surface de mur
-const REF_CONNECTEUR_T = 'NUS ATSTP 00'; // Carton 30 Bandes renfort mur T (T-strap)
-const CONNECTEURS_PAR_CARTON = 30;
-const REF_APPOINT = 'NUS AHDJF 00'; // Planelle Ajusteur de hauteur 76mm — utilisée pour le cours d'appoint
-const LONGUEUR_AJUSTEUR_M = 0.813; // longueur réelle de la planelle ajusteur (813mm)
-const ENTRETOISES_AJUSTEUR_PAR_CARTON = 100;
-const REF_CONNECTEUR_4D = 'NUS A4XWC 00'; // Connecteur inter-entretoises 4 directions (largeurs sur-mesure >305mm)
-
-const RATIOS_KG_ML = { 'HA8':0.395, 'HA10':0.617, 'HA12':0.888 };
-
-// Table 2.2.2.1 du manuel officiel Nudura — ratio ml armature / m² de mur, recouvrements inclus
-const TABLE_ARMATURE = [
-  { espaceV: 203, simple: 4.92, double: 9.84 },
-  { espaceV: 406, simple: 2.46, double: 4.92 },
-  { espaceV: 610, simple: 1.64, double: 3.28 },
-  { espaceV: 813, simple: 1.25, double: 2.50 },
-  { espaceV: 1213, simple: 0.82, double: 1.64 },
-];
-
-const NIVEAU_PRESETS = [
-  'Fondation / soubassement', 'Vide sanitaire', 'Dalle / plancher existant (reprise sur existant)',
-  'RDC', 'R+1', 'R+2', 'R+3', 'Combles / attique', 'Pignon', 'Extension',
-  'Muret / clôture', 'Piscine (paroi enterrée)', 'Local technique / annexe', 'Toiture (mur de pignon sous toiture)',
-];
-
-// ---- Gammes et épaisseurs ----
-const GAMMES = [
-  { key:'standard', label:'Standard' },
-  { key:'xr35', label:'XR35' },
-  { key:'plus', label:'Plus+ Forms' },
-  { key:'one1', label:'One1' },
-];
-const EPAISSEURS_PAR_GAMME = { standard:[102,152,203,254,305], xr35:[152,203], plus:[152,203], one1:[102,152,203,254,305] };
-const RAJOUTS_PSE_PLUS = [25,51,102,152];
-
-const REFS_STANDARD = {
-  102:{droit:'NUS I0096 04',angleExt:'NUS I0090 04',angleInt:'NUS I0090 04',angle45:'NUS I0045 04',courbe:'NUS I0RAD 04',entretoiseAjusteur:'NUS AHADT 04',entretoise:'NUS IWEBS 04'},
-  152:{droit:'NUS I0096 06',angleExt:'NUS I0090 06',angleInt:'NUS I0090 06',angle45:'NUS I0045 06',courbe:'NUS I0RAD 06',entretoiseAjusteur:'NUS AHADT 06',entretoise:'NUS IWEBS 06'},
-  203:{droit:'NUS I0096 08',angleExt:'NUS I0090 08',angleInt:'NUS I0090 08',angle45:'NUS I0045 08',courbe:'NUS I0RAD 08',entretoiseAjusteur:'NUS AHADT 08',entretoise:'NUS IWEBS 08'},
-  254:{droit:'NUS I0096 10',angleExt:'NUS I0090 10',angleInt:'NUS I0090 10',angle45:'NUS I0045 10',courbe:'NUS I0RAD 10',entretoiseAjusteur:'NUS AHADT 10',entretoise:'NUS IWEBS 10'},
-  305:{droit:'NUS I0096 12',angleExt:'NUS I0090 12',angleInt:'NUS I0090 12',angle45:'NUS I0045 12',courbe:'NUS I0RAD 12',entretoiseAjusteur:'NUS AHADT 12',entretoise:'NUS IWEBS 12'},
-};
-const REFS_XR35 = {
-  152:{droit:'NUS IX496 06',angleExt:'NUS IX490 06',angleInt:'NUS IX490 06',angle45:null,courbe:null,entretoiseAjusteur:null,entretoise:null},
-  203:{droit:'NUS IX496 08',angleExt:'NUS IX490 08',angleInt:'NUS IX490 08',angle45:null,courbe:null,entretoiseAjusteur:null,entretoise:null},
-};
-const REFS_PLUS = {
-  152:{ 25:{droit:'NUS P1096 06',angleExt:'NUS P1L90 06',angleInt:'NUS P1S90 06'},
-        51:{droit:'NUS P2096 06',angleExt:'NUS P2L90 06',angleInt:'NUS P2S90 06'},
-        102:{droit:'NUS P4096 06',angleExt:'NUS P4L90 06',angleInt:'NUS P4S90 06'},
-        152:{droit:'NUS P6096 06',angleExt:'NUS P6L90 06',angleInt:'NUS P6S90 06'} },
-  203:{ 25:{droit:'NUS P1096 08',angleExt:'NUS P1L90 08',angleInt:'NUS P1S90 08'},
-        51:{droit:'NUS P2096 08',angleExt:'NUS P2L90 08',angleInt:'NUS P2S90 08'},
-        102:{droit:'NUS P4096 08',angleExt:'NUS P4L90 08',angleInt:'NUS P4S90 08'},
-        152:{droit:'NUS P6096 08',angleExt:'NUS P6L90 08',angleInt:'NUS P6S90 08'} },
-};
-
-function getRefs(gamme, epaisseurMm, rajoutPSE){
-  if(gamme === 'standard'){
-    if(epaisseurMm === 'custom') return null;
-    return REFS_STANDARD[epaisseurMm] || null;
-  }
-  if(gamme === 'xr35') return REFS_XR35[epaisseurMm] || null;
-  if(gamme === 'plus'){
-    const parEpaisseur = REFS_PLUS[epaisseurMm];
-    if(!parEpaisseur) return null;
-    const base = parEpaisseur[rajoutPSE];
-    if(!base) return null;
-    return { ...base, angle45:null, courbe:null, entretoiseAjusteur:null, entretoise:null };
-  }
-  return null; // one1 : composé par assemblage, voir calculerOne1Droit/calculerOne1Angle
-}
-
-// ---- One1 : système à assemblage sur site (composants, pas un bloc unique) ----
-const REF_ONE1_PLANELLE = 'NUS I0PAN 00'; // Planelle droite PSE
-const REF_ONE1_CONTREPLAQUE = 'NUS APLYN 00'; // Panneau contreplaqué
-const REF_ONE1_VIS = 'NUS ASHEX 20'; // Vis Nudura 51mm hexagonale
-const REF_ONE1_MULTILINK = 'NUS EMULT 00'; // Entretoises Multi-Link
-const REF_ONE1_GABARIT = 'NUS AONEJ 00'; // Gabarit de montage — outil réutilisable, 1 par projet
-const REF_ONE1_ANGLE_LONG = 'NUS E0E90 00'; // Angle 90° PSE côté long (A1=0,956m / A2=0,549m)
-const REF_ONE1_ANGLE_COURT = 'NUS I0STW 00'; // Angle 90° PSE côté court (A1=0,518m / A2=0,111m)
-const REF_ONE1_CONNECTEUR_ANGLE = 'NUS AONEC 00'; // Connecteur d'angle 3m — par angle, pas par ml
-
-function entretoiseStandardPour(epaisseurMm){
-  const r = REFS_STANDARD[epaisseurMm];
-  return r ? r.entretoise : null;
-}
-
-function calculerOne1Droit(epaisseurMm, nbModules, panier){
-  if(nbModules <= 0) return;
-  ajouter(panier, REF_ONE1_PLANELLE, nbModules);
-  ajouter(panier, REF_ONE1_CONTREPLAQUE, nbModules);
-  ajouter(panier, REF_ONE1_VIS, nbModules * 24);
-  ajouter(panier, REF_ONE1_MULTILINK, nbModules * 12);
-  const entretoise = entretoiseStandardPour(epaisseurMm);
-  if(entretoise) ajouter(panier, entretoise, nbModules * 12);
-}
-
-function calculerOne1Angle(epaisseurMm, type, nbAngles, courses, panier){
-  if(nbAngles <= 0) return;
-  const nbModulesAngle = nbAngles * courses;
-  const entretoise = entretoiseStandardPour(epaisseurMm);
-  if(type === 'long'){
-    ajouter(panier, REF_ONE1_ANGLE_LONG, nbModulesAngle);
-    ajouter(panier, REF_ONE1_CONTREPLAQUE, nbModulesAngle);
-    ajouter(panier, REF_ONE1_VIS, nbModulesAngle * 8);
-    ajouter(panier, REF_ONE1_MULTILINK, nbModulesAngle * 4);
-    if(entretoise) ajouter(panier, entretoise, nbModulesAngle * 4);
-  } else {
-    ajouter(panier, REF_ONE1_ANGLE_COURT, nbModulesAngle);
-    ajouter(panier, REF_ONE1_CONTREPLAQUE, nbModulesAngle);
-    ajouter(panier, REF_ONE1_VIS, nbModulesAngle * 12);
-    ajouter(panier, REF_ONE1_MULTILINK, nbModulesAngle * 6);
-    if(entretoise) ajouter(panier, entretoise, nbModulesAngle * 4);
-  }
-  ajouter(panier, REF_ONE1_CONNECTEUR_ANGLE, nbAngles); // par angle physique, pas par cours/ml
-}
-
-function getCorniche(gamme, epaisseurMm){
-  if(gamme === 'standard' && epaisseurMm === 152){
-    return { ref:'NUS I0B96 06', assemble:true };
-  }
-  return {
-    ref:'NUS I0B96 00', assemble:false,
-    note:"Corniche non-assemblée : référence générique NUS I0B96 00, non déclinée par épaisseur dans notre catalogue (contrairement au catalogue fabricant Nudura qui varie la planelle corniche de 102 à 305mm) — quantité indicative, à confirmer avec SCAF.",
-  };
-}
-
+// ===== Moteur de chiffrage =====
+// Le moteur vit desormais dans /nudura-engine.js, charge juste au-dessus.
+// Meme fichier que celui execute par la fonction Netlify /api/chiffrage :
+// une seule source de verite, plus de copie a maintenir en double.
+const {
+  EPAISSEURS_PAR_GAMME, GAMMES, HAUTEUR_BLOC_M, HAUTEUR_CORRECTEUR_M,
+  LOCATION_PRIX_ENSEMBLE, NIVEAU_PRESETS, RAJOUTS_PSE_PLUS, REF_CLIPS,
+  REF_ONE1_GABARIT, REF_RAIDISSEUR, TABLE_ARMATURE, TOURNANT_LABEL,
+  WASTE_OUVERTURE_PCT, ajouter, calculerNiveauUnique, calculerReleveNiveau,
+  coursesInfo, epaisseurCoreMm,
+} = window.NuduraEngine;
 let niveaux = [];
 let niveauIdSeq = 0;
 let ouvIdSeq = 0;
 let murReleveIdSeq = 0;
-const TOURNANTS_RELEVE = { droit:0, sortant90:90, rentrant90:-90, sortant45:45, rentrant45:-45 };
-const TOURNANT_LABEL = { droit:'0°', sortant90:'90°', rentrant90:'90°', sortant45:'45°', rentrant45:'45°' };
-const PSE_PANEL_MM = 67; // épaisseur d'un panneau PSE Nudura (confirmée SCAF), présent des deux côtés du voile béton
-
-function epaisseurCoreMm(n){
-  const ep = (typeof n.epaisseurMm === 'number') ? n.epaisseurMm : null;
-  if(ep === null) return null;
-  if(n.gamme === 'plus') return ep + 2*PSE_PANEL_MM + (n.rajoutPSE||0);
-  return ep + 2*PSE_PANEL_MM;
-}
-
-function cotDeg(deg){
-  const r = deg * Math.PI / 180;
-  return Math.cos(r) / Math.sin(r);
-}
-
 function creerMurReleve(){
   murReleveIdSeq++;
   return { id: murReleveIdSeq, longueur:0, angle:'sortant90' };
-}
-
-function calculerReleveNiveau(n){
-  let theta = 0, x = 0, y = 0;
-  const points = [{x,y}];
-  let perimetre = 0;
-  const murs = n.releve.murs;
-  let sumCot = cotDeg((180 - (TOURNANTS_RELEVE[n.releve.angleDepart] ?? 0)) / 2);
-  murs.forEach((m,i)=>{
-    const L = m.longueur || 0;
-    perimetre += L;
-    x += L * Math.cos(theta * Math.PI / 180);
-    y += L * Math.sin(theta * Math.PI / 180);
-    points.push({x,y});
-    const isLast = i === murs.length - 1;
-    if(!isLast){
-      const turnDeg = TOURNANTS_RELEVE[m.angle] ?? 0;
-      sumCot += cotDeg((180 - turnDeg) / 2);
-      theta += turnDeg;
-    }
-  });
-  let aire2 = 0;
-  const nn = points.length - 1;
-  for(let i=0;i<nn;i++){
-    const p1 = points[i], p2 = points[i+1];
-    aire2 += p1.x * p2.y - p2.x * p1.y;
-  }
-  const aireHorsTout = Math.abs(aire2) / 2;
-  const closureErr = nn > 0 ? Math.hypot(points[nn].x - points[0].x, points[nn].y - points[0].y) : 0;
-  const epaisseurMm = epaisseurCoreMm(n);
-  const t = (epaisseurMm !== null ? epaisseurMm/1000 : 0) + (n.releve.finitionsCm || 0)/100;
-  const correction = t * t * sumCot;
-  const aireHabitable = Math.max(0, aireHorsTout - t * perimetre + correction);
-  return { points, perimetre, aireHorsTout, aireHabitable, closureErr };
 }
 
 function synchroniserLineaireReleve(n){
@@ -2201,21 +2054,6 @@ function onGammeSelect(niveauId, champGamme, gamme){
   renderNiveaux();
 }
 
-const TOLERANCE_ARRONDI = 0.01; // absorbe les imprécisions de saisie/flottant (ex. 2,44m saisi pour un module de 2,438m)
-function arrondiSupTolerant(valeur, unite){
-  const ratio = valeur / unite;
-  if(Math.abs(ratio - Math.round(ratio)) < TOLERANCE_ARRONDI) return Math.round(ratio);
-  return Math.ceil(ratio);
-}
-
-function coursesInfo(hauteur){
-  const exact = hauteur / HAUTEUR_BLOC_M;
-  const isExact = Math.abs(exact - Math.round(exact)) < TOLERANCE_ARRONDI;
-  const floor = isExact ? Math.round(exact) : Math.floor(exact);
-  const ceil = isExact ? Math.round(exact) : Math.ceil(exact);
-  return { exact, floor, ceil, isExact };
-}
-
 function renderNiveaux(){
   const root = document.getElementById('niveauxContainer');
   root.innerHTML = niveaux.map(n => renderNiveauCard(n)).join('');
@@ -2442,213 +2280,6 @@ function ouvChamp(niveauId, ouvId, champ, valeur){
   debouncedCalcul();
 }
 
-function ajouter(panier, ref, qte){
-  if(!ref || !(qte > 0)) return;
-  panier[ref] = (panier[ref]||0) + qte;
-}
-
-// Table 2.2.3 du manuel officiel Nudura — volume de béton par module (m³), par épaisseur 102/152/203/254/305mm
-const VOLUME_BETON = {
-  102:{droit:0.120, angle90:0.048, angle45:0.043, correcteur:0.007, corniche:0.192},
-  152:{droit:0.177, angle90:0.067, angle45:0.060, correcteur:0.010, corniche:0.248},
-  203:{droit:0.234, angle90:0.093, angle45:0.078, correcteur:0.013, corniche:0.305},
-  254:{droit:0.290, angle90:0.122, angle45:0.103, correcteur:0.016, corniche:0.362},
-  305:{droit:0.347, angle90:0.153, angle45:0.138, correcteur:0.019, corniche:0.419},
-};
-
-// Accessoires liés aux blocs — références par épaisseur de voile béton (102/152/203/254/305mm)
-const REF_BOUCHON = {102:'NUS A0ECF 04', 152:'NUS A0ECF 06', 203:'NUS A0ECF 08', 254:'NUS A0ECF 10', 305:'NUS A0ECF 12'};
-const REF_LINTEAU = {102:'NUS PLINT 04', 152:'NUS PLINT 06', 203:'NUS PLINT 08', 254:'NUS PLINT 10', 305:'NUS PLINT 12'};
-const REF_RAIDISSEUR = {152:'NUS ABLOK 06', 203:'NUS ABLOK 08', 254:'NUS ABLOK 10', 305:'NUS ABLOK 12'}; // pas de référence 102mm au catalogue
-const REF_CLIPS = 'NUS A0VJC 00';
-const LONGUEUR_LINTEAU_SEGMENT_M = 1.219;
-const CLIPS_PAR_CARTON = 200;
-const LONGUEUR_RAIDISSEUR_LOT_M = 30.5; // lot de 10 x 3,05m
-
-function calculerNiveauUnique(n, gabaritFlag){
-  let panier = {};
-  let notes = [];
-  let armatureLignes = [];
-  const footprint = calculerReleveNiveau(n);
-
-  const refs = getRefs(n.gamme, n.epaisseurMm, n.rajoutPSE);
-  if(!refs && n.epaisseurMm === 'custom'){
-    notes.push('Épaisseur sur-mesure : aucune quantité de bloc calculée automatiquement — configuration à valider avec SCAF.');
-  }
-
-  const ci = coursesInfo(n.hauteur);
-  let hauteurEffective = n.hauteur;
-  let coursAppoint = 0;
-  let nCoursesPleins = ci.floor; // nb de cours de blocs entiers (hors correcteur d'appoint) ; ajusté ci-dessous si besoin
-  if(!ci.isExact){
-    if(n.ajustement === 'up'){ hauteurEffective = ci.ceil * HAUTEUR_BLOC_M; nCoursesPleins = ci.ceil; }
-    else if(n.ajustement === 'down'){ hauteurEffective = ci.floor * HAUTEUR_BLOC_M; nCoursesPleins = ci.floor; }
-    else { hauteurEffective = ci.floor * HAUTEUR_BLOC_M + HAUTEUR_CORRECTEUR_M; coursAppoint = 1; nCoursesPleins = ci.floor; }
-  } else {
-    nCoursesPleins = ci.floor; // hauteur exacte : floor === ceil, un seul cas
-  }
-
-  const surfaceBrute = n.lineaire * hauteurEffective;
-  let surfaceOuvertures = 0;
-  n.ouvertures.forEach(o=>{ surfaceOuvertures += o.largeur * o.hauteur * o.qte * (WASTE_OUVERTURE_PCT/100); });
-  const surfaceNette = Math.max(0, surfaceBrute - surfaceOuvertures);
-  const coursesPourAngles = nCoursesPleins; // même logique de tolérance que le comptage des blocs droits — un seul nombre de cours entiers pour tout le niveau
-
-  let qDroit = 0, qAngle90 = 0, qAngle45 = 0;
-  if(n.gamme === 'one1'){
-    const nbModulesDroits = Math.ceil(surfaceNette / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100));
-    calculerOne1Droit(n.epaisseurMm, nbModulesDroits, panier);
-    calculerOne1Angle(n.epaisseurMm, 'long', n.coins.ext90, coursesPourAngles, panier);
-    calculerOne1Angle(n.epaisseurMm, 'court', n.coins.int90, coursesPourAngles, panier);
-    if(nbModulesDroits > 0 || n.coins.ext90 > 0 || n.coins.int90 > 0) gabaritFlag.necessaire = true;
-  } else if(refs){
-    // Comptage par cours (exact géométriquement) plutôt que par surface — évite de basculer au bloc
-    // supérieur uniquement à cause de la marge de perte quand le mur tombe pile sur un nombre entier de modules.
-    const nbCoinsPourConsommation = n.coins.ext90 + n.coins.int90 + n.coins.ext45 + n.coins.int45;
-    if(nbCoinsPourConsommation > 0){
-      notes.push("Comptage des blocs droits par cours : la longueur consommée par les blocs d'angle n'est pas déduite du linéaire (donnée de consommation par angle non disponible) — légère surestimation possible si des coins sont présents, à vérifier avec SCAF sur les configurations avec beaucoup d'angles.");
-    }
-    const nBlocsParCours = arrondiSupTolerant(n.lineaire, LONGUEUR_BLOC_M);
-    qDroit = nBlocsParCours * nCoursesPleins;
-    ajouter(panier, refs.droit, qDroit);
-    qAngle90 = n.coins.ext90 * coursesPourAngles + n.coins.int90 * coursesPourAngles;
-    ajouter(panier, refs.angleExt, n.coins.ext90 * coursesPourAngles);
-    ajouter(panier, refs.angleInt, n.coins.int90 * coursesPourAngles);
-    const nbAngles45 = n.coins.int45 + n.coins.ext45;
-    qAngle45 = nbAngles45 * coursesPourAngles;
-    if(nbAngles45 > 0 && refs.angle45) ajouter(panier, refs.angle45, qAngle45);
-  }
-
-  let surfaceRefend = 0;
-  let qAppoint = 0;
-  if(coursAppoint > 0){
-    qAppoint = arrondiSupTolerant(n.lineaire, LONGUEUR_AJUSTEUR_M);
-    ajouter(panier, REF_APPOINT, qAppoint);
-    if(refs && refs.entretoiseAjusteur){
-      ajouter(panier, refs.entretoiseAjusteur, Math.ceil(qAppoint / ENTRETOISES_AJUSTEUR_PAR_CARTON));
-    }
-  }
-
-  if(n.armature.actif){
-    const ligneTable = TABLE_ARMATURE.find(t=>t.espaceV === n.armature.espaceV);
-    const ratio = ligneTable ? ligneTable[n.armature.nappe] : 0;
-    const mlTotal = ratio * surfaceNette;
-    const kgm = RATIOS_KG_ML[n.armature.diametre] || 0;
-    armatureLignes.push({ diametre:n.armature.diametre, ml:mlTotal, kg:mlTotal*kgm, espaceV:n.armature.espaceV, espaceH:n.armature.espaceH, nappe:n.armature.nappe });
-    if(n.armature.espaceH === 914){
-      notes.push("Espacement horizontal 914mm : dépasse le maximum standard recommandé (457mm). Le ratio utilisé correspond à un espacement horizontal standard — pour 914mm, contactez SCAF pour le tableau croisé exact, et faites valider par un ingénieur.");
-    }
-  }
-
-  if(n.refend.actif && n.refend.lineaire > 0){
-    surfaceRefend = n.refend.lineaire * n.refend.hauteur;
-    if(n.refend.gamme === 'one1'){
-      const nbModulesRefend = Math.ceil(surfaceRefend / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100));
-      calculerOne1Droit(n.refend.epaisseurMm, nbModulesRefend, panier);
-      if(nbModulesRefend > 0) gabaritFlag.necessaire = true;
-    } else {
-      const refsRefend = getRefs(n.refend.gamme, n.refend.epaisseurMm, n.refend.rajoutPSE);
-      if(refsRefend){
-        ajouter(panier, refsRefend.droit, Math.ceil(surfaceRefend / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100)));
-      } else {
-        notes.push('Refend : gamme/épaisseur sans référence catalogue calculable — à valider avec SCAF.');
-      }
-    }
-  }
-
-  if(n.options.tWalls.actif && n.options.tWalls.nb > 0){
-    const cartons = Math.ceil((n.options.tWalls.nb * coursesPourAngles) / CONNECTEURS_PAR_CARTON);
-    ajouter(panier, REF_CONNECTEUR_T, cartons);
-  }
-
-  let gableSurface = 0;
-  if(n.options.gableEnds.actif && n.options.gableEnds.qte > 0 && refs){
-    gableSurface = 0.5 * n.options.gableEnds.largeur * n.options.gableEnds.hauteur * n.options.gableEnds.qte;
-    ajouter(panier, refs.droit, Math.ceil(gableSurface / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100)));
-  }
-
-  let radiusSurface = 0;
-  if(n.options.radius.actif && n.options.radius.rayonExt > 0 && refs && refs.courbe){
-    const rayonMoyen = (n.options.radius.rayonExt + (n.options.radius.rayonInt||n.options.radius.rayonExt)) / 2;
-    const arcLength = (n.options.radius.angle/360) * 2 * Math.PI * rayonMoyen;
-    radiusSurface = arcLength * hauteurEffective;
-    ajouter(panier, refs.courbe, Math.ceil(radiusSurface / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100)));
-  } else if(n.options.radius.actif && n.options.radius.rayonExt > 0 && refs && !refs.courbe){
-    notes.push('Mur courbe : pas de bloc courbe catalogué pour cette gamme/épaisseur — à valider avec SCAF.');
-  }
-
-  let qCorniche = 0;
-  if(n.options.brickLedge.actif && n.options.brickLedge.lineaire > 0){
-    const cor = getCorniche(n.gamme, n.epaisseurMm);
-    qCorniche = Math.ceil(n.options.brickLedge.lineaire / LONGUEUR_BLOC_M * (1 + PERTE_PCT/100));
-    ajouter(panier, cor.ref, qCorniche);
-    if(cor.note) notes.push(cor.note);
-  }
-
-  let taperTopLineaire = 0;
-  if(n.options.taperTop.actif) taperTopLineaire = n.options.taperTop.lineaire;
-
-  // ---- Accessoires liés aux blocs (bouchons, fond de linteau, clips, raidisseurs) ----
-  const epaisseurNumerique = (typeof n.epaisseurMm === 'number') ? n.epaisseurMm : null;
-
-  if(epaisseurNumerique && REF_BOUCHON[epaisseurNumerique]){
-    let nbBouchons = 0;
-    n.ouvertures.forEach(o=>{ nbBouchons += 2 * arrondiSupTolerant(o.hauteur, HAUTEUR_BLOC_M) * o.qte; });
-    ajouter(panier, REF_BOUCHON[epaisseurNumerique], nbBouchons);
-  }
-
-  if(epaisseurNumerique && REF_LINTEAU[epaisseurNumerique]){
-    let nbSegmentsLinteau = 0;
-    n.ouvertures.forEach(o=>{
-      const estFenetre = (o.type||'').trim().toLowerCase().startsWith('fen');
-      nbSegmentsLinteau += arrondiSupTolerant(o.largeur, LONGUEUR_LINTEAU_SEGMENT_M) * o.qte * (estFenetre ? 2 : 1);
-    });
-    ajouter(panier, REF_LINTEAU[epaisseurNumerique], nbSegmentsLinteau);
-  }
-
-  let detailClips = null;
-  {
-    const nbCoinsTotalClips = n.coins.ext90 + n.coins.int90 + n.coins.ext45 + n.coins.int45;
-    const nbClipsDroits = arrondiSupTolerant(n.lineaire, LONGUEUR_BLOC_M) * 4 * coursesPourAngles;
-    const nbClipsCoins = nbCoinsTotalClips * 4 * coursesPourAngles;
-    const nbClipsTotal = nbClipsDroits + nbClipsCoins;
-    if(nbClipsTotal > 0){
-      const cartons = Math.ceil(nbClipsTotal / CLIPS_PAR_CARTON);
-      ajouter(panier, REF_CLIPS, cartons);
-      detailClips = { brut: nbClipsTotal, cartons };
-    }
-  }
-
-  let detailRaidisseur = null;
-  if(n.lineaire > 0){
-    if(epaisseurNumerique && REF_RAIDISSEUR[epaisseurNumerique]){
-      const multiplicateurRaidisseur = nCoursesPleins >= 3 ? 2 : 1; // 2ème rang + dernier rang distincts à partir de 3 cours, sinon ils se confondent
-      const longueurRaidisseur = multiplicateurRaidisseur * n.lineaire;
-      const lots = arrondiSupTolerant(longueurRaidisseur, LONGUEUR_RAIDISSEUR_LOT_M);
-      ajouter(panier, REF_RAIDISSEUR[epaisseurNumerique], lots);
-      detailRaidisseur = { ref: REF_RAIDISSEUR[epaisseurNumerique], brutMl: longueurRaidisseur, lots };
-    } else if(epaisseurNumerique === 102){
-      notes.push('Raidisseurs : aucune référence catalogue pour 102mm — à confirmer avec SCAF si nécessaire pour cette épaisseur.');
-    }
-  }
-
-  // ---- Volume de béton (Tableau 2.2.3) ----
-  let volumeBeton = null;
-  const vb = (typeof n.epaisseurMm === 'number') ? VOLUME_BETON[n.epaisseurMm] : null;
-  if(n.gamme === 'standard' && vb){
-    volumeBeton = qDroit*vb.droit + qAngle90*vb.angle90 + qAngle45*vb.angle45 + qAppoint*vb.correcteur + qCorniche*vb.corniche;
-  } else if(qDroit > 0 || qAngle90 > 0 || qCorniche > 0){
-    notes.push('Volume de béton non calculé pour cette gamme/épaisseur (table officielle disponible uniquement pour la série Standard, 102 à 305mm) — à estimer avec SCAF.');
-  }
-
-  let locationEnsembles = 0, locationMontant = 0;
-  if(n.location.actif && n.lineaire > 0){
-    locationEnsembles = arrondiSupTolerant(n.lineaire, n.location.espacement);
-    locationMontant = locationEnsembles * LOCATION_PRIX_ENSEMBLE;
-  }
-
-  return { panier, notes, armatureLignes, surfaceBrute, surfaceOuvertures, surfaceNette, surfaceRefend, gableSurface, radiusSurface, taperTopLineaire, volumeBeton, detailClips, detailRaidisseur, locationEnsembles, locationMontant, locationEspacement: n.location.espacement, footprintHorsTout: footprint.aireHorsTout, footprintHabitable: footprint.aireHabitable, nCoursesPleins, coursAppoint };
-}
 
 function prixDe(ref){
   return prixProDe(ref);
@@ -2762,7 +2393,7 @@ function calculerGrosOeuvre(){
 
 ajouterNiveau('RDC');
 
-initGate();
+chargerCatalogue().then(initGate).catch(echecCatalogue);
 renderDraftList();
 ['cliNom','cliEmail'].forEach(id=>{
   const el = document.getElementById(id);
@@ -2792,11 +2423,6 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
 
   if(entriesComplements.length === 0 && entriesMateriel.length === 0 && entriesChantier.length === 0){
     document.getElementById('sendStatus').textContent = 'Renseignez au moins un niveau dans l\u2019estimation chantier ou ajoutez un produit en complément.';
-    document.getElementById('sendStatus').className = 'status err';
-    return;
-  }
-  if(FORM_ENDPOINT.includes('CHANGE-MOI')){
-    document.getElementById('sendStatus').textContent = "Configuration en attente : l'adresse email de réception n'a pas encore été renseignée par SCAF Innovation.";
     document.getElementById('sendStatus').className = 'status err';
     return;
   }
@@ -2873,10 +2499,15 @@ document.getElementById('customerForm').addEventListener('submit', async e=>{
   document.getElementById('sendStatus').className = 'status';
 
   try{
-    const res = await fetch(FORM_ENDPOINT, {
+    const res = await fetch(MAKE_WEBHOOK, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify(payload),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'commandePro', secret: APP_SECRET,
+        payloadHtml: Object.entries(payload)
+          .filter(([k])=>!k.startsWith('_'))
+          .map(([k,v])=>`<b>${k}</b> : ${String(v).replace(/\n/g,'<br>')}`).join('<br>'),
+      }),
     });
     if(res.ok){
       const snapshot = construireSnapshotDevis();
