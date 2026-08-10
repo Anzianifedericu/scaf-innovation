@@ -148,5 +148,30 @@ exports.handler = async (event) => {
     resultat.document = doc;
   }
 
+  // Message Telegram compose ici : l'editeur de mapping de Make avale les
+  // chaines entre guillemets, donc la branche chiffrage n'affiche qu'un champ nu.
+  const nb = (v, d) => (v === null || v === undefined) ? '?' : Number(v).toFixed(d);
+  const doc = resultat.document;
+  const lignesMsg = [
+    doc && doc.numero
+      ? `Devis ${doc.numero} cree pour ${doc.tiers}`
+      : 'Chiffrage Nudura (non enregistre, client non identifie)',
+    `Materiel ${nb(resultat.totaux.materiel_ht, 2)} EUR HT`,
+  ];
+  if (resultat.totaux.location_ht > 0) {
+    lignesMsg.push(`Etaiement ${nb(resultat.totaux.location_ht, 2)} EUR HT (hors devis)`);
+  }
+  lignesMsg.push(
+    `Total ${nb(resultat.totaux.total_ht, 2)} EUR HT - ${nb(resultat.totaux.prix_m2_ht, 2)} EUR/m2`,
+    `Surface nette ${nb(resultat.totaux.surface_nette_m2, 2)} m2 - beton ${nb(resultat.totaux.volume_beton_m3, 3)} m3`,
+    'Statut : a verifier avant envoi client.'
+  );
+  if (doc && doc.lien_edition) lignesMsg.push(doc.lien_edition);
+  if (doc && doc.status === 'incomplet' && doc.resume_telegram) {
+    resultat.message_telegram = doc.resume_telegram;
+  } else {
+    resultat.message_telegram = lignesMsg.join('\n');
+  }
+
   return rep(200, resultat);
 };
