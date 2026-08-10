@@ -181,7 +181,15 @@
       const prix = p._surDemande
         ? `<span class="card-price" style="font-size:13px;font-style:italic">Nous consulter</span>`
         : (p.price_eur != null
-            ? `<span class="card-price">${eurP(p.price_eur)} <span style="font-size:11px;color:#495765;font-weight:400">HT</span></span>`
+            ? `<span class="card-price">${eurP(p.price_eur)}
+                 <span style="font-size:11px;color:#495765;font-weight:400">HT / ${p._unite}</span></span>`
+              + (p._prixUnite && p._uniteMesure
+                  ? `<div style="font-size:11px;color:#8895a3;margin-top:1px">soit ${eurP(p._prixUnite)} / ${p._uniteMesure}${
+                      p._facteur ? ` · ${p._facteur} ${p._uniteMesure} par ${p._unite}` : ''}</div>`
+                  : '')
+              + (p._prixPalette
+                  ? `<div style="font-size:11px;color:#3f6b4a;margin-top:1px">${eurP(p._prixPalette)} / ${p._unite} par palette de ${p._palette}</div>`
+                  : '')
             : `<span class="card-price" style="font-size:13px">Tarif à activer</span>`);
       return `
       <div class="card">
