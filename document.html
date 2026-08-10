@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Document — SCAF Innovation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   Le document se lit comme un mur : des rangs empiles sur une assise.
+   Les lignes sont les rangs, la barre de totaux est l'assise, toujours
+   presente en bas. Palette beton coule / ardoise mouillee, signal jaune
+   chantier reserve au seul statut. Chiffres en mono, jamais en prose.
+------------------------------------------------------------------- */
+:root{
+  --encre:#16202b;        /* ardoise mouillee, texte et actions */
+  --encre-2:#3d4b5a;      /* texte secondaire */
+  --beton:#e9e7e2;        /* fond, beton sec */
+  --beton-2:#d6d3cc;      /* filets, separations */
+  --papier:#fdfdfc;
+  --signal:#f2c200;       /* jaune chantier : statut a verifier */
+  --valide:#1f7a4d;
+  --refus:#a3301f;
+  --pas:8px;
+  --rayon:3px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--beton); color:var(--encre);
+  font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.45;
+  padding-bottom:132px; /* place pour l'assise */
+}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- Bandeau ---------- */
+header{
+  background:var(--encre); color:var(--beton);
+  padding:calc(var(--pas)*2) calc(var(--pas)*2) calc(var(--pas)*2.5);
+}
+.entete-haut{display:flex;align-items:baseline;gap:var(--pas);flex-wrap:wrap}
+h1{
+  margin:0; font-size:clamp(1.5rem,6vw,2.1rem); font-weight:700;
+  letter-spacing:-.02em; font-family:"JetBrains Mono",monospace;
+}
+.type-doc{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.statut{
+  display:inline-block;margin-top:var(--pas);
+  padding:3px 10px;border-radius:99px;
+  font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--signal);color:var(--encre);
+}
+.statut[data-s="valide"]{background:var(--valide);color:#fff}
+.statut[data-s="envoye"]{background:#2f6fb3;color:#fff}
+.statut[data-s="accepte"]{background:var(--valide);color:#fff}
+.statut[data-s="refuse"]{background:var(--refus);color:#fff}
+
+/* ---------- Sections ---------- */
+main{max-width:960px;margin:0 auto;padding:calc(var(--pas)*2)}
+section{margin-bottom:calc(var(--pas)*3)}
+.titre-section{
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--encre-2);font-weight:600;
+  padding-bottom:6px;border-bottom:1px solid var(--beton-2);margin-bottom:var(--pas);
+}
+.grille{display:grid;grid-template-columns:1fr;gap:var(--pas)}
+@media(min-width:640px){.grille{grid-template-columns:1fr 1fr}}
+label{display:block;font-size:.78rem;color:var(--encre-2);margin-bottom:3px;font-weight:500}
+input,textarea{
+  width:100%;padding:9px 10px;border:1px solid var(--beton-2);border-radius:var(--rayon);
+  background:var(--papier);color:var(--encre);font:inherit;
+}
+input:focus,textarea:focus{outline:2px solid var(--encre);outline-offset:1px;border-color:transparent}
+input[readonly]{background:transparent;border-style:dashed;color:var(--encre-2)}
+textarea{min-height:74px;resize:vertical}
+
+/* ---------- Les rangs ---------- */
+.rang{
+  background:var(--papier);border:1px solid var(--beton-2);border-radius:var(--rayon);
+  padding:var(--pas);margin-bottom:6px;
+  display:grid;gap:6px;grid-template-columns:28px 1fr;align-items:start;
+}
+.rang-no{
+  font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--encre-2);
+  padding-top:9px;text-align:right;
+}
+.rang-corps{display:grid;gap:6px}
+.rang-chiffres{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+@media(min-width:560px){.rang-chiffres{grid-template-columns:repeat(5,1fr)}}
+.rang-chiffres input{text-align:right;font-family:"JetBrains Mono",monospace;font-size:.9rem}
+.rang-chiffres input[name="unite"]{text-align:left}
+.rang-pied{display:flex;justify-content:space-between;align-items:center;gap:var(--pas)}
+.montant-ligne{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:.95rem}
+.supprimer{
+  background:none;border:none;color:var(--refus);cursor:pointer;
+  font-size:.78rem;font-weight:600;padding:4px 6px;border-radius:var(--rayon);
+}
+.supprimer:hover{background:#f7e9e6}
+
+/* ---------- Boutons ---------- */
+.actions-lignes{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--pas)}
+button{font:inherit;cursor:pointer;border-radius:var(--rayon)}
+.btn{
+  padding:11px 16px;border:1px solid var(--encre);background:var(--encre);color:var(--beton);
+  font-weight:600;font-size:.9rem;
+}
+.btn:hover{background:#0d1620}
+.btn.creux{background:transparent;color:var(--encre)}
+.btn.creux:hover{background:var(--beton-2)}
+.btn.vert{background:var(--valide);border-color:var(--valide);color:#fff}
+.btn.rouge{background:transparent;border-color:var(--refus);color:var(--refus)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-mini{padding:7px 11px;font-size:.8rem;border:1px dashed var(--beton-2);background:var(--papier);color:var(--encre-2);font-weight:500}
+.btn-mini:hover{border-style:solid;color:var(--encre)}
+
+/* ---------- L'assise ---------- */
+.assise{
+  position:fixed;left:0;right:0;bottom:0;z-index:10;
+  background:var(--encre);color:var(--beton);
+  border-top:3px solid var(--signal);
+  padding:var(--pas) calc(var(--pas)*2) calc(var(--pas)*1.5);
+}
+.assise-in{max-width:960px;margin:0 auto;display:flex;gap:var(--pas);
+  align-items:center;justify-content:space-between;flex-wrap:wrap}
+.totaux{display:flex;gap:calc(var(--pas)*2);font-family:"JetBrains Mono",monospace}
+.tot{display:flex;flex-direction:column;line-height:1.15}
+.tot span:first-child{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;opacity:.6;font-family:Archivo,sans-serif}
+.tot span:last-child{font-size:1.05rem;font-weight:700}
+.tot.principal span:last-child{font-size:1.35rem}
+.assise .actions{display:flex;gap:6px;flex-wrap:wrap}
+.assise .btn{border-color:var(--beton);background:var(--beton);color:var(--encre)}
+.assise .btn.creux{background:transparent;color:var(--beton)}
+
+/* ---------- Etats ---------- */
+.message{padding:calc(var(--pas)*2);border-radius:var(--rayon);margin-bottom:var(--pas);font-size:.9rem}
+.message.err{background:#f7e9e6;border:1px solid var(--refus);color:#7d2416}
+.message.ok{background:#e6f2ec;border:1px solid var(--valide);color:#145635}
+.centre{max-width:520px;margin:15vh auto;padding:calc(var(--pas)*3);text-align:center}
+.centre h2{font-family:"JetBrains Mono",monospace;font-size:1.2rem;margin:0 0 var(--pas)}
+[hidden]{display:none !important}
+@media(prefers-reduced-motion:no-preference){
+  .rang{animation:pose .18s ease-out both}
+  @keyframes pose{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+
+<div id="ecranEtat" class="centre">
+  <h2 id="etatTitre">Ouverture du document…</h2>
+  <p id="etatTexte" style="color:var(--encre-2)"></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="entete-haut">
+      <h1 id="numero">—</h1>
+      <span class="type-doc" id="typeDoc"></span>
+    </div>
+    <span class="statut" id="statut">—</span>
+  </header>
+
+  <main>
+    <div id="alerte" class="message" hidden></div>
+
+    <section>
+      <div class="titre-section">Client et chantier</div>
+      <div class="grille">
+        <div><label for="fTiers">Client</label><input id="fTiers" autocomplete="off"></div>
+        <div><label for="fChantier">Chantier</label><input id="fChantier" autocomplete="off"></div>
+        <div><label for="fDateDoc">Date du document</label><input id="fDateDoc" type="date"></div>
+        <div><label for="fEcheance">Échéance</label><input id="fEcheance" type="date"></div>
+        <div><label for="fLivraison">Livraison</label><input id="fLivraison" type="date"></div>
+        <div><label for="fEmail">Email du client</label><input id="fEmail" type="email" autocomplete="off"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="titre-section"><span id="compteRangs">0</span> ligne(s)</div>
+      <div id="rangs"></div>
+      <div class="actions-lignes" id="actionsLignes">
+        <button class="btn-mini" onclick="ajouterLigne()">+ Ligne vide</button>
+        <button class="btn-mini" onclick="ajouterEtaiement('location')">+ Location étaiement</button>
+        <button class="btn-mini" onclick="ajouterEtaiement('achat')">+ Achat kit étaiement</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="titre-section">Notes</div>
+      <textarea id="fNotes" placeholder="Mentions, conditions, réserves…"></textarea>
+    </section>
+  </main>
+
+  <div class="assise">
+    <div class="assise-in">
+      <div class="totaux">
+        <div class="tot"><span>Total HT</span><span id="totHT">—</span></div>
+        <div class="tot"><span>TVA</span><span id="totTVA">—</span></div>
+        <div class="tot principal"><span>Total TTC</span><span id="totTTC">—</span></div>
+      </div>
+      <div class="actions" id="actions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/.netlify/functions/document';
+const JETON = new URLSearchParams(location.search).get('t');
+
+let ROLE = 'client';
+let DOC = null;
+let LIGNES = [];
+let modifie = false;
+
+const eur = n => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const el = id => document.getElementById(id);
+
+const RAISONS = {
+  format:      ['Lien incomplet', "L'adresse a été tronquée. Rouvrez-la depuis le message d'origine."],
+  signature:   ['Lien invalide', "Ce lien a été modifié et n'ouvre aucun document."],
+  expire:      ['Lien expiré', 'Sa durée de validité est dépassée. Demandez-en un nouveau à SCAF Innovation.'],
+  illisible:   ['Lien illisible', "L'adresse n'a pas la forme attendue."],
+  introuvable: ['Document introuvable', 'Il a peut-être été supprimé.'],
+};
+
+function etat(titre, texte){
+  el('app').hidden = true;
+  el('ecranEtat').hidden = false;
+  el('etatTitre').textContent = titre;
+  el('etatTexte').textContent = texte || '';
+}
+function alerte(texte, type){
+  const a = el('alerte');
+  a.textContent = texte; a.className = 'message ' + (type||'ok'); a.hidden = false;
+  if(type === 'ok') setTimeout(()=>{ a.hidden = true; }, 6000);
+}
+
+async function appel(action, extra){
+  const res = await fetch(API, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ t: JETON, action }, extra||{})),
+  });
+  return res.json();
+}
+
+/* ---------- Rendu ---------- */
+function ligneMontant(l){
+  return (Number(l.quantite)||0) * (Number(l.prix_unitaire_ht)||0) * (1 - (Number(l.remise_pct)||0)/100);
+}
+function recalculer(){
+  let ht = 0, tva = 0;
+  LIGNES.forEach(l => { const m = ligneMontant(l); ht += m; tva += m * (Number(l.taux_tva)||0)/100; });
+  el('totHT').textContent  = eur(ht);
+  el('totTVA').textContent = eur(tva);
+  el('totTTC').textContent = eur(ht + tva);
+  el('compteRangs').textContent = LIGNES.length;
+  LIGNES.forEach((l,i)=>{
+    const n = document.querySelector(`[data-montant="${i}"]`);
+    if(n) n.textContent = eur(ligneMontant(l));
+  });
+}
+function champ(i, nom, val, type, pas){
+  return `<input name="${nom}" data-i="${i}" type="${type||'text'}"
+    ${pas?`step="${pas}"`:''} value="${val==null?'':String(val).replace(/"/g,'&quot;')}"
+    ${ROLE!=='editeur'?'readonly':''} aria-label="${nom}">`;
+}
+function rendreLignes(){
+  el('rangs').innerHTML = LIGNES.map((l,i)=>`
+    <div class="rang">
+      <div class="rang-no">${String(i+1).padStart(2,'0')}</div>
+      <div class="rang-corps">
+        ${champ(i,'designation', l.designation)}
+        <div class="rang-chiffres">
+          ${champ(i,'quantite', l.quantite,'number','0.01')}
+          ${champ(i,'unite', l.unite)}
+          ${champ(i,'prix_unitaire_ht', l.prix_unitaire_ht,'number','0.01')}
+          ${champ(i,'remise_pct', l.remise_pct,'number','0.1')}
+          ${champ(i,'taux_tva', l.taux_tva,'number','0.1')}
+        </div>
+        <div class="rang-pied">
+          <span class="montant-ligne" data-montant="${i}">${eur(ligneMontant(l))}</span>
+          ${ROLE==='editeur' ? `<button class="supprimer" onclick="supprimerLigne(${i})">Supprimer</button>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  el('rangs').querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i = +e.target.dataset.i, nom = e.target.name;
+      LIGNES[i][nom] = (e.target.type === 'number') ? parseFloat(e.target.value || 0) : e.target.value;
+      modifie = true; recalculer();
+    });
+  });
+  recalculer();
+}
+function rendreActions(){
+  const s = DOC.statut;
+  let html = '';
+  if(ROLE === 'editeur'){
+    const fige = (s === 'envoye' || s === 'accepte');
+    html += `<button class="btn creux" onclick="enregistrer()" ${fige?'disabled':''}>Enregistrer</button>`;
+    html += `<button class="btn" onclick="changerStatut('valider')" ${fige||s==='valide'?'disabled':''}>Valider</button>`;
+    html += `<button class="btn vert" onclick="envoyer()" ${s==='a_verifier'?'disabled':''}>Envoyer au client</button>`;
+  } else {
+    const decide = (s === 'accepte' || s === 'refuse');
+    html += `<button class="btn rouge" onclick="changerStatut('refuser')" ${decide?'disabled':''}>Refuser</button>`;
+    html += `<button class="btn vert" onclick="changerStatut('accepter')" ${decide?'disabled':''}>Bon pour accord</button>`;
+  }
+  el('actions').innerHTML = html;
+}
+function rendre(data){
+  DOC = data.document; ROLE = data.role;
+  LIGNES = (data.lignes || []).map(l => ({
+    code_article:l.code_article, designation:l.designation, quantite:l.quantite,
+    unite:l.unite, prix_unitaire_ht:l.prix_unitaire_ht,
+    remise_pct:l.remise_pct, taux_tva:l.taux_tva,
+  }));
+
+  el('numero').textContent = DOC.numero || 'Sans numéro';
+  const noms = {DE:'Devis', BL:'Bon de livraison', FA:'Facture', AV:'Avoir'};
+  el('typeDoc').textContent = noms[DOC.type] || DOC.type;
+  el('statut').textContent = (DOC.statut||'').replace('_',' ');
+  el('statut').dataset.s = DOC.statut;
+
+  el('fTiers').value     = (DOC.tiers && DOC.tiers.nom) || '';
+  el('fEmail').value     = (DOC.tiers && DOC.tiers.email) || '';
+  el('fChantier').value  = DOC.chantier || '';
+  el('fDateDoc').value   = DOC.date_document || '';
+  el('fEcheance').value  = DOC.date_echeance || '';
+  el('fLivraison').value = DOC.date_livraison || '';
+  el('fNotes').value     = DOC.notes || '';
+
+  if(ROLE !== 'editeur'){
+    document.querySelectorAll('main input, main textarea').forEach(i => i.readOnly = true);
+    el('actionsLignes').hidden = true;
+  } else {
+    document.querySelectorAll('#fTiers,#fChantier,#fDateDoc,#fEcheance,#fLivraison,#fNotes,#fEmail')
+      .forEach(i => i.addEventListener('input', ()=>{ modifie = true; }));
+  }
+
+  rendreLignes(); rendreActions();
+  el('ecranEtat').hidden = true; el('app').hidden = false;
+}
+
+/* ---------- Lignes ---------- */
+function ajouterLigne(l){
+  LIGNES.push(Object.assign({designation:'', quantite:1, unite:'u',
+    prix_unitaire_ht:0, remise_pct:0, taux_tva:20}, l||{}));
+  modifie = true; rendreLignes();
+  const inputs = el('rangs').querySelectorAll('input[name="designation"]');
+  if(inputs.length) inputs[inputs.length-1].focus();
+}
+function supprimerLigne(i){ LIGNES.splice(i,1); modifie = true; rendreLignes(); }
+
+// Point tranche avec Frederic : l'etaiement est loue OU achete, jamais les deux.
+function ajouterEtaiement(mode){
+  LIGNES = LIGNES.filter(l => !/étaiement/i.test(l.designation||''));
+  if(mode === 'location'){
+    ajouterLigne({designation:"Location étaiement et alignement — par ensemble, durée du chantier",
+                  quantite:1, unite:'ens', prix_unitaire_ht:75});
+  } else {
+    ajouterLigne({designation:"Achat kit étaiement Nudura (20 ensembles, montants 3,05 m inclus)",
+                  code_article:'NUS BSTRN 10', quantite:1, unite:'kit', prix_unitaire_ht:12713.15});
+  }
+}
+
+/* ---------- Actions ---------- */
+function entete(){
+  return {
+    tiers_nom: el('fTiers').value.trim(),
+    chantier: el('fChantier').value.trim(),
+    date_document: el('fDateDoc').value || null,
+    date_echeance: el('fEcheance').value || null,
+    date_livraison: el('fLivraison').value || null,
+    notes: el('fNotes').value,
+  };
+}
+async function enregistrer(){
+  const r = await appel('enregistrer', { entete: entete(), lignes: LIGNES });
+  if(r.status !== 'ok') return alerte(explique(r), 'err');
+  modifie = false; rendre(r); alerte('Modifications enregistrées.');
+}
+async function changerStatut(action){
+  if(modifie && ROLE === 'editeur'){
+    const r = await appel('enregistrer', { entete: entete(), lignes: LIGNES });
+    if(r.status !== 'ok') return alerte(explique(r), 'err');
+    modifie = false;
+  }
+  const r = await appel(action);
+  if(r.status !== 'ok') return alerte(explique(r), 'err');
+  const dits = {valider:'Document validé.', accepter:'Accord enregistré. Merci.', refuser:'Refus enregistré.'};
+  alerte(dits[action] || 'Mise à jour effectuée.');
+  rendre(await appel('lire'));
+}
+async function envoyer(){
+  if(modifie){
+    const r0 = await appel('enregistrer', { entete: entete(), lignes: LIGNES });
+    if(r0.status !== 'ok') return alerte(explique(r0), 'err');
+    modifie = false;
+  }
+  const email = el('fEmail').value.trim();
+  if(!email) return alerte("Renseignez l'email du client avant l'envoi.", 'err');
+  const r = await appel('envoyer', { email });
+  if(r.status !== 'ok') return alerte(explique(r), 'err');
+  if(r.envoi === 'echec')       alerte("Document marqué envoyé, mais l'email n'est pas parti. Relancez depuis Make.", 'err');
+  else if(r.envoi === 'sans_email') alerte(r.message, 'err');
+  else                          alerte('Envoyé à ' + email + ' pour bon pour accord.');
+  rendre(await appel('lire'));
+}
+function explique(r){
+  const m = {
+    role_lecture_seule:'Ce lien ne permet que la consultation.',
+    deja_envoye:'Le document est parti chez le client, il ne peut plus être modifié.',
+    transition_interdite:'Action impossible depuis le statut « ' + (r.statut_actuel||'') + ' ».',
+    expire:'Lien expiré. Demandez-en un nouveau.',
+    signature:'Lien invalide.',
+  };
+  return m[r.raison] || r.erreur || 'Action refusée (' + (r.raison||'inconnu') + ').';
+}
+
+window.addEventListener('beforeunload', e => {
+  if(modifie){ e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ---------- Ouverture ---------- */
+(async function(){
+  if(!JETON) return etat('Lien incomplet', "Cette page s'ouvre depuis le lien reçu avec le document.");
+  try{
+    const r = await appel('lire');
+    if(r.status !== 'ok'){
+      const [t,d] = RAISONS[r.raison] || ['Accès refusé', ''];
+      return etat(t, d);
+    }
+    rendre(r);
+  }catch(err){
+    etat('Document inaccessible', 'Le serveur ne répond pas. Réessayez dans un instant.');
+  }
+})();
+</script>
+</body>
+</html>
