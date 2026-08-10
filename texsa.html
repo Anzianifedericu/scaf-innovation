@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Catalogue professionnel TEXSA — SCAF Innovation</title>
+<style>
+:root{
+  --bg:#faf9f7; --card:#fff; --ink:#1c1917; --ink2:#57534e; --ink3:#a8a29e;
+  --line:#e7e5e4; --line2:#d6d3d1; --accent:#0f5132; --accent2:#15803d;
+  --warn:#b45309; --warnbg:#fffbeb; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+button{font:inherit;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+.hide{display:none !important}
+
+/* ---------- Connexion ---------- */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.loginbox{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:34px 30px;max-width:400px;width:100%;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.brand{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.loginbox h1{margin:8px 0 4px;font-size:21px}
+.loginbox .sub{margin:0 0 26px;color:var(--ink2);font-size:14px}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.inp{width:100%;padding:12px 13px;border:1px solid var(--line2);border-radius:9px;
+  background:#fff;margin-bottom:14px}
+.inp:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.code{text-align:center;font-size:26px;letter-spacing:11px;font-family:ui-monospace,monospace;padding:14px 8px}
+.btn{width:100%;padding:12px;border:0;border-radius:9px;background:var(--accent);color:#fff;
+  font-weight:600;transition:opacity .15s}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line2);margin-top:8px}
+.msg{padding:11px 13px;border-radius:9px;font-size:13.5px;margin-bottom:16px;line-height:1.45}
+.msg.err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.msg.ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.msg.info{background:#f5f5f4;color:var(--ink2);border:1px solid var(--line)}
+
+/* ---------- En-tete ---------- */
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.hrow{display:flex;align-items:center;gap:14px;padding:13px 0;flex-wrap:wrap}
+.hname{font-weight:700}
+.hmeta{color:var(--ink2);font-size:13px}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;
+  background:#f0fdf4;color:var(--accent2);border:1px solid #bbf7d0}
+.pill.gris{background:#f5f5f4;color:var(--ink2);border-color:var(--line2)}
+.spacer{flex:1}
+.lien{background:none;border:0;color:var(--ink2);font-size:13px;text-decoration:underline;padding:0}
+
+/* ---------- Bandeau tarif absent ---------- */
+.notice{background:var(--warnbg);border:1px solid #fde68a;color:var(--warn);
+  border-radius:var(--radius);padding:14px 16px;margin:18px 0;font-size:14px;line-height:1.5}
+
+/* ---------- Recherche ---------- */
+.tools{display:flex;gap:10px;margin:18px 0;flex-wrap:wrap}
+.search{flex:1;min-width:220px;padding:11px 13px;border:1px solid var(--line2);border-radius:9px}
+
+/* ---------- Familles ---------- */
+details.fam{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  margin-bottom:10px;overflow:hidden}
+summary{padding:14px 16px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:10px;
+  list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--ink3);font-size:13px;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+.idx{font-size:12px;color:var(--ink3);font-family:ui-monospace,monospace;min-width:32px}
+.cnt{margin-left:auto;font-size:12px;color:var(--ink3);font-weight:400}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:9px 12px;background:#faf9f7;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--ink3);font-weight:600;white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.des{font-weight:600}
+.dim{color:var(--ink3);font-size:12.5px;margin-top:2px}
+.ref{font-family:ui-monospace,monospace;font-size:12px;color:var(--ink3)}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pu{font-weight:600}
+.pal{color:var(--accent2);font-size:12px;margin-top:2px}
+.dem{color:var(--warn);font-size:12.5px;font-style:italic}
+.qte{width:82px;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;text-align:right}
+.qte:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.unit{color:var(--ink3);font-size:12px;margin-left:5px}
+
+/* ---------- Panier ---------- */
+.cart{position:fixed;left:0;right:0;bottom:0;background:var(--card);
+  border-top:1px solid var(--line2);box-shadow:0 -2px 14px rgba(0,0,0,.07);z-index:30}
+.cartrow{display:flex;align-items:center;gap:16px;padding:13px 0;flex-wrap:wrap}
+.tot{font-size:19px;font-weight:700}
+.totlbl{font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em}
+.btn.mini{width:auto;padding:10px 22px}
+.pad{height:96px}
+
+/* ---------- Modale ---------- */
+.modal{position:fixed;inset:0;background:rgba(28,25,23,.55);display:flex;align-items:center;
+  justify-content:center;padding:20px;z-index:60}
+.mbox{background:var(--card);border-radius:15px;padding:26px;max-width:480px;width:100%;
+  max-height:88vh;overflow:auto}
+.mbox h2{margin:0 0 4px;font-size:18px}
+.mbox .sub{color:var(--ink2);font-size:13.5px;margin:0 0 20px}
+.reslist{font-size:13.5px;border-top:1px solid var(--line);margin-bottom:18px}
+.resline{display:flex;justify-content:space-between;gap:12px;padding:8px 0;
+  border-bottom:1px solid var(--line)}
+.resline span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.foot{text-align:center;color:var(--ink3);font-size:12px;padding:26px 0}
+@media(max-width:640px){
+  th:nth-child(2),td:nth-child(2){display:none}
+  .hrow{gap:9px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== CONNEXION ===================== -->
+<div class="login" id="vLogin">
+  <div class="loginbox">
+    <div class="brand">SCAF Innovation</div>
+    <h1>Catalogue professionnel</h1>
+    <p class="sub">Étanchéité TEXSA — tarif 2026</p>
+
+    <div id="loginMsg"></div>
+
+    <div id="stepSiret">
+      <label for="siret">Numéro SIRET</label>
+      <input class="inp" id="siret" inputmode="numeric" autocomplete="off"
+             placeholder="14 chiffres" maxlength="17">
+      <button class="btn" id="btnLogin">Recevoir mon code</button>
+    </div>
+
+    <div id="stepCode" class="hide">
+      <label for="code">Code reçu par e-mail</label>
+      <input class="inp code" id="code" inputmode="numeric" maxlength="6"
+             autocomplete="one-time-code" placeholder="······">
+      <button class="btn" id="btnCode">Se connecter</button>
+      <button class="btn ghost" id="btnRetour">Changer de SIRET</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CATALOGUE ===================== -->
+<div id="vApp" class="hide">
+  <header>
+    <div class="wrap hrow">
+      <div>
+        <div class="hname" id="uNom">—</div>
+        <div class="hmeta" id="uMeta">—</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="lien" id="btnOut">Se déconnecter</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="noTarif" class="notice hide">
+      <b>Ton tarif n'est pas encore activé.</b><br>
+      Tu peux consulter le catalogue et préparer ta liste. Envoie-la : SCAF Innovation
+      te communique les prix et te renvoie le devis.
+    </div>
+
+    <div class="tools">
+      <input class="search" id="q" placeholder="Rechercher une référence, une désignation…">
+      <button class="btn mini ghost" id="btnOpen" style="width:auto">Tout déplier</button>
+    </div>
+
+    <div id="cat"></div>
+    <div class="pad"></div>
+    <div class="foot">SCAF Innovation · Borgo, Haute-Corse · Distributeur TEXSA</div>
+  </div>
+
+  <div class="cart hide" id="cart">
+    <div class="wrap cartrow">
+      <div>
+        <div class="totlbl">Lignes</div>
+        <div class="tot" id="cLignes">0</div>
+      </div>
+      <div id="cTotBloc">
+        <div class="totlbl">Total HT</div>
+        <div class="tot" id="cTotal">0,00 €</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn mini ghost" id="btnVider" style="width:auto">Vider</button>
+      <button class="btn mini" id="btnEnvoyer">Envoyer ma demande</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const API = '/.netlify/functions/texsa';
+const KEY = 'texsa_session';
+
+let CAT = null, TARIF = false, BONUS = 0;
+const panier = {};                        // code -> quantite (unite de comptage)
+
+/* ---------- utilitaires ---------- */
+const $  = id => document.getElementById(id);
+const eur = n => (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(payload){
+  const r = await fetch(API,{
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  return r.json();
+}
+function flash(el, texte, type){
+  el.innerHTML = texte ? '<div class="msg '+type+'">'+esc(texte)+'</div>' : '';
+}
+
+/* ================= CONNEXION ================= */
+$('btnLogin').onclick = async () => {
+  const siret = $('siret').value.replace(/\D/g,'');
+  if(siret.length !== 9 && siret.length !== 14)
+    return flash($('loginMsg'),'Le SIRET compte 14 chiffres (ou 9 pour le SIREN).','err');
+
+  $('btnLogin').disabled = true;
+  flash($('loginMsg'),'Envoi du code…','info');
+  const r = await api({action:'login', siret});
+  $('btnLogin').disabled = false;
+
+  if(r.status === 'code_envoye'){
+    flash($('loginMsg'), r.message, 'ok');
+    $('stepSiret').classList.add('hide');
+    $('stepCode').classList.remove('hide');
+    $('code').focus();
+  } else {
+    flash($('loginMsg'), r.message || 'Connexion impossible.', 'err');
+  }
+};
+
+$('btnCode').onclick = async () => {
+  const siret = $('siret').value.replace(/\D/g,'');
+  const code  = $('code').value.replace(/\D/g,'');
+  if(code.length !== 6) return flash($('loginMsg'),'Le code compte 6 chiffres.','err');
+
+  $('btnCode').disabled = true;
+  const r = await api({action:'otp', siret, code});
+  $('btnCode').disabled = false;
+
+  if(r.status === 'ok'){
+    localStorage.setItem(KEY, r.session);
+    demarrer();
+  } else {
+    flash($('loginMsg'), r.message || 'Code refusé.', 'err');
+    $('code').value = ''; $('code').focus();
+  }
+};
+
+$('btnRetour').onclick = () => {
+  $('stepCode').classList.add('hide');
+  $('stepSiret').classList.remove('hide');
+  flash($('loginMsg'),'','');
+};
+$('siret').addEventListener('keydown', e => { if(e.key==='Enter') $('btnLogin').click(); });
+$('code').addEventListener('keydown',  e => { if(e.key==='Enter') $('btnCode').click(); });
+
+$('btnOut').onclick = () => { localStorage.removeItem(KEY); location.reload(); };
+
+/* ================= CATALOGUE ================= */
+async function demarrer(){
+  const session = localStorage.getItem(KEY);
+  if(!session) return;
+
+  const r = await api({action:'catalogue', session});
+  if(r.status !== 'ok'){ localStorage.removeItem(KEY); return; }
+
+  CAT   = r.familles || [];
+  TARIF = !!r.tarif_disponible;
+  BONUS = r.bonus_palette_pct || 0;
+
+  const t = r.tiers || {};
+  $('uNom').textContent  = t.nom || '';
+  $('uMeta').innerHTML   = TARIF
+    ? '<span class="pill">Remise ' + (t.remise_pct*100).toLocaleString('fr-FR') + ' %</span>'
+    : '<span class="pill gris">Tarif en cours d\'activation</span>';
+
+  $('noTarif').classList.toggle('hide', TARIF);
+  $('cTotBloc').classList.toggle('hide', !TARIF);
+  $('vLogin').classList.add('hide');
+  $('vApp').classList.remove('hide');
+
+  rendre();
+}
+
+function rendre(){
+  const q = $('q').value.trim().toLowerCase();
+  let html = '';
+
+  CAT.forEach(f => {
+    const prods = (f.produits||[]).filter(p => !q
+      || p.designation.toLowerCase().includes(q)
+      || p.code.toLowerCase().includes(q)
+      || (p.dimension||'').toLowerCase().includes(q));
+    if(prods.length === 0) return;
+
+    html += '<details class="fam"'+(q?' open':'')+'>'
+      + '<summary><span class="idx">'+esc(f.id)+'</span>'+esc(f.titre)
+      + '<span class="cnt">'+prods.length+' réf.</span></summary>'
+      + '<table><thead><tr><th>Désignation</th><th>Conditionnement</th>'
+      + (TARIF?'<th class="num">Prix unitaire</th>':'')
+      + '<th class="num">Quantité</th>'
+      + (TARIF?'<th class="num">Total HT</th>':'') + '</tr></thead><tbody>';
+
+    prods.forEach(p => {
+      const q0    = panier[p.code] || '';
+      const unite = p.unite_comptage || 'u.';
+      html += '<tr>'
+        + '<td><div class="des">'+esc(p.designation)+'</div>'
+        +   (p.dimension?'<div class="dim">'+esc(p.dimension)+'</div>':'')
+        +   '<div class="ref">'+esc(p.code)+'</div></td>'
+        + '<td>'+esc(p.qte_palette||'—')+'</td>';
+
+      if(TARIF){
+        html += '<td class="num">' + (p.sur_demande
+          ? '<span class="dem">Nous consulter</span>'
+          : '<div class="pu">'+eur(p.prix_vente_ht)+'<span class="unit">/'+esc(p.unite||unite)+'</span></div>'
+            + (p.prix_vente_palette_ht
+               ? '<div class="pal">'+eur(p.prix_vente_palette_ht)+' par palette</div>' : ''))
+          + '</td>';
+      }
+
+      html += '<td class="num"><input class="qte" type="number" min="0" step="any" '
+        + 'data-code="'+esc(p.code)+'" value="'+q0+'">'
+        + '<span class="unit">'+esc(unite)+'</span></td>';
+
+      if(TARIF) html += '<td class="num" data-tot="'+esc(p.code)+'">—</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></details>';
+  });
+
+  $('cat').innerHTML = html || '<div class="notice">Aucune référence ne correspond.</div>';
+  document.querySelectorAll('.qte').forEach(i => i.addEventListener('input', majQte));
+  majTotaux();
+}
+
+/* Le prix affiche ici est indicatif : le montant qui fait foi est
+   recalcule par le serveur a la reception de la demande. */
+function trouver(code){
+  for(const f of CAT){ const p = (f.produits||[]).find(x => x.code === code); if(p) return p; }
+  return null;
+}
+
+function majQte(e){
+  const code = e.target.dataset.code;
+  const v    = parseFloat(e.target.value);
+  if(!v || v <= 0) delete panier[code]; else panier[code] = v;
+  majTotaux();
+}
+
+function ligneHT(code, qte){
+  const p = trouver(code);
+  if(!p || p.sur_demande || !TARIF) return 0;
+  const pal = p.qte_palette_num && qte > 0 && qte % p.qte_palette_num === 0;
+  const pu  = pal && p.prix_vente_palette_ht ? p.prix_vente_palette_ht : p.prix_vente_ht;
+  return pu * qte * (p.facteur || 1);
+}
+
+function majTotaux(){
+  let total = 0;
+  const codes = Object.keys(panier);
+
+  codes.forEach(code => {
+    const ht   = ligneHT(code, panier[code]);
+    total     += ht;
+    const cell = document.querySelector('[data-tot="'+CSS.escape(code)+'"]');
+    if(cell){
+      const p = trouver(code);
+      cell.textContent = p && p.sur_demande ? 'à chiffrer' : eur(ht);
+    }
+  });
+
+  document.querySelectorAll('[data-tot]').forEach(c => {
+    if(!panier[c.dataset.tot]) c.textContent = '—';
+  });
+
+  $('cLignes').textContent = codes.length;
+  $('cTotal').textContent  = eur(total);
+  $('cart').classList.toggle('hide', codes.length === 0);
+}
+
+$('q').addEventListener('input', rendre);
+$('btnOpen').onclick = () => {
+  const d = document.querySelectorAll('details.fam');
+  const ouvrir = ![...d].every(x => x.open);
+  d.forEach(x => x.open = ouvrir);
+  $('btnOpen').textContent = ouvrir ? 'Tout replier' : 'Tout déplier';
+};
+$('btnVider').onclick = () => {
+  Object.keys(panier).forEach(k => delete panier[k]);
+  rendre();
+};
+
+/* ================= ENVOI ================= */
+$('btnEnvoyer').onclick = () => {
+  const lignes = Object.keys(panier).map(code => {
+    const p = trouver(code);
+    return { code, quantite: panier[code],
+             designation: p ? p.designation : code,
+             unite: p ? (p.unite_comptage||'u.') : 'u.',
+             ht: ligneHT(code, panier[code]),
+             chiffrer: p ? p.sur_demande : false };
+  });
+  if(lignes.length === 0) return;
+
+  const total = lignes.reduce((s,l) => s + l.ht, 0);
+  const rows  = lignes.map(l =>
+      '<div class="resline"><span>'+esc(l.designation)+' — '
+    + l.quantite.toLocaleString('fr-FR')+' '+esc(l.unite)+'</span><span>'
+    + (l.chiffrer ? 'à chiffrer' : (TARIF ? eur(l.ht) : '')) + '</span></div>').join('');
+
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML =
+     '<div class="mbox">'
+   + '<h2>Envoyer ma demande</h2>'
+   + '<p class="sub">SCAF Innovation confirme le tarif définitif avant toute commande.</p>'
+   + '<div class="reslist">' + rows + '</div>'
+   + (TARIF ? '<div class="resline" style="border:0;font-weight:700;font-size:15px">'
+              + '<span>Total HT indicatif</span><span>'+eur(total)+'</span></div>' : '')
+   + '<label for="mChantier" style="margin-top:16px">Chantier <span style="font-weight:400;color:var(--ink3)">(facultatif)</span></label>'
+   + '<input class="inp" id="mChantier" placeholder="Ville, nom du chantier…">'
+   + '<label for="mNotes">Précisions <span style="font-weight:400;color:var(--ink3)">(facultatif)</span></label>'
+   + '<textarea class="inp" id="mNotes" rows="3" placeholder="Délai souhaité, livraison…"></textarea>'
+   + '<div id="mMsg"></div>'
+   + '<button class="btn" id="mGo">Envoyer</button>'
+   + '<button class="btn ghost" id="mNo">Annuler</button>'
+   + '</div>';
+  document.body.appendChild(m);
+
+  m.querySelector('#mNo').onclick = () => m.remove();
+
+  m.querySelector('#mGo').onclick = async () => {
+    const b = m.querySelector('#mGo');
+    b.disabled = true; b.textContent = 'Envoi…';
+
+    const r = await api({
+      action:   'demande',
+      session:  localStorage.getItem(KEY),
+      lignes:   lignes.map(l => ({ code:l.code, quantite:l.quantite })),
+      chantier: m.querySelector('#mChantier').value,
+      notes:    m.querySelector('#mNotes').value
+    });
+
+    if(r.status === 'ok'){
+      m.querySelector('.mbox').innerHTML =
+          '<h2>Demande envoyée</h2>'
+        + '<p class="sub" style="margin-bottom:20px">'+esc(r.message)+'</p>'
+        + '<button class="btn" id="mFin">Fermer</button>';
+      m.querySelector('#mFin').onclick = () => {
+        Object.keys(panier).forEach(k => delete panier[k]);
+        m.remove(); rendre();
+      };
+    } else if(r.status === 'session_invalide'){
+      localStorage.removeItem(KEY); location.reload();
+    } else {
+      flash(m.querySelector('#mMsg'), r.message || 'Envoi impossible.', 'err');
+      b.disabled = false; b.textContent = 'Envoyer';
+    }
+  };
+};
+
+/* Session existante ? */
+if(localStorage.getItem(KEY)) demarrer();
+</script>
+</body>
+</html>
