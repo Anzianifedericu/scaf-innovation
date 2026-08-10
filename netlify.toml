@@ -1,0 +1,14 @@
+# Fonctions serverless — le moteur de chiffrage y est appelé côté serveur
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["nudura-engine.js"]
+
+# URL courte pour les appels Make / Telegram
+[[redirects]]
+  from = "/api/chiffrage"
+  to = "/.netlify/functions/chiffrage-nudura"
+  status = 200
