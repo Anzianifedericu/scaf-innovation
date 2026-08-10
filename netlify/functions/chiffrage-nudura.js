@@ -45,7 +45,6 @@ async function sb(path, init) {
 }
 
 exports.handler = async (event) => {
-
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return rep(405, { erreur: 'POST uniquement' });
 
@@ -53,7 +52,11 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); }
   catch { return rep(400, { erreur: 'JSON invalide' }); }
 
-  if (APP_SECRET && body.secret !== APP_SECRET) return rep(401, { erreur: 'secret invalide' });
+  // Le secret vient du corps (portail pro) ou de l'en-tete (Make / Telegram, dont le
+  // corps est produit tel quel par le LLM et ne doit contenir aucun secret).
+  const h = event.headers || {};
+  const fourni = body.secret || h['x-app-secret'] || h['X-App-Secret'];
+  if (APP_SECRET && fourni !== APP_SECRET) return rep(401, { erreur: 'secret invalide' });
 
   // 1) Chiffrage pur — aucune dépendance réseau, échoue vite si les entrées sont mauvaises
   let calc;
