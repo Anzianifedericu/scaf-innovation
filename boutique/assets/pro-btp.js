@@ -92,13 +92,17 @@ function btpVersCarte(p, marque, familleTitre) {
     name: p.designation,
     description: p.dimension || '',
     category: familleTitre,
-    price_eur: p.prix_vente_ht,
+    // price_eur = prix du CONDITIONNEMENT reellement vendu (rlx, bidon, sac, carton...)
+    price_eur: p.prix_conditionnement_ht,
     stock_status: 'en_stock',
     _btp: true,
     _marque: marque,
     _unite: p.unite_comptage || 'u.',
+    _uniteMesure: p.unite || null,
+    _facteur: p.facteur || null,
+    _prixUnite: p.prix_unite_ht || null,
     _palette: p.qte_palette_num,
-    _prixPalette: p.prix_vente_palette_ht,
+    _prixPalette: p.prix_conditionnement_palette_ht,
     _surDemande: !!p.sur_demande
   };
 }
@@ -137,6 +141,7 @@ function addToBtpCart(p, qty) {
   if (i >= 0) c[i].qty += qty;
   else c.push({
     code: p.sku, marque: p._marque, name: p.name, unite: p._unite,
+    uniteMesure: p._uniteMesure, facteur: p._facteur,
     price: p.price_eur, palette: p._palette, prixPalette: p._prixPalette,
     surDemande: p._surDemande, qty
   });
@@ -151,7 +156,8 @@ function updateBtpQty(code, marque, qty) {
 }
 function btpCount() { return getBtpCart().reduce((s, l) => s + l.qty, 0); }
 
-/* Total indicatif. Le montant qui fait foi est recalcule par le serveur. */
+/* Total indicatif : prix du conditionnement x nombre de conditionnements.
+   Le montant qui fait foi reste celui recalcule par le serveur. */
 function btpTotal() {
   return getBtpCart().reduce((s, l) => {
     if (l.surDemande || l.price == null) return s;
@@ -302,7 +308,8 @@ function ouvrirEnvoiBtp(mode) {
           : 'Réponse rapide avec le tarif définitif.'}</p>
       <div style="border-top:1px solid #e4e9ee;font-size:13.5px;margin-bottom:16px">
         ${lignes.map(l => `<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;
-           border-bottom:1px solid #e4e9ee"><span>${escP(l.name)} — ${l.qty} ${escP(l.unite)}</span>
+           border-bottom:1px solid #e4e9ee"><span>${escP(l.name)} — ${l.qty} ${escP(l.unite)}${
+             l.facteur && l.uniteMesure ? ` <span style="color:#8895a3">(${(l.qty * l.facteur).toLocaleString('fr-FR')} ${escP(l.uniteMesure)})</span>` : ''}</span>
            <span>${l.surDemande ? 'à chiffrer' : eurP((l.palette && l.qty % l.palette === 0 && l.prixPalette ? l.prixPalette : l.price) * l.qty)}</span></div>`).join('')}
       </div>
       <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Chantier (facultatif)</label>
