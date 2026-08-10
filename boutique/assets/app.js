@@ -11,29 +11,12 @@ const PRO_DISCOUNT_MENAGE = 0.20; // -20% catalogue Ménage/Parex uniquement
 let proAccess = null; // null = pas encore vérifié, false = pas pro, {raisonSociale,...} = pro validé
 
 async function checkProAccess() {
-  const params = new URLSearchParams(location.search);
-  const urlToken = params.get("pro");
-  if (urlToken) localStorage.setItem(PRO_TOKEN_KEY, urlToken);
-  const token = localStorage.getItem(PRO_TOKEN_KEY);
-  if (!token) {
-    proAccess = false;
-    return;
-  }
-  try {
-    const res = await fetch(PRO_PORTAL_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "checkAccess", token }),
-    });
-    const data = await res.json();
-    proAccess = data && data.access ? data : false;
-  } catch (err) {
-    proAccess = false;
-  }
-  updateProBadge();
+  /* Remplace par la session unifiee de pro-btp.js (initPro).
+     Conserve pour compatibilite : ne fait plus d'appel Airtable. */
+  proAccess = false;
 }
 
-function isPro() {
+function isProBase() {
   return !!proAccess;
 }
 
@@ -42,7 +25,7 @@ function proPrice(price_eur) {
 }
 
 // Affiche le prix pro uniquement si le compte est valide — un particulier ne voit jamais ce prix, ni dans le HTML ni dans le JS execute
-function priceDisplay(price_eur) {
+function priceDisplayBase(price_eur) {
   if (isPro()) {
     return `<span class="card-price">${eur(proPrice(price_eur))} <span style="font-size:11px;color:#495765;font-weight:400">HT pro</span></span>`;
   }
@@ -142,7 +125,7 @@ function copyShareLink(btn, url) {
 }
 
 async function fetchProducts({ department = "menage", category = null, search = null } = {}) {
-  let url = `${SUPABASE_URL}/rest/v1/shop_products?select=*&active=eq.true&order=category.asc,name.asc`;
+  let url = `${SUPABASE_URL}/rest/v1/shop_catalogue?select=*&order=category.asc,name.asc`;
   if (department) url += `&department=eq.${encodeURIComponent(department)}`;
   if (category) url += `&category=eq.${encodeURIComponent(category)}`;
   if (search) url += `&name=ilike.*${encodeURIComponent(search)}*`;
@@ -154,7 +137,7 @@ async function fetchProducts({ department = "menage", category = null, search = 
 }
 
 async function fetchProduct(sku) {
-  const url = `${SUPABASE_URL}/rest/v1/shop_products?select=*&sku=eq.${encodeURIComponent(sku)}&active=eq.true`;
+  const url = `${SUPABASE_URL}/rest/v1/shop_catalogue?select=*&sku=eq.${encodeURIComponent(sku)}&active=eq.true`;
   const res = await fetch(url, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
   });
