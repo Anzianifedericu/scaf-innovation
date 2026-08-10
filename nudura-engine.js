@@ -504,9 +504,15 @@ function chiffrer(entree){
 }
 
 return {
+  // API principale
   chiffrer, normaliserNiveau, calculerNiveauUnique, calculerReleveNiveau, getRefs,
+  // helpers consommes par le portail pro
+  ajouter, coursesInfo, epaisseurCoreMm, arrondiSupTolerant,
+  // constantes affichees ou reutilisees par l'interface
   NIVEAU_DEFAUT, GAMMES, EPAISSEURS_PAR_GAMME, RAJOUTS_PSE_PLUS, NIVEAU_PRESETS,
+  TABLE_ARMATURE, TOURNANTS_RELEVE, TOURNANT_LABEL,
   LONGUEUR_BLOC_M, HAUTEUR_BLOC_M, HAUTEUR_CORRECTEUR_M, PERTE_PCT, WASTE_OUVERTURE_PCT,
-  LOCATION_PRIX_ENSEMBLE, VERSION: '2026-08-08',
+  LOCATION_PRIX_ENSEMBLE, REF_CLIPS, REF_RAIDISSEUR, REF_ONE1_GABARIT,
+  VERSION: '2026-08-08',
 };
 });
