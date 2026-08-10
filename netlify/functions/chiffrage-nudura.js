@@ -45,6 +45,9 @@ async function sb(path, init) {
 }
 
 exports.handler = async (event) => {
+  if (event.queryStringParameters && event.queryStringParameters.diag === '1') {
+    return rep(200, { env: Object.keys(process.env).filter(k => /SUPABASE|APP_SECRET|NETLIFY_EMAILS/.test(k)).sort() });
+  }
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return rep(405, { erreur: 'POST uniquement' });
 
