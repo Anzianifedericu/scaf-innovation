@@ -77,6 +77,10 @@
   const params = new URLSearchParams(location.search);
   const activeCategory = params.get("cat");
   const activeDepartment = params.get("dept") || "menage";
+  // Chaque rayon professionnel correspond a une marque du catalogue BTP
+  const BTP_MARQUES = { nudura: "nudura", etancheite: "texsa" };
+  const marqueBtp = BTP_MARQUES[activeDepartment] || null;
+  const estBTP = !!marqueBtp;
 
   function renderDeptStrip() {
     const sel = document.getElementById("dept-select");
@@ -90,12 +94,11 @@
 
   async function renderCategoryStrip() {
     let cats;
-    if (activeDepartment === "btp") {
+    if (estBTP) {
       if (!proConnecte()) { document.getElementById("cat-select").disabled = true; return; }
       const r = btpData || (await chargerBTP());
-      cats = r && r.status === "ok"
-        ? [...new Set((r.marques || []).flatMap((m) => (m.familles || []).map((f) => f.titre)))]
-        : [];
+      const m = r && r.status === "ok" ? (r.marques || []).find((x) => x.code === marqueBtp) : null;
+      cats = m ? (m.familles || []).map((f) => f.titre) : [];
     } else {
       cats = await fetchCategories(activeDepartment);
     }
@@ -140,8 +143,8 @@
     if (filtered.length === 0) {
       grid.innerHTML = q
         ? `<div class="empty-state">Aucun résultat pour « ${document.getElementById("search-box").value} ». Essayez un autre mot-clé ou une référence.</div>`
-        : activeDepartment === "btp"
-        ? `<div class="empty-state">Le rayon BTP / Matériaux arrive bientôt. En attendant, contactez-nous directement pour vos besoins en matériaux de construction.</div>`
+        : estBTP
+        ? `<div class="empty-state">Aucune référence dans ce rayon pour le moment.</div>`
         : `<div class="empty-state">Aucun produit dans cette catégorie pour l'instant.</div>`;
       document.getElementById("cat-count-label").textContent = "0 produit";
       return;
@@ -221,22 +224,24 @@
     const grid = document.getElementById("grid");
     grid.innerHTML = `<div class="empty-state">Chargement du catalogue…</div>`;
     try {
-      if (activeDepartment === "btp") {
+      if (estBTP) {
         if (!proConnecte()) {
           grid.innerHTML = `<div class="empty-state">
-            Le rayon BTP / Matériaux est réservé aux professionnels.<br><br>
+            Ce rayon est réservé aux professionnels.<br><br>
             <button onclick="ouvrirConnexionPro()" style="padding:10px 20px;border:0;border-radius:8px;
               background:#3f6b4a;color:#fff;font-weight:600;cursor:pointer">Accès professionnel</button>
             </div>`;
           document.getElementById("cat-count-label").textContent = "";
           return;
         }
-        const r = await chargerBTP();
+        const r = btpData || (await chargerBTP());
         if (!r || r.status !== "ok") {
           grid.innerHTML = `<div class="empty-state">Catalogue indisponible. Reconnecte-toi.</div>`;
           return;
         }
-        currentProducts = btpProduits(activeCategory || null);
+        let prods = btpProduits(marqueBtp);
+        if (activeCategory) prods = prods.filter((p) => p.category === activeCategory);
+        currentProducts = prods;
         renderProductList(currentProducts);
         return;
       }
@@ -256,10 +261,16 @@
   const HERO = {
     menage: { tag: "Nouveau · Livré en Corse",
               titre: "Le nécessaire du ménage, sans y penser deux fois.",
-              sous: "Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse." },
-    btp:    { tag: "Réservé aux professionnels",
-              titre: "Matériaux de construction et d'étanchéité.",
-              sous: "Coffrage isolant Nudura et étanchéité TEXSA, à votre tarif professionnel. Commandez directement ou demandez un devis." }
+              sous: "Sacs poubelle, éponges, chiffons microfibre, kits de nettoyage complets — un catalogue pensé pour équiper une maison, un gîte ou un commerce, livré directement en Corse.",
+              doc: "SCAF Ménage — Produits d'entretien pour la maison, livrés en Corse" },
+    nudura: { tag: "Réservé aux professionnels",
+              titre: "Nudura — le coffrage isolant qui monte vite.",
+              sous: "Blocs ICF, accessoires, alignement et étaiement. Votre tarif professionnel, en commande directe ou en devis. SCAF Innovation, distributeur exclusif Nudura en Corse.",
+              doc: "Nudura ICF — Catalogue professionnel · SCAF Innovation" },
+    etancheite: { tag: "Réservé aux professionnels",
+              titre: "TEXSA — étanchéité, drainage, relevés.",
+              sous: "Membranes bitumineuses, systèmes liquides, nappes drainantes et accessoires. Tarif 2026 à votre remise, bonus palette compris.",
+              doc: "Étanchéité TEXSA — Catalogue professionnel · SCAF Innovation" }
   };
   function majHero() {
     const h = HERO[activeDepartment] || HERO.menage;
@@ -269,9 +280,7 @@
     if (t) t.textContent = h.tag;
     if (ti) ti.textContent = h.titre;
     if (su) su.textContent = h.sous;
-    document.title = activeDepartment === "btp"
-      ? "SCAF Innovation — Matériaux BTP, Nudura & TEXSA"
-      : "SCAF Ménage — Produits d'entretien pour la maison, livrés en Corse";
+    document.title = h.doc;
   }
 
   (async () => {
