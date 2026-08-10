@@ -103,6 +103,7 @@ function btpVersCarte(p, marque, familleTitre) {
     _prixUnite: p.prix_unite_ht || null,
     _palette: p.qte_palette_num,
     _prixPalette: p.prix_conditionnement_palette_ht,
+    _eco: p.eco_contrib_ht || null,
     _surDemande: !!p.sur_demande
   };
 }
@@ -143,6 +144,7 @@ function addToBtpCart(p, qty) {
     code: p.sku, marque: p._marque, name: p.name, unite: p._unite,
     uniteMesure: p._uniteMesure, facteur: p._facteur,
     price: p.price_eur, palette: p._palette, prixPalette: p._prixPalette,
+    eco: p._eco,
     surDemande: p._surDemande, qty
   });
   saveBtpCart(c);
@@ -166,16 +168,26 @@ function btpTotal() {
   }, 0);
 }
 
+/* Eco-contribution : due a l'unite de mesure, donc x facteur */
+function btpEco() {
+  return getBtpCart().reduce((s, l) =>
+    s + (Number(l.eco) || 0) * l.qty * (Number(l.facteur) || 1), 0);
+}
+function btpTotalGeneral() { return btpTotal() + btpEco(); }
+
 function majBtpBadge() {
   const b = document.getElementById('btp-badge');
-  if (!b) return;
   const n = btpCount();
-  b.textContent = n;
-  b.style.display = n > 0 ? 'inline-flex' : 'none';
+  if (b) { b.textContent = n; b.style.display = n > 0 ? 'inline-flex' : 'none'; }
   const bar = document.getElementById('btp-bar');
   if (bar) bar.style.display = n > 0 ? 'block' : 'none';
   const tot = document.getElementById('btp-total');
-  if (tot) tot.textContent = eurP(btpTotal());
+  if (tot) tot.textContent = eurP(btpTotalGeneral());
+  const eco = document.getElementById('btp-eco');
+  if (eco) {
+    const e = btpEco();
+    eco.textContent = e > 0 ? 'dont eco-contribution ' + eurP(e) : '';
+  }
   const cnt = document.getElementById('btp-count');
   if (cnt) cnt.textContent = n;
 }
@@ -282,7 +294,8 @@ function injecterBarreBtp() {
       <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8895a3">Lignes</div>
            <div id="btp-count" style="font-size:18px;font-weight:700">0</div></div>
       <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8895a3">Total HT</div>
-           <div id="btp-total" style="font-size:18px;font-weight:700">0,00 €</div></div>
+           <div id="btp-total" style="font-size:18px;font-weight:700">0,00 €</div>
+           <div id="btp-eco" style="font-size:11px;color:#8895a3"></div></div>
       <div style="flex:1"></div>
       <button onclick="ouvrirEnvoiBtp('devis')" style="padding:10px 18px;border:1px solid #3f6b4a;
         background:#fff;color:#3f6b4a;border-radius:8px;font-weight:600;cursor:pointer">Demander un devis</button>
@@ -312,6 +325,11 @@ function ouvrirEnvoiBtp(mode) {
              l.facteur && l.uniteMesure ? ` <span style="color:#8895a3">(${(l.qty * l.facteur).toLocaleString('fr-FR')} ${escP(l.uniteMesure)})</span>` : ''}</span>
            <span>${l.surDemande ? 'à chiffrer' : eurP((l.palette && l.qty % l.palette === 0 && l.prixPalette ? l.prixPalette : l.price) * l.qty)}</span></div>`).join('')}
       </div>
+      ${btpEco() > 0 ? `<div style="display:flex;justify-content:space-between;font-size:13px;
+        color:#5b6b7a;padding:2px 0 10px"><span>Éco-contribution</span><span>${eurP(btpEco())}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;
+        padding:8px 0 16px;border-top:1px solid #e4e9ee">
+        <span>Total HT</span><span>${eurP(btpTotalGeneral())}</span></div>
       <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Chantier (facultatif)</label>
       <input id="btp-chantier" style="width:100%;padding:10px 12px;border:1px solid #cfd8e0;
              border-radius:8px;margin-bottom:12px" placeholder="Ville, nom du chantier…">
