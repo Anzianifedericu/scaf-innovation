@@ -406,3 +406,42 @@ button{font-family:inherit;cursor:pointer}
   .brand-switch .brand-active .brand-text span{ display:none; }
   .header-inner{ padding:12px 14px; gap:10px; }
 }
+
+/* ---------- Retour au site SCAF Innovation ---------- */
+#link-back{
+  display:inline-flex !important; align-items:center; gap:0;
+  text-decoration:none; color:var(--maquis);
+  border:1px solid var(--line); border-radius:999px;
+  padding:7px 13px 7px 11px; font-size:13px; font-weight:600;
+  background:var(--white); overflow:hidden; white-space:nowrap;
+  transition:color .2s ease, border-color .2s ease, background .2s ease;
+}
+#link-back::before{
+  content:"\2190"; font-size:15px; line-height:1; display:inline-block;
+  transform:translateX(3px);
+  transition:transform .22s cubic-bezier(.34,1.4,.64,1);
+}
+#link-back::after{
+  content:"SCAF Innovation";
+  max-width:0; opacity:0; overflow:hidden;
+  transition:max-width .26s ease, opacity .18s ease .04s, margin-left .26s ease;
+}
+#link-back:hover, #link-back:focus-visible{
+  color:var(--bleu-lessive); border-color:var(--bleu-lessive); background:var(--chalk-2);
+}
+#link-back:hover::before, #link-back:focus-visible::before{ transform:translateX(-1px) }
+#link-back:hover::after, #link-back:focus-visible::after{ max-width:170px; opacity:1; margin-left:8px }
+#link-back:active{ transform:scale(.97) }
+
+/* Tactile : pas de survol, le libelle reste visible */
+@media (hover:none){
+  #link-back::after{ max-width:170px; opacity:1; margin-left:8px }
+  #link-back::before{ transform:translateX(0) }
+}
+@media (max-width:560px){
+  #link-back{ padding:6px 10px }
+  #link-back::after{ max-width:0; opacity:0; margin-left:0 }
+}
+@media (prefers-reduced-motion:reduce){
+  #link-back, #link-back::before, #link-back::after{ transition:none }
+}
