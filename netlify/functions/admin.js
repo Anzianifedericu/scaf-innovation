@@ -51,12 +51,39 @@ exports.handler = async (event) => {
           || (event.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
 
   try {
-    return reply(200, await rpc('rpc_admin_executer', {
+    const res = await rpc('rpc_admin_executer', {
       p_jeton:    String(body.jeton),
       p_commande: String(body.commande || '').slice(0, 500),
       p_ip:       ip,
       p_code:     body.code ? String(body.code).slice(0, 100) : null
-    }));
+    });
+
+    // la base signale une question pour l'IA : on relaie vers la fonction Edge
+    if (res && res.status === 'ia' && res.invite) {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ia`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SERVICE_KEY}`
+        },
+        body: JSON.stringify({
+          invite: String(res.invite).slice(0, 4000),
+          instruction:
+            'Tu assistes Frederic Anziani, gerant de SCAF Innovation (SARL, Borgo, Haute-Corse). '
+            + 'SCAF distribue Nudura (coffrage isolant ICF), TEXSA (etancheite), des produits '
+            + 'd entretien, et loue du materiel de chantier. Reponds en francais, brievement '
+            + 'et concretement. Si tu ne sais pas, dis-le au lieu d inventer.',
+          contexte: 'console'
+        })
+      });
+      const ia = await r.json();
+      return reply(200, {
+        status: ia.status === 'ok' ? 'ok' : ia.status,
+        message: ia.status === 'ok' ? ia.texte : (ia.message || 'Reponse indisponible.')
+      });
+    }
+
+    return reply(200, res);
   } catch (e) {
     console.error('[admin]', e.message);
     return reply(500, { status: 'erreur', message: 'Erreur serveur.' });
