@@ -108,18 +108,36 @@ if (!jeton) {
   afficher('', 'Ce lien est incomplet. Ouvre la console depuis le lien qui t\u2019a ete transmis.', 'ko');
   document.getElementById('b').disabled = true;
 } else {
-  envoyer('aide').then(r => {
-    if (r && r.status === 'refuse') {
-      etat.textContent = 'lien expire';
-      etat.className = 'ko';
+  (async function ouvrir(){
+    let r = await envoyer('aide');
+
+    // code exige : on le demande, puis on retente
+    let essais = 0;
+    while (r && (r.status === 'refuse') && /[Cc]ode incorrect/.test(r.message || '') && essais < 5) {
+      essais++;
+      if (!demanderCode(essais === 1
+            ? 'Code d\u2019acc\u00e8s de la console :'
+            : 'Code incorrect. Nouvelle tentative :')) break;
+      r = await envoyer('aide');
+    }
+
+    if (r && r.status === 'bloque') {
+      etat.textContent = 'bloque'; etat.className = 'ko';
       afficher('', r.message, 'ko');
       document.getElementById('b').disabled = true;
-    } else {
-      etat.textContent = 'connecte';
-      afficher('', (r && r.message) || 'Pret.');
-      document.getElementById('c').focus();
+      return;
     }
-  });
+    if (!r || r.status === 'refuse') {
+      sessionStorage.removeItem('scaf_code');
+      etat.textContent = 'acces refuse'; etat.className = 'ko';
+      afficher('', (r && r.message) || 'Acces refuse.', 'ko');
+      document.getElementById('b').disabled = true;
+      return;
+    }
+    etat.textContent = 'connecte';
+    afficher('', (r && r.message) || 'Pret.');
+    document.getElementById('c').focus();
+  })();
 }
 
 document.getElementById('f').addEventListener('submit', async (e) => {
