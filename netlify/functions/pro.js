@@ -79,6 +79,34 @@ exports.handler = async (event) => {
         if (!session) return reply(401, { status: 'session_invalide' });
         return reply(200, await rpc('rpc_pro_catalogue_btp', { p_session: session }));
 
+      /* --- Moyens de reglement proposes ------------------- */
+      case 'moyens':
+        if (!session) return reply(401, { status: 'session_invalide' });
+        return reply(200, await rpc('rpc_moyens_paiement', {
+          p_montant: Number(body.montant) || null,
+          p_gamme:   body.gamme === 'nudura' ? 'nudura' : 'texsa'
+        }));
+
+      /* --- Intention de paiement -------------------------- */
+      /* Le montant est lu sur le document cote serveur.      */
+      case 'intention': {
+        if (!session) return reply(401, { status: 'session_invalide' });
+        if (!body.document_id || !body.mode)
+          return reply(400, { status: 'erreur', message: 'Document ou mode manquant' });
+        return reply(200, await rpc('rpc_paiement_intention', {
+          p_session:     session,
+          p_document_id: String(body.document_id),
+          p_mode:        String(body.mode),
+          p_ip:          ip,
+          p_user_agent:  event.headers['user-agent'] || null
+        }));
+      }
+
+      /* --- Coordonnees bancaires (virement) --------------- */
+      case 'rib':
+        if (!session) return reply(401, { status: 'session_invalide' });
+        return reply(200, await rpc('rpc_rib_public', {}));
+
       /* --- Commande ferme ou demande de devis ------------- */
       case 'commander': {
         if (!session) return reply(401, { status: 'session_invalide' });
