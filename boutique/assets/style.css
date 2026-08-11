@@ -445,3 +445,37 @@ button{font-family:inherit;cursor:pointer}
 @media (prefers-reduced-motion:reduce){
   #link-back, #link-back::before, #link-back::after{ transition:none }
 }
+
+/* ---------- Cartes BTP : pied de carte empile (prix + conditionnement + quantite) ---------- */
+.card:has(.btp-qty) .card-body{ gap:4px }
+.card:has(.btp-qty) .card-foot{
+  display:flex; flex-direction:column; align-items:stretch;
+  gap:2px; margin-top:10px; padding-top:10px;
+  border-top:1px solid var(--chalk-2);
+}
+.card:has(.btp-qty) .card-price{
+  font-size:20px; line-height:1.15; white-space:nowrap;
+}
+.card:has(.btp-qty) .card-price span{ font-size:11px !important }
+.card:has(.btp-qty) .card-foot > div{
+  font-size:11px; line-height:1.4; white-space:normal;
+}
+.card:has(.btp-qty) .card-foot > span:last-of-type{
+  display:flex; align-items:center; gap:7px; margin-top:10px;
+}
+.card:has(.btp-qty) .btp-qty{
+  flex:1 1 auto; min-width:0; max-width:120px;
+  padding:8px 10px; font-size:14px;
+}
+.card:has(.btp-qty):hover{ transform:none; box-shadow:var(--shadow) }
+
+@media (max-width:560px){
+  .grid{ grid-template-columns:1fr; gap:14px }
+  .card:has(.btp-qty){ flex-direction:row; align-items:stretch }
+  .card:has(.btp-qty) .card-media{ width:104px; flex:none; aspect-ratio:auto }
+  .card:has(.btp-qty) .card-media img,
+  .card:has(.btp-qty) .card-media .ph-icon{ max-width:64px; max-height:64px; width:64px }
+  .card:has(.btp-qty) .card-body{ padding:11px 13px }
+  .card:has(.btp-qty) .card-price{ font-size:18px }
+  .card:has(.btp-qty) .btp-qty{ max-width:96px }
+}
