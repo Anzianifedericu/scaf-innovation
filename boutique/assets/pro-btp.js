@@ -197,7 +197,8 @@ function majBtpBadge() {
 async function envoyerBtp(mode, chantier, notes, modeReglement) {
   const lignes = getBtpCart().map(l => ({ code: l.code, marque: l.marque, quantite: l.qty }));
   if (lignes.length === 0) return { status: 'erreur', message: 'Panier vide' };
-  const r = await proApi({ action: 'commander', mode, lignes, chantier, notes });
+  const r = await proApi({ action: 'commander', mode, lignes, chantier, notes,
+                           mode_reglement: modeReglement || null });
   if (r && r.status === 'ok') { localStorage.removeItem(BTP_CART_KEY); majBtpBadge(); }
   return r;
 }
