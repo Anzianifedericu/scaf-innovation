@@ -337,6 +337,11 @@ function ouvrirEnvoiBtp(mode) {
       <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Précisions (facultatif)</label>
       <textarea id="btp-notes" rows="3" style="width:100%;padding:10px 12px;border:1px solid #cfd8e0;
              border-radius:8px;margin-bottom:14px" placeholder="Délai souhaité, livraison…"></textarea>
+      ${mode === 'commande' ? `<div style="margin-top:6px">
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Reglement</label>
+        <div id="btp-moyens" class="pay-liste">Chargement...</div>
+        <div id="btp-detail-moyen"></div>
+      </div>` : ''}
       <div id="btp-msg"></div>
       <button id="btp-send" style="width:100%;padding:11px;border:0;border-radius:8px;
               background:#3f6b4a;color:#fff;font-weight:600;cursor:pointer">
