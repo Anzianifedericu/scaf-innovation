@@ -194,7 +194,7 @@ function majBtpBadge() {
 
 /* ---------------- Envoi : commande ou devis ---------------- */
 
-async function envoyerBtp(mode, chantier, notes) {
+async function envoyerBtp(mode, chantier, notes, modeReglement) {
   const lignes = getBtpCart().map(l => ({ code: l.code, marque: l.marque, quantite: l.qty }));
   if (lignes.length === 0) return { status: 'erreur', message: 'Panier vide' };
   const r = await proApi({ action: 'commander', mode, lignes, chantier, notes });
