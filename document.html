@@ -282,6 +282,7 @@ function rendreLignes(){
           ${champ(i,'taux_tva', l.taux_tva,'number','0.1')}
         </div>
         <div class="rang-pied">
+          ${equivalence(l)}
           <span class="montant-ligne" data-montant="${i}">${eur(ligneMontant(l))}</span>
           ${ROLE==='editeur' ? `<button class="supprimer" onclick="supprimerLigne(${i})">Supprimer</button>` : ''}
         </div>
