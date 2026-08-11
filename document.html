@@ -268,6 +268,34 @@ function champ(i, nom, val, type, pas){
     ${pas?`step="${pas}"`:''} value="${val==null?'':String(val).replace(/"/g,'&quot;')}"
     ${ROLE!=='editeur'?'readonly':''} aria-label="${nom}">`;
 }
+/* Les lignes TEXSA sont stockees en m2, ml ou L, alors qu on vend et
+   qu on compte en rouleaux, bidons ou sacs. On rappelle l equivalence
+   pour eviter de saisir une quantite qui ne correspond a aucun colis. */
+const COND = {
+  'm\u00b2': [{f:7,n:'rlx'},{f:6,n:'rlx'},{f:5,n:'rlx'},{f:8,n:'rlx'},{f:10,n:'rlx'},{f:12,n:'rlx'},{f:40,n:'rlx'}],
+  'ml':  [{f:10,n:'rlx'},{f:5,n:'rlx'},{f:6,n:'rlx'},{f:20,n:'rlx'}],
+  'L':   [{f:5,n:'bidon'},{f:30,n:'bidon'},{f:20,n:'bidon'},{f:10,n:'bidon'}],
+  'kg':  [{f:5,n:'seau'},{f:15,n:'seau'},{f:25,n:'sac'},{f:10,n:'seau'}]
+};
+function equivalence(l){
+  const u = String(l.unite||'').trim();
+  const q = Number(l.quantite)||0;
+  const liste = COND[u];
+  if (!liste || q <= 0) return '';
+  // on retient le conditionnement qui tombe juste
+  const exact = liste.find(c => Math.abs(q / c.f - Math.round(q / c.f)) < 0.001);
+  if (exact) {
+    const n = Math.round(q / exact.f);
+    return `<span class="equiv">soit ${n} ${exact.n}${n>1?'':''} de ${exact.f} ${u}</span>`;
+  }
+  // quantite qui ne correspond a aucun colis entier : on alerte
+  const proche = liste.reduce((a,c) =>
+    Math.abs(q/c.f - Math.round(q/c.f)) < Math.abs(q/a.f - Math.round(q/a.f)) ? c : a, liste[0]);
+  const bas = Math.floor(q / proche.f), haut = bas + 1;
+  return `<span class="equiv equiv-alerte">${(q/proche.f).toFixed(2)} ${proche.n} \u2014 `
+       + `prendre ${bas*proche.f} ou ${haut*proche.f} ${u}</span>`;
+}
+
 function rendreLignes(){
   el('rangs').innerHTML = LIGNES.map((l,i)=>`
     <div class="rang">
