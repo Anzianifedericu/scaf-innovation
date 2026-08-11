@@ -54,7 +54,8 @@ exports.handler = async (event) => {
     return reply(200, await rpc('rpc_admin_executer', {
       p_jeton:    String(body.jeton),
       p_commande: String(body.commande || '').slice(0, 500),
-      p_ip:       ip
+      p_ip:       ip,
+      p_code:     body.code ? String(body.code).slice(0, 100) : null
     }));
   } catch (e) {
     console.error('[admin]', e.message);
