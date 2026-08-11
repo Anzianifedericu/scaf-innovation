@@ -519,3 +519,16 @@ button{font-family:inherit;cursor:pointer}
   .pay-opt{ padding:10px 11px; gap:9px }
   .pay-badge{ font-size:10.5px; padding:3px 7px }
 }
+
+/* ---------- Pastille de disponibilite ---------- */
+.dispo{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:11px; font-weight:600; letter-spacing:.01em;
+  border-radius:20px; padding:3px 9px 3px 7px; margin-bottom:2px;
+  white-space:nowrap; width:fit-content;
+}
+.dispo::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none }
+.dispo-stock{ background:#EAF4EC; color:#2F6B44 }
+.dispo-dernieres{ background:#FDF3E3; color:#9A6212 }
+.dispo-commande{ background:#EFF1F4; color:#66727F }
+@media (max-width:560px){ .dispo{ font-size:10.5px; padding:2px 8px 2px 6px } }
