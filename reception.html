@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Réception marchandise — SCAF Innovation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{ --ink:#1A2530; --bleu:#2C4A7C; --maquis:#4F7A6B; --chalk:#FAFAF6;
+       --chalk2:#F0EEE4; --line:#DEDACB; --white:#fff; --ambre:#9A6212; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--chalk);color:var(--ink);font:400 15px/1.5 Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+
+header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
+h1{font:600 21px/1.2 Fraunces,Georgia,serif;margin:0 0 6px}
+.meta{font-size:13px;color:var(--maquis)}
+.meta b{color:var(--ink);font-weight:600}
+
+.etat{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  border-radius:20px;padding:4px 11px;margin-top:10px}
+.etat-attente{background:#FDF3E3;color:var(--ambre)}
+.etat-complet{background:#EAF4EC;color:#2F6B44}
+
+.ligne{background:var(--white);border:1px solid var(--line);border-radius:10px;
+  padding:13px 15px;margin-bottom:10px}
+.ligne.recue{opacity:.55;background:var(--chalk2)}
+.l-nom{font-size:14.5px;font-weight:600;line-height:1.3;margin-bottom:3px}
+.l-code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a3aeb9;margin-bottom:9px}
+.l-qte{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.l-info{font-size:12.5px;color:var(--maquis)}
+.l-info b{color:var(--ink);font-weight:600}
+.l-saisie{margin-left:auto;display:flex;align-items:center;gap:7px}
+.l-saisie input{width:88px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+  font:inherit;font-size:15px;text-align:right;background:var(--white)}
+.l-saisie input:focus{outline:2px solid var(--bleu);outline-offset:1px;border-color:var(--bleu)}
+.l-saisie input:disabled{background:var(--chalk2);color:#a3aeb9}
+.l-saisie span{font-size:12px;color:#8895a3}
+.btn-tout{background:none;border:1px solid var(--line);border-radius:7px;padding:7px 11px;
+  font:inherit;font-size:12px;color:var(--maquis);cursor:pointer}
+.btn-tout:hover{border-color:var(--maquis)}
+
+.barre{position:sticky;bottom:0;background:var(--chalk);border-top:1px solid var(--line);
+  padding:14px 0 8px;margin-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.total{font-size:13.5px;color:var(--maquis)}
+.total b{font:600 17px Fraunces,Georgia,serif;color:var(--bleu)}
+button.valider{margin-left:auto;background:#238636;border:0;color:#fff;border-radius:8px;
+  padding:13px 22px;font:inherit;font-weight:600;cursor:pointer}
+button.valider:disabled{opacity:.45;cursor:not-allowed}
+
+.msg{padding:14px 16px;border-radius:10px;font-size:14px;line-height:1.5;margin-bottom:16px}
+.msg-ok{background:#EAF4EC;color:#2F6B44;border:1px solid #cfe6d6}
+.msg-ko{background:#F9EBEA;color:#A3392F;border:1px solid #f0d5d2}
+.msg-info{background:var(--chalk2);color:var(--maquis);border:1px solid var(--line)}
+.centre{text-align:center;padding:50px 20px;color:var(--maquis)}
+@media (max-width:520px){
+  .l-saisie{margin-left:0;width:100%;justify-content:flex-end}
+  button.valider{width:100%;margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="centre">Chargement…</div>
+</div>
+
+<script>
+'use strict';
+const API = '/.netlify/functions/reception';
+const jeton = new URLSearchParams(location.search).get('t') || '';
+const app = document.getElementById('app');
+let data = null;
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = n => (Math.round(Number(n) * 100) / 100).toLocaleString('fr-FR');
+
+async function appel(payload){
+  const r = await fetch(API, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ jeton }, payload))
+  });
+  return r.json();
+}
+
+function erreur(texte){
+  app.innerHTML = '<div class="msg msg-ko">' + esc(texte) + '</div>';
+}
+
+function rendre(){
+  const restantes = data.lignes.filter(l => Number(l.reste) > 0);
+
+  let html = '<header>'
+    + '<h1>Réception marchandise</h1>'
+    + '<div class="meta">Commande <b>' + esc(data.numero) + '</b>'
+    + (data.fournisseur ? ' · ' + esc(data.fournisseur) : '')
+    + (data.date_commande ? ' · ' + esc(data.date_commande) : '') + '</div>'
+    + (data.tout_recu
+        ? '<span class="etat etat-complet">Commande entièrement reçue</span>'
+        : '<span class="etat etat-attente">' + restantes.length + ' ligne(s) en attente</span>')
+    + '</header>';
+
+  if (data.tout_recu) {
+    html += '<div class="msg msg-ok">Tout a été réceptionné. Rien à saisir.</div>';
+    app.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="msg msg-info">Saisis les quantités réellement reçues. '
+       +  'Laisse à zéro ce qui n’est pas arrivé — tu pourras compléter plus tard '
+       +  'avec ce même lien.</div>';
+
+  data.lignes.forEach((l, i) => {
+    const fini = Number(l.reste) <= 0;
+    html += '<div class="ligne' + (fini ? ' recue' : '') + '">'
+      + '<div class="l-nom">' + esc(l.designation || l.code) + '</div>'
+      + '<div class="l-code">' + esc(l.code)
+      + (l.code_fournisseur && l.code_fournisseur !== l.code
+          ? ' · fournisseur ' + esc(l.code_fournisseur) : '') + '</div>'
+      + '<div class="l-qte">'
+      + '<span class="l-info">Commandé <b>' + num(l.commande) + '</b></span>'
+      + (Number(l.deja_recu) > 0
+          ? '<span class="l-info">Déjà reçu <b>' + num(l.deja_recu) + '</b></span>' : '')
+      + '<span class="l-info">Reste <b>' + num(l.reste) + '</b></span>'
+      + '<span class="l-saisie">'
+      + (fini ? '' : '<button class="btn-tout" data-i="' + i + '">Tout</button>')
+      + '<input type="number" min="0" step="any" max="' + esc(l.reste) + '" '
+      + 'data-code="' + esc(l.code) + '" data-max="' + esc(l.reste) + '" '
+      + 'value="" placeholder="0"' + (fini ? ' disabled' : '') + '>'
+      + '</span></div></div>';
+  });
+
+  html += '<div class="barre">'
+       +  '<span class="total">Total saisi : <b id="tot">0</b> unité(s)</span>'
+       +  '<button class="valider" id="go" disabled>Valider la réception</button>'
+       +  '</div>';
+
+  app.innerHTML = html;
+
+  const inputs = [].slice.call(app.querySelectorAll('input[data-code]'));
+  const majTotal = () => {
+    let t = 0;
+    inputs.forEach(i => {
+      const max = Number(i.dataset.max);
+      if (Number(i.value) > max) i.value = max;
+      t += Number(i.value) || 0;
+    });
+    document.getElementById('tot').textContent = num(t);
+    document.getElementById('go').disabled = (t <= 0);
+  };
+  inputs.forEach(i => i.addEventListener('input', majTotal));
+
+  app.querySelectorAll('.btn-tout').forEach(b => {
+    b.addEventListener('click', () => {
+      const inp = b.parentElement.querySelector('input');
+      inp.value = inp.dataset.max;
+      majTotal();
+    });
+  });
+
+  document.getElementById('go').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    const lignes = inputs
+      .filter(i => Number(i.value) > 0)
+      .map(i => ({ code: i.dataset.code, quantite: Number(i.value) }));
+    try {
+      const r = await appel({ action: 'valider', lignes });
+      if (r && r.status === 'ok') {
+        app.innerHTML = '<div class="msg msg-ok"><strong>Réception enregistrée</strong><br>'
+          + esc(r.lignes_receptionnees) + ' ligne(s), ' + num(r.unites) + ' unité(s) entrées en stock.'
+          + (Number(r.reste_attendu) > 0
+              ? '<br>Reste attendu : <strong>' + num(r.reste_attendu) + '</strong> unité(s). '
+                + 'Rouvre ce lien à la prochaine livraison.'
+              : '<br>Commande soldée.')
+          + '</div>';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        erreur((r && r.message) || 'La réception n’a pas pu être enregistrée.');
+      }
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Valider la réception';
+      alert('Erreur réseau. Réessaie.');
+    }
+  });
+}
+
+if (!jeton) {
+  erreur('Ce lien est incomplet. Ouvre-le depuis le message Telegram.');
+} else {
+  appel({}).then(r => {
+    if (!r || r.status !== 'ok') {
+      erreur((r && r.message) || 'Lien invalide.');
+      return;
+    }
+    data = r;
+    rendre();
+  }).catch(() => erreur('Impossible de charger la commande.'));
+}
+</script>
+</body>
+</html>
