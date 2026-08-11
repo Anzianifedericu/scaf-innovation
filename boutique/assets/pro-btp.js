@@ -378,3 +378,60 @@ async function initPro() {
   majBandeauPro();
   majBtpBadge();
 }
+
+/* ============ Choix du moyen de reglement ============ */
+/* Rien n'est calcule ici : le serveur decide de ce qui est
+   propose et du montant reellement preleve. */
+
+async function chargerMoyens(montant) {
+  const r = await proApi({ action: 'moyens', montant });
+  return Array.isArray(r) ? r : [];
+}
+
+const ICONES_PAIEMENT = {
+  store:  'M3 9l1.5-5h15L21 9M3 9h18M3 9v10a1 1 0 001 1h16a1 1 0 001-1V9',
+  bank:   'M3 10l9-6 9 6M5 10v9m4-9v9m6-9v9m4-9v9M3 21h18',
+  card:   'M2 7h20v11a1 1 0 01-1 1H3a1 1 0 01-1-1V7zm0 4h20M6 16h4',
+  paypal: 'M7 20l2-14h5a4 4 0 010 8h-3l-1 6H7z',
+  split:  'M12 3v18M5 8h5M5 16h5M14 12h5',
+  truck:  'M1 7h13v9H1zM14 10h4l3 3v3h-7z'
+};
+
+function iconePaiement(code) {
+  const d = ICONES_PAIEMENT[code] || ICONES_PAIEMENT.card;
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="pay-ico"><path d="' + d + '"/></svg>';
+}
+
+function rendreMoyens(conteneur, moyens, onChoix) {
+  if (!moyens.length) {
+    conteneur.innerHTML = '<p class="pay-vide">Aucun moyen de reglement disponible pour ce montant. Envoie ta demande, on te recontacte.</p>';
+    return;
+  }
+  conteneur.innerHTML = moyens.map(function (m) {
+    var acompte = m.acompte_pct ? '<span class="pay-badge">' + eurP(m.montant_a_payer) + ' maintenant</span>' : '';
+    return '<label class="pay-opt" data-code="' + escP(m.code) + '">'
+         + '<input type="radio" name="moyen" value="' + escP(m.code) + '">'
+         + iconePaiement(m.icone)
+         + '<span class="pay-txt"><strong>' + escP(m.libelle) + '</strong><span>' + escP(m.description || '') + '</span></span>'
+         + acompte + '</label>';
+  }).join('');
+  conteneur.querySelectorAll('input[name="moyen"]').forEach(function (i) {
+    i.addEventListener('change', function () {
+      conteneur.querySelectorAll('.pay-opt').forEach(function (o) {
+        o.classList.toggle('pay-opt-actif', o.dataset.code === i.value);
+      });
+      if (onChoix) onChoix(i.value);
+    });
+  });
+}
+
+async function blocVirement() {
+  const r = await proApi({ action: 'rib' });
+  if (!r || r.status !== 'ok') {
+    return '<div class="pay-note pay-note-warn">' + escP((r && r.message) || 'Coordonnees bancaires indisponibles. Contacte-nous.') + '</div>';
+  }
+  return '<div class="pay-note"><div><strong>' + escP(r.titulaire) + '</strong></div>'
+       + '<div class="pay-iban">' + escP(r.iban) + '</div>'
+       + (r.bic ? '<div>BIC ' + escP(r.bic) + '</div>' : '')
+       + '<div class="pay-warn">' + escP(r.avertissement) + '</div></div>';
+}
