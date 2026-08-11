@@ -352,6 +352,20 @@ function ouvrirEnvoiBtp(mode) {
   document.body.appendChild(m);
 
   m.querySelector('#btp-cancel').onclick = () => m.remove();
+
+  let moyenChoisi = null;
+  if (mode === 'commande') {
+    chargerMoyens(btpTotalGeneral()).then((moyens) => {
+      const box = m.querySelector('#btp-moyens');
+      const det = m.querySelector('#btp-detail-moyen');
+      if (!box) return;
+      rendreMoyens(box, moyens, async (code) => {
+        moyenChoisi = code;
+        det.innerHTML = '';
+        if (code === 'virement') det.innerHTML = await blocVirement();
+      });
+    });
+  }
   m.querySelector('#btp-send').onclick = async () => {
     const b = m.querySelector('#btp-send');
     b.disabled = true; b.textContent = 'Envoi…';
