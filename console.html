@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Console SCAF</title>
+<style>
+:root{ --bg:#0f1419; --panel:#161d24; --line:#26313c; --ink:#e6edf3;
+       --ink2:#8b98a5; --vert:#3fb950; --rouge:#f85149; --jaune:#d29922; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+.wrap{max-width:820px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:baseline;gap:10px;padding:6px 0 18px;border-bottom:1px solid var(--line)}
+h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.04em}
+.sub{color:var(--ink2);font-size:12px}
+#etat{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:20px;
+  background:#1c2b1e;color:var(--vert);border:1px solid #2ea04326}
+#etat.ko{background:#2b1c1c;color:var(--rouge);border-color:#f8514926}
+
+#flux{padding:16px 0;min-height:180px}
+.bloc{margin-bottom:16px;animation:apparait .18s ease}
+@keyframes apparait{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.cmd{color:var(--ink2)}
+.cmd b{color:var(--ink);font-weight:600}
+.rep{white-space:pre-wrap;line-height:1.55;margin-top:5px;padding:11px 13px;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;border-left:2px solid var(--vert)}
+.rep.ko{border-left-color:var(--rouge)}
+.rep.warn{border-left-color:var(--jaune)}
+
+form{display:flex;gap:8px;position:sticky;bottom:0;background:var(--bg);padding:12px 0 0;
+  border-top:1px solid var(--line)}
+input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:12px 13px;font:inherit;outline:none}
+input:focus{border-color:#388bfd}
+button{background:#238636;border:0;color:#fff;border-radius:8px;padding:12px 18px;
+  font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.aide{color:var(--ink2);font-size:12px;line-height:1.7;margin-top:14px}
+.aide code{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>CONSOLE SCAF</h1>
+    <span class="sub">administration</span>
+    <span id="etat">verification…</span>
+  </header>
+
+  <div id="flux"></div>
+
+  <form id="f">
+    <input id="c" placeholder="tape une commande, ou &quot;aide&quot;" autocomplete="off"
+           autocapitalize="off" spellcheck="false">
+    <button id="b">Executer</button>
+  </form>
+
+  <div class="aide">
+    <code>compte NOM 5000 30fdm</code> &nbsp; <code>remise NOM 35</code> &nbsp;
+    <code>rib</code> &nbsp; <code>aide</code><br>
+    Fleche haut pour rappeler la commande precedente.
+  </div>
+</div>
+
+<script>
+'use strict';
+const API = '/.netlify/functions/admin';
+const jeton = new URLSearchParams(location.search).get('t') || '';
+const flux = document.getElementById('flux');
+const etat = document.getElementById('etat');
+let historique = [], pos = -1;
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function afficher(commande, texte, classe){
+  const d = document.createElement('div');
+  d.className = 'bloc';
+  d.innerHTML = (commande ? '<div class="cmd">&gt; <b>' + esc(commande) + '</b></div>' : '')
+              + '<div class="rep ' + (classe || '') + '">' + esc(texte) + '</div>';
+  flux.appendChild(d);
+  d.scrollIntoView({ behavior:'smooth', block:'end' });
+}
+
+async function envoyer(commande){
+  const r = await fetch(API, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ jeton, commande })
+  });
+  return r.json();
+}
+
+if (!jeton) {
+  etat.textContent = 'aucun jeton';
+  etat.className = 'ko';
+  afficher('', 'Ce lien est incomplet. Ouvre la console depuis le lien qui t\u2019a ete transmis.', 'ko');
+  document.getElementById('b').disabled = true;
+} else {
+  envoyer('aide').then(r => {
+    if (r && r.status === 'refuse') {
+      etat.textContent = 'lien expire';
+      etat.className = 'ko';
+      afficher('', r.message, 'ko');
+      document.getElementById('b').disabled = true;
+    } else {
+      etat.textContent = 'connecte';
+      afficher('', (r && r.message) || 'Pret.');
+      document.getElementById('c').focus();
+    }
+  });
+}
+
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const champ = document.getElementById('c');
+  const btn   = document.getElementById('b');
+  const cmd   = champ.value.trim();
+  if (!cmd) return;
+
+  historique.unshift(cmd); pos = -1;
+  champ.value = ''; btn.disabled = true;
+
+  try {
+    const r = await envoyer(cmd);
+    const s = (r && r.status) || '';
+    const classe = ['refuse','erreur','introuvable','inconnu'].includes(s) ? 'ko'
+                 : ['ambigu','aide','alerte','indisponible'].includes(s) ? 'warn' : '';
+    afficher(cmd, (r && (r.message || r.resume_telegram)) || JSON.stringify(r, null, 2), classe);
+  } catch (err) {
+    afficher(cmd, 'Erreur reseau. Reessaie.', 'ko');
+  }
+  btn.disabled = false; champ.focus();
+});
+
+document.getElementById('c').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowUp' && historique.length) {
+    e.preventDefault();
+    pos = Math.min(pos + 1, historique.length - 1);
+    e.target.value = historique[pos];
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    pos = Math.max(pos - 1, -1);
+    e.target.value = pos < 0 ? '' : historique[pos];
+  }
+});
+</script>
+</body>
+</html>
