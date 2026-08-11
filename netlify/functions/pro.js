@@ -127,11 +127,12 @@ exports.handler = async (event) => {
           return reply(400, { status: 'erreur', message: 'Aucune ligne exploitable' });
 
         return reply(200, await rpc('rpc_pro_commande_btp', {
-          p_session:  session,
-          p_lignes:   lignes,
-          p_mode:     body.mode === 'commande' ? 'commande' : 'devis',
-          p_chantier: body.chantier ? String(body.chantier).slice(0, 200) : null,
-          p_notes:    body.notes    ? String(body.notes).slice(0, 2000)  : null
+          p_session:        session,
+          p_lignes:         lignes,
+          p_mode:           body.mode === 'commande' ? 'commande' : 'devis',
+          p_chantier:       body.chantier ? String(body.chantier).slice(0, 200) : null,
+          p_notes:          body.notes    ? String(body.notes).slice(0, 2000)  : null,
+          p_mode_reglement: body.mode_reglement ? String(body.mode_reglement).slice(0, 40) : null
         }));
       }
 
