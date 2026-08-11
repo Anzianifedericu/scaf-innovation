@@ -198,6 +198,10 @@
           ${productPhoto(p.sku, p.category)}
         </div>
         <div class="card-body">
+          ${p._dispo ? `<span class="dispo dispo-${p._dispo}">${
+              p._dispo === 'stock'     ? 'En stock' :
+              p._dispo === 'dernieres' ? 'Derniers exemplaires' :
+                                         'Sur commande'}</span>` : ""}
           <div class="card-name">${p.name}</div>
           ${p.description ? `<div style="font-size:12px;color:#8895a3;margin-top:2px">${p.description}</div>` : ""}
           <div style="font-size:11px;color:#a3aeb9;font-family:ui-monospace,monospace;margin-top:2px">${p.sku}</div>
