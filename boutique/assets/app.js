@@ -295,12 +295,30 @@ function closeCartDrawer() {
 function injectHeader() {
   const el = document.getElementById("site-header");
   if (!el) return;
+
+  // Les trois enseignes SCAF. Celle du rayon en cours est mise en avant.
+  const ENSEIGNES = [
+    { dept: "menage",     sigle: "SM", nom: "SCAF Ménage", sous: "Entretien & maison",   couleur: "#3f6b4a" },
+    { dept: "nudura",     sigle: "N",  nom: "Nudura",      sous: "Coffrage isolant ICF", couleur: "#1e4d78" },
+    { dept: "etancheite", sigle: "T",  nom: "TEXSA",       sous: "Étanchéité",           couleur: "#8a4b2a" }
+  ];
+  const params  = new URLSearchParams(location.search);
+  const courant = params.get("dept") || "menage";
+
+  const marques = ENSEIGNES.map((e) => {
+    const actif = e.dept === courant;
+    return `
+      <a class="brand${actif ? " brand-active" : ""}" href="/boutique/?dept=${e.dept}"
+         title="${e.nom} — ${e.sous}"
+         style="${actif ? "" : "opacity:.45"}">
+        <span class="brand-mark" style="background:${e.couleur}">${e.sigle}</span>
+        <span class="brand-text brand-text-${e.dept}"><strong>${e.nom}</strong><span>${e.sous}</span></span>
+      </a>`;
+  }).join("");
+
   el.innerHTML = `
     <div class="header-inner">
-      <a class="brand" href="/boutique/">
-        <span class="brand-mark">SM</span>
-        <span class="brand-text"><strong>SCAF Ménage</strong><span>Entretien & maison</span></span>
-      </a>
+      <div class="brand-switch">${marques}</div>
       <div class="header-actions">
         <a href="https://scaf-innovation.com" class="icon-btn" style="display:none" id="link-back"></a>
         <span id="pro-badge" style="display:none;font-size:11.5px;background:#EAF2ED;color:#2F5945;border-radius:20px;padding:5px 10px;font-weight:600"></span>

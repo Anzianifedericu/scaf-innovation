@@ -376,3 +376,33 @@ button{font-family:inherit;cursor:pointer}
   border:1.5px solid var(--bleu-lessive);background:transparent;color:var(--bleu-lessive);
   border-radius:var(--radius);padding:11px 20px;font-size:14px;cursor:pointer;margin-left:8px;
 }
+
+
+/* ---------- Sélecteur d'enseignes SCAF (Ménage · Nudura · TEXSA) ---------- */
+.brand-switch{
+  display:flex; align-items:center; gap:4px; flex-wrap:nowrap;
+}
+.brand-switch .brand{
+  gap:8px; padding:5px 9px; border-radius:12px;
+  transition:opacity .16s ease, background .16s ease;
+}
+.brand-switch .brand:hover{ opacity:1 !important; background:rgba(0,0,0,.04); }
+.brand-switch .brand-active{ background:rgba(0,0,0,.05); }
+.brand-switch .brand-mark{
+  width:32px; height:32px; font-size:13px; font-weight:700;
+  color:#fff; flex-shrink:0;
+}
+.brand-switch .brand-active .brand-mark{ box-shadow:0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px currentColor; }
+.brand-switch .brand-text strong{ font-size:15px; white-space:nowrap; }
+.brand-switch .brand-text span{ font-size:10px; white-space:nowrap; }
+
+/* Sur écran étroit : seules les pastilles restent, le libellé du rayon actif est conservé */
+@media (max-width:820px){
+  .brand-switch .brand-text{ display:none; }
+  .brand-switch .brand-active .brand-text{ display:flex; }
+  .brand-switch .brand-active .brand-text strong{ font-size:14px; }
+}
+@media (max-width:560px){
+  .brand-switch .brand-active .brand-text span{ display:none; }
+  .header-inner{ padding:12px 14px; gap:10px; }
+}
