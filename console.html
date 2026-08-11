@@ -84,12 +84,22 @@ function afficher(commande, texte, classe){
   d.scrollIntoView({ behavior:'smooth', block:'end' });
 }
 
+let code = sessionStorage.getItem('scaf_code') || '';
+
 async function envoyer(commande){
   const r = await fetch(API, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ jeton, commande })
+    body: JSON.stringify({ jeton, commande, code })
   });
   return r.json();
+}
+
+function demanderCode(message){
+  const saisi = window.prompt(message || 'Code d\u2019acc\u00e8s de la console :');
+  if (saisi === null) return false;
+  code = saisi.trim();
+  sessionStorage.setItem('scaf_code', code);
+  return true;
 }
 
 if (!jeton) {
