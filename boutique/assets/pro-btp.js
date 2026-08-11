@@ -369,9 +369,17 @@ function ouvrirEnvoiBtp(mode) {
   m.querySelector('#btp-send').onclick = async () => {
     const b = m.querySelector('#btp-send');
     b.disabled = true; b.textContent = 'Envoi…';
+    if (mode === 'commande' && !moyenChoisi) {
+      m.querySelector('#btp-msg').innerHTML =
+        '<div style="padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;'
+        + 'background:#fffbeb;color:#b45309">Choisis un moyen de reglement.</div>';
+      b.disabled = false; b.textContent = 'Envoyer ma commande';
+      return;
+    }
     const r = await envoyerBtp(mode,
       m.querySelector('#btp-chantier').value,
-      m.querySelector('#btp-notes').value);
+      m.querySelector('#btp-notes').value,
+      moyenChoisi);
     if (r && r.status === 'ok') {
       m.firstElementChild.innerHTML =
         `<h2 style="margin:0 0 8px;font-size:18px">C'est envoyé</h2>
