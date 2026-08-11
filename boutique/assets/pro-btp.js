@@ -104,7 +104,8 @@ function btpVersCarte(p, marque, familleTitre) {
     _palette: p.qte_palette_num,
     _prixPalette: p.prix_conditionnement_palette_ht,
     _eco: p.eco_contrib_ht || null,
-    _surDemande: !!p.sur_demande
+    _surDemande: !!p.sur_demande,
+    _dispo: p.dispo || null
   };
 }
 
