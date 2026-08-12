@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Dicter un devis — SCAF</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1A2530;--bleu:#2C4A7C;--maquis:#4F7A6B;--chalk:#FAFAF6;--chalk2:#F0EEE4;
+      --line:#DEDACB;--white:#fff;--ambre:#9A6212;--vert:#2F6B44}
+*{box-sizing:border-box}
+body{margin:0;background:var(--chalk);color:var(--ink);font:400 15px/1.5 Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+header{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}
+h1{font:600 20px/1.2 Fraunces,Georgia,serif;margin:0}
+.sub{font-size:12.5px;color:var(--maquis);margin-top:4px}
+
+textarea{width:100%;min-height:96px;padding:13px 14px;border:1px solid var(--line);
+  border-radius:10px;font:inherit;font-size:15px;background:var(--white);resize:vertical}
+textarea:focus{outline:2px solid var(--bleu);outline-offset:1px;border-color:var(--bleu)}
+.barre{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:12px 20px;font:inherit;font-weight:600;cursor:pointer}
+.primaire{background:var(--bleu);color:#fff}
+.valide{background:#238636;color:#fff}
+.primaire:disabled,.valide:disabled{opacity:.45;cursor:not-allowed}
+.micro{background:var(--white);border:1px solid var(--line);color:var(--maquis);padding:12px 14px}
+.micro.actif{background:#F9EBEA;border-color:#e5a9a2;color:#A3392F}
+
+.bloc{background:var(--white);border:1px solid var(--line);border-radius:10px;
+  padding:14px 15px;margin-top:12px}
+.bloc h2{font:600 13px Inter;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--maquis);margin:0 0 10px}
+.ok{color:var(--vert);font-weight:700}
+.pend{color:var(--ambre);font-weight:700}
+.ligne{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--chalk2);
+  flex-wrap:wrap}
+.ligne:last-child{border-bottom:0}
+.ligne .nom{flex:1;min-width:150px;font-size:14px}
+.ligne .code{font:11.5px ui-monospace,Menlo,monospace;color:#a3aeb9}
+.ligne input[type=number]{width:76px;padding:7px 9px;border:1px solid var(--line);
+  border-radius:7px;font:inherit;text-align:right}
+select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;
+  font:inherit;font-size:14px;background:var(--white);margin-top:5px}
+.q{padding:10px 0;border-bottom:1px solid var(--chalk2)}
+.q:last-child{border-bottom:0}
+.q .lib{font-size:14px;font-weight:600}
+.msg{padding:13px 15px;border-radius:10px;font-size:14px;line-height:1.5;margin-top:12px}
+.msg-ok{background:#EAF4EC;color:#2F6B44;border:1px solid #cfe6d6}
+.msg-ko{background:#F9EBEA;color:#A3392F;border:1px solid #f0d5d2}
+.msg-info{background:var(--chalk2);color:var(--maquis);border:1px solid var(--line)}
+.exemple{font-size:12.5px;color:#8895a3;margin-top:9px;line-height:1.6}
+.exemple b{color:var(--ink);font-weight:500}
+@media(max-width:520px){.ligne .nom{min-width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Dicter un devis</h1>
+    <div class="sub">Une phrase, un devis chiffré.</div>
+  </header>
+
+  <textarea id="txt" placeholder="Client Ludo Lunes, 1 rlx TV alu, 9 rlx FV min vert, 1 Pibial 5 litres, remise 30 %"></textarea>
+  <div class="barre">
+    <button class="primaire" id="go">Analyser</button>
+    <button class="micro" id="mic" title="Dicter à la voix">● Dicter</button>
+  </div>
+  <div class="exemple">
+    Exemple : <b>Ludo Lunes, 1 rlx TV alu 35, 9 rlx FV 25 min vert, 1 bidon Pibial 5L, remise 30%</b>
+  </div>
+
+  <div id="sortie"></div>
+</div>
+
+<script>
+'use strict';
+const API = '/.netlify/functions/dictee';
+const jeton = new URLSearchParams(location.search).get('t') || '';
+let code = sessionStorage.getItem('scaf_code') || '';
+let A = null;
+
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const el = i => document.getElementById(i);
+
+async function appel(charge){
+  const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ jeton, code }, charge)) });
+  return r.json();
+}
+
+function message(t, classe){
+  el('sortie').innerHTML = '<div class="msg msg-'+(classe||'info')+'">'+esc(t)+'</div>';
+}
+
+/* ---------- dictee vocale ---------- */
+const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Reco) {
+  const reco = new Reco();
+  reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
+  let actif = false, base = '';
+  el('mic').addEventListener('click', () => {
+    if (actif) { reco.stop(); return; }
+    base = el('txt').value ? el('txt').value.trim() + ' ' : '';
+    reco.start();
+  });
+  reco.onstart = () => { actif = true; el('mic').classList.add('actif'); el('mic').textContent = '■ Arrêter'; };
+  reco.onend   = () => { actif = false; el('mic').classList.remove('actif'); el('mic').textContent = '● Dicter'; };
+  reco.onresult = (e) => {
+    let t = '';
+    for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+    el('txt').value = base + t;
+  };
+} else {
+  el('mic').style.display = 'none';
+}
+
+/* ---------- analyse ---------- */
+el('go').addEventListener('click', async () => {
+  const texte = el('txt').value.trim();
+  if (!texte) return;
+  const b = el('go'); b.disabled = true; b.textContent = 'Analyse…';
+  try {
+    const r = await appel({ texte });
+    if (r && r.status === 'refuse' && /[Cc]ode/.test(r.message||'')) {
+      const s = prompt('Code d\u2019acc\u00e8s :');
+      if (s) { code = s.trim(); sessionStorage.setItem('scaf_code', code); }
+      b.disabled = false; b.textContent = 'Analyser';
+      return;
+    }
+    if (!r || r.status !== 'ok') { message((r&&r.message)||'Analyse impossible.', 'ko'); }
+    else { A = r; rendre(); }
+  } catch { message('Erreur réseau.', 'ko'); }
+  b.disabled = false; b.textContent = 'Analyser';
+});
+
+/* ---------- rendu ---------- */
+function rendre(){
+  let h = '';
+
+  // client
+  h += '<div class="bloc"><h2>Client</h2>';
+  if (!A.clients.length) {
+    h += '<div class="pend">' + esc(A.client_dicte||'non précisé') + ' — introuvable en base</div>'
+       + '<div class="exemple">Crée la fiche client avant d’établir le devis.</div>';
+  } else if (A.clients.length === 1) {
+    h += '<div class="ok">✓ ' + esc(A.clients[0].nom) + '</div>';
+  } else {
+    h += '<select id="sel-client">' + A.clients.map(c =>
+         '<option value="'+esc(c.id)+'">'+esc(c.nom)+'</option>').join('') + '</select>';
+  }
+  if (A.remise_pct != null) h += '<div style="margin-top:8px;font-size:13.5px">Remise <b>'+esc(A.remise_pct)+' %</b></div>';
+  h += '</div>';
+
+  // articles reconnus
+  if (A.resolues.length) {
+    h += '<div class="bloc"><h2>Reconnus</h2>';
+    A.resolues.forEach((l,i) => {
+      h += '<div class="ligne"><span class="ok">✓</span>'
+         + '<span class="nom">'+esc(l.article.designation)
+         + '<br><span class="code">'+esc(l.article.code)+'</span></span>'
+         + '<input type="number" min="0" step="any" data-r="'+i+'" value="'+esc(l.quantite)+'">'
+         + '<span class="code">'+esc(l.unite_dictee||l.article.unite||'')+'</span></div>';
+    });
+    h += '</div>';
+  }
+
+  // choix a trancher
+  if (A.questions.length) {
+    h += '<div class="bloc"><h2>À préciser</h2>';
+    A.questions.forEach((q,i) => {
+      h += '<div class="q"><div class="lib"><span class="pend">?</span> '
+         + esc(q.libelle) + ' — ' + esc(q.quantite) + ' ' + esc(q.unite_dictee||'') + '</div>'
+         + '<select data-q="'+i+'"><option value="">— choisir —</option>'
+         + q.choix.map(c => '<option value="'+esc(c.code)+'">'+esc(c.designation)+'</option>').join('')
+         + '</select></div>';
+    });
+    h += '</div>';
+  }
+
+  if (A.introuvables.length) {
+    h += '<div class="msg msg-ko">Introuvable au catalogue : '
+       + A.introuvables.map(esc).join(', ') + '</div>';
+  }
+
+  const possible = A.clients.length > 0 && (A.resolues.length + A.questions.length) > 0;
+  h += '<div class="barre"><button class="valide" id="creer"'
+     + (possible?'':' disabled') + '>Établir le devis</button></div>';
+
+  el('sortie').innerHTML = h;
+  if (possible) el('creer').addEventListener('click', creer);
+}
+
+/* ---------- creation ---------- */
+async function creer(){
+  const b = el('creer'); b.disabled = true; b.textContent = 'Création…';
+
+  const tiers = A.clients.length === 1 ? A.clients[0].id : (el('sel-client')||{}).value;
+  const lignes = [];
+
+  A.resolues.forEach((l,i) => {
+    const q = Number((document.querySelector('[data-r="'+i+'"]')||{}).value) || l.quantite;
+    lignes.push({ code: l.article.code, quantite: q });
+  });
+  A.questions.forEach((q,i) => {
+    const s = document.querySelector('[data-q="'+i+'"]');
+    if (s && s.value) lignes.push({ code: s.value, quantite: q.quantite });
+  });
+
+  if (!lignes.length) {
+    message('Aucune ligne complète. Précise les articles en attente.', 'ko');
+    b.disabled = false; b.textContent = 'Établir le devis'; return;
+  }
+
+  try {
+    const r = await appel({ action:'creer', tiers_id: tiers, lignes,
+                            remise_pct: A.remise_pct, chantier: A.chantier });
+    if (r && r.status === 'ok') {
+      el('sortie').innerHTML =
+        '<div class="msg msg-ok"><strong>' + esc(r.numero) + '</strong> — '
+        + esc(r.tiers) + '<br>Total TTC <strong>' + esc(r.montant_ttc) + ' €</strong>'
+        + (r.marge_pct!=null ? ' · marge ' + esc(r.marge_pct) + ' %' : '')
+        + (r.lien_edition ? '<br><br><a href="'+esc(r.lien_edition)+'">Ouvrir le devis</a>' : '')
+        + '</div>';
+      el('txt').value = '';
+    } else {
+      message((r&&r.message)||'Création impossible.', 'ko');
+      b.disabled = false; b.textContent = 'Établir le devis';
+    }
+  } catch {
+    message('Erreur réseau.', 'ko');
+    b.disabled = false; b.textContent = 'Établir le devis';
+  }
+}
+
+if (!jeton) message('Ce lien est incomplet. Ouvre-le depuis ton lien console.', 'ko');
+</script>
+</body>
+</html>
