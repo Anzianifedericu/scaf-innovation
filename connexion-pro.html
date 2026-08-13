@@ -247,7 +247,7 @@ function majMur(b) {
 }
 
 function majHauteur(d) {
-  const h = parseFloat(d.querySelector(".haut").value) || 0;
+  const h = num(d.querySelector(".haut").value);
   const ind = d.querySelector(".indicH");
   if (!(h > 0)) { ind.textContent = ""; return; }
   const rEx = h / HCOURS, rangs = Math.round(rEx * 2) / 2, hU = rangs * HCOURS;
