@@ -301,7 +301,7 @@ function ajouterNiveau(nom, hauteur, elevation) {
       '<div><label>Nom du niveau</label><input class="nom" value="' + (nom || "Niveau " + compteurNiveau) + '"></div>' +
       '<div><label>Type</label><select class="elev"><option value="0">Mur bas / vide sanitaire</option><option value="1"' + (elevation ? " selected" : "") + '>Élévation (RDC, étage)</option></select></div>' +
     '</div>' +
-    '<label>Hauteur (m)</label><input class="haut" type="number" step="0.001" value="' + (hauteur || 3.199) + '">' +
+    '<label>Hauteur (m)</label><input class="haut" type="text" inputmode="decimal" value="' + (hauteur || 3.199) + '">' +
     '<span class="indic indicH"></span>' +
     '<div class="check"><input type="checkbox" class="corn" id="corn' + compteurNiveau + '"><label for="corn' + compteurNiveau + '" style="margin:0">Corniche Nudura sur le dernier rang</label></div>' +
     '<h3>Murs de périphérie</h3><div class="murs"></div>' +
