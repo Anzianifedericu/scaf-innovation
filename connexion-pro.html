@@ -1,1 +1,401 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace professionnel — SCAF Innovation</title>
+<style>
+  :root{ --blue-900:#0A3D66; --blue-600:#1571BA; --gray-900:#1B2430; --gray-500:#68727D;
+    --gray-300:#D3DBE3; --gray-100:#EEF3F8; --red-600:#C0392B; --green-600:#1E8E5A;
+    --amber-50:#FFF8E6; --amber-700:#8A6100; --sky-50:#F5F9FD; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--sky-50);
+    color:var(--gray-900);padding:20px;}
+  .wrap{max-width:760px;margin:0 auto;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(10,61,102,0.1);
+    border:1px solid var(--gray-300);padding:28px;margin-bottom:16px;}
+  .card.narrow{max-width:420px;margin:40px auto;}
+  h1{font-size:1.3rem;margin:0 0 8px;color:var(--blue-900);}
+  h2{font-size:1.05rem;margin:0 0 12px;color:var(--blue-900);}
+  h3{font-size:0.95rem;margin:18px 0 8px;color:var(--blue-900);}
+  p.sub{color:var(--gray-500);font-size:0.9rem;margin:0 0 20px;}
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:5px;}
+  input,select{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--gray-300);
+    font-size:1rem;margin-bottom:12px;background:#fff;}
+  input:focus,select:focus{outline:none;border-color:var(--blue-600);box-shadow:0 0 0 3px rgba(21,113,186,0.14);}
+  #otpInput{letter-spacing:0.5em;text-align:center;font-size:1.4rem;font-variant-numeric:tabular-nums;}
+  button{width:100%;background:var(--blue-600);color:#fff;border:none;padding:13px;border-radius:8px;
+    font-weight:700;font-size:1rem;cursor:pointer;}
+  button:hover{background:var(--blue-900);}
+  button:disabled{background:var(--gray-300);cursor:not-allowed;}
+  button.ghost{background:none;color:var(--blue-600);border:1.5px solid var(--gray-300);font-weight:600;}
+  button.ghost:hover{background:var(--gray-100);color:var(--blue-900);}
+  button.small{width:auto;padding:8px 14px;font-size:0.85rem;}
+  .status{margin-top:12px;font-size:0.85rem;min-height:1.2em;}
+  .status.err{color:var(--red-600);}
+  .status.ok{color:var(--green-600);}
+  .link-btn{background:none;border:none;color:var(--blue-600);font-weight:600;font-size:0.85rem;
+    cursor:pointer;padding:0;margin-top:12px;text-decoration:underline;width:auto;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .bloc{background:var(--gray-100);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .bloc .head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+  .bandeau{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--gray-300);padding-bottom:14px;margin-bottom:16px;}
+  .badge{background:var(--blue-600);color:#fff;border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:700;}
+  table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+  th,td{text-align:left;padding:7px 4px;border-bottom:1px solid var(--gray-300);}
+  th{color:var(--gray-500);font-weight:600;font-size:0.75rem;text-transform:uppercase;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .alerte{background:var(--amber-50);border-left:3px solid var(--amber-700);color:var(--amber-700);
+    padding:10px 12px;border-radius:0;font-size:0.82rem;margin-bottom:10px;}
+  .total{font-weight:700;font-size:1.05rem;color:var(--blue-900);}
+  .mini{font-size:0.78rem;color:var(--gray-500);}
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:0.85rem;font-weight:600;}
+  .check input{width:auto;margin:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="screen active" id="screenAcces">
+  <div class="card narrow">
+    <h1>Espace professionnel</h1>
+    <p class="sub">Tarifs et calculateur de quantités Nudura, réservés aux professionnels du bâtiment.</p>
+
+    <div id="modeInscription">
+      <label for="siret">Numéro SIRET (14 chiffres)</label>
+      <input type="text" id="siret" inputmode="numeric" maxlength="17" placeholder="123 456 789 00012">
+      <label for="email">Adresse e-mail professionnelle</label>
+      <input type="email" id="email" autocomplete="email" placeholder="contact@monentreprise.fr">
+      <label for="contact">Votre nom (facultatif)</label>
+      <input type="text" id="contact" autocomplete="name">
+      <button id="btnInscription">Vérifier mon entreprise</button>
+      <button class="link-btn" id="lienDejaInscrit">J'ai déjà un compte, recevoir un code</button>
+    </div>
+
+    <div id="modeConnexion" style="display:none">
+      <label for="emailSeul">Adresse e-mail de votre compte</label>
+      <input type="email" id="emailSeul" autocomplete="email" placeholder="contact@monentreprise.fr">
+      <button id="btnCode">Recevoir mon code</button>
+      <button class="link-btn" id="lienInscription">Créer un compte avec mon SIRET</button>
+    </div>
+
+    <div class="status" id="statusAcces"></div>
+  </div>
+</div>
+
+<div class="screen" id="screenOtp">
+  <div class="card narrow">
+    <h1>Code de connexion</h1>
+    <p class="sub" id="otpSentTo"></p>
+    <label for="otpInput">Code reçu par e-mail (6 chiffres)</label>
+    <input type="text" id="otpInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+           autocomplete="one-time-code" placeholder="000000">
+    <button id="btnVerifier">Me connecter</button>
+    <button class="link-btn" id="lienRetour">Revenir en arrière</button>
+    <div class="status" id="statusOtp"></div>
+  </div>
+</div>
+
+<div class="screen" id="screenPro">
+  <div class="card">
+    <div class="bandeau">
+      <div>
+        <h1 id="proNom">Espace professionnel</h1>
+        <p class="sub" style="margin:0" id="proInfos"></p>
+      </div>
+      <button class="ghost small" id="btnDeconnexion">Se déconnecter</button>
+    </div>
+
+    <h2>Calculateur de quantités Nudura</h2>
+    <label for="voile">Épaisseur du voile béton</label>
+    <select id="voile">
+      <option value="102">102 mm</option>
+      <option value="152" selected>152 mm</option>
+      <option value="203">203 mm</option>
+      <option value="254">254 mm</option>
+      <option value="305">305 mm</option>
+    </select>
+
+    <div id="niveaux"></div>
+    <div class="row">
+      <button class="ghost" id="btnAjoutNiveau">Ajouter un niveau</button>
+      <button id="btnCalculer">Calculer</button>
+    </div>
+    <div class="status" id="statusCalcul"></div>
+  </div>
+
+  <div id="resultat"></div>
+</div>
+
+</div>
+
+<script>
+const API = "https://crbvlowxxmspjnyculzl.supabase.co/functions/v1";
+const $ = (id) => document.getElementById(id);
+const ecran = (id) => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+const dire = (el, msg, type) => { const e = $(el); e.textContent = msg; e.className = "status" + (type ? " " + type : ""); };
+const eur = (n) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+async function appel(fn, payload) {
+  const r = await fetch(API + "/" + fn, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || j.motif || "Erreur " + r.status);
+  return j;
+}
+
+let emailCourant = "";
+
+$("lienDejaInscrit").onclick = () => { $("modeInscription").style.display = "none"; $("modeConnexion").style.display = "block"; dire("statusAcces", ""); };
+$("lienInscription").onclick = () => { $("modeConnexion").style.display = "none"; $("modeInscription").style.display = "block"; dire("statusAcces", ""); };
+$("lienRetour").onclick = () => ecran("screenAcces");
+
+$("btnInscription").onclick = async () => {
+  const siret = $("siret").value.replace(/\D/g, "");
+  const email = $("email").value.trim();
+  if (siret.length !== 14) return dire("statusAcces", "Le SIRET doit comporter 14 chiffres.", "err");
+  if (!email.includes("@")) return dire("statusAcces", "Renseignez une adresse e-mail valide.", "err");
+  $("btnInscription").disabled = true;
+  dire("statusAcces", "Vérification auprès de l'annuaire des entreprises…");
+  try {
+    const j = await appel("compte-pro", { action: "inscription", siret, email, contact_nom: $("contact").value.trim() });
+    if (j.statut === "valide") {
+      emailCourant = email;
+      $("otpSentTo").textContent = j.raison_sociale + " — code envoyé à " + email;
+      ecran("screenOtp"); $("otpInput").focus();
+    } else {
+      dire("statusAcces", j.motif || j.message, j.statut === "refuse" ? "err" : "ok");
+    }
+  } catch (e) { dire("statusAcces", e.message, "err"); }
+  $("btnInscription").disabled = false;
+};
+
+$("btnCode").onclick = async () => {
+  const email = $("emailSeul").value.trim();
+  if (!email.includes("@")) return dire("statusAcces", "Renseignez une adresse e-mail valide.", "err");
+  $("btnCode").disabled = true;
+  try {
+    const j = await appel("compte-pro", { action: "demande_code", email });
+    emailCourant = email;
+    $("otpSentTo").textContent = j.message;
+    ecran("screenOtp"); $("otpInput").focus();
+  } catch (e) { dire("statusAcces", e.message, "err"); }
+  $("btnCode").disabled = false;
+};
+
+$("btnVerifier").onclick = async () => {
+  const code = $("otpInput").value.trim();
+  if (!/^\d{6}$/.test(code)) return dire("statusOtp", "Saisissez les 6 chiffres du code.", "err");
+  $("btnVerifier").disabled = true;
+  try {
+    const j = await appel("compte-pro", { action: "verifier_code", email: emailCourant, code });
+    localStorage.setItem("scaf_pro_token", j.token);
+    ouvrirEspace(j.compte);
+  } catch (e) { dire("statusOtp", e.message, "err"); }
+  $("btnVerifier").disabled = false;
+};
+
+$("btnDeconnexion").onclick = () => { localStorage.removeItem("scaf_pro_token"); location.reload(); };
+
+function ouvrirEspace(compte) {
+  $("proNom").textContent = compte.raison_sociale || "Espace professionnel";
+  $("proInfos").innerHTML = "SIRET " + (compte.siret || "") +
+    (compte.remise ? ' &nbsp;<span class="badge">remise ' + Math.round(compte.remise * 100) + " %</span>" : "");
+  if (!$("niveaux").children.length) ajouterNiveau("Vide sanitaire", 0.914, false);
+  ecran("screenPro");
+}
+
+let compteurNiveau = 0;
+function ajouterNiveau(nom, hauteur, elevation) {
+  compteurNiveau++;
+  const d = document.createElement("div");
+  d.className = "card niveau";
+  d.innerHTML =
+    '<div class="bloc head" style="background:none;padding:0">' +
+      '<input class="nom" value="' + (nom || "Niveau " + compteurNiveau) + '" style="margin:0;font-weight:700">' +
+      '<button class="ghost small suppr" type="button">Retirer</button>' +
+    '</div>' +
+    '<div class="row">' +
+      '<div><label>Hauteur (m)</label><input class="haut" type="number" step="0.001" value="' + (hauteur || 3.199) + '"></div>' +
+      '<div><label>Type</label><select class="elev"><option value="0">Mur bas / vide sanitaire</option><option value="1"' + (elevation ? " selected" : "") + '>Élévation (RDC, étage)</option></select></div>' +
+    '</div>' +
+    '<div class="check"><input type="checkbox" class="corn" id="corn' + compteurNiveau + '"><label for="corn' + compteurNiveau + '" style="margin:0">Corniche Nudura sur le dernier rang</label></div>' +
+    '<h3>Murs de périphérie</h3><div class="murs"></div>' +
+    '<button class="ghost small addMur" type="button">Ajouter un mur</button>' +
+    '<h3>Murs de refend</h3><div class="refends"></div>' +
+    '<button class="ghost small addRefend" type="button">Ajouter un refend</button>' +
+    '<h3>Ouvertures</h3><div class="ouvertures"></div>' +
+    '<button class="ghost small addOuv" type="button">Ajouter une ouverture</button>';
+  d.querySelector(".suppr").onclick = () => d.remove();
+  d.querySelector(".addMur").onclick = () => ajouterMur(d);
+  d.querySelector(".addRefend").onclick = () => ajouterRefend(d);
+  d.querySelector(".addOuv").onclick = () => ajouterOuverture(d);
+  $("niveaux").appendChild(d);
+  for (let i = 0; i < 4; i++) ajouterMur(d);
+}
+
+function ligneSupprimable(html) {
+  const b = document.createElement("div");
+  b.className = "bloc";
+  b.innerHTML = html + '<button class="ghost small suppr" type="button" style="margin-top:6px">Retirer</button>';
+  b.querySelector(".suppr").onclick = () => b.remove();
+  return b;
+}
+
+function ajouterMur(niveau) {
+  const n = niveau.querySelectorAll(".mur").length + 1;
+  const opts = '<option value="angle90">Angle 90°</option><option value="angle45">Angle 45°</option><option value="about">About libre</option><option value="refend">Jonction refend</option>';
+  const b = ligneSupprimable(
+    '<div class="row3">' +
+      '<div><label>Mur</label><input class="mnom" value="Mur ' + n + '"></div>' +
+      '<div><label>Longueur (m)</label><input class="mlong" type="number" step="0.01" value="10"></div>' +
+      '<div><label>Début</label><select class="mdeb">' + opts + '</select></div>' +
+    '</div>' +
+    '<div><label>Fin</label><select class="mfin">' + opts + '</select></div>');
+  b.classList.add("mur");
+  niveau.querySelector(".murs").appendChild(b);
+}
+
+function ajouterRefend(niveau) {
+  const b = ligneSupprimable(
+    '<div class="row3">' +
+      '<div><label>Refend</label><input class="rnom" value="Refend"></div>' +
+      '<div><label>Longueur (m)</label><input class="rlong" type="number" step="0.01" value="5"></div>' +
+      '<div><label>Jonctions</label><input class="rjonc" type="number" min="1" max="4" value="2"></div>' +
+    '</div>');
+  b.classList.add("refend");
+  niveau.querySelector(".refends").appendChild(b);
+}
+
+function ajouterOuverture(niveau) {
+  const b = ligneSupprimable(
+    '<div class="row3">' +
+      '<div><label>Ouverture</label><input class="onom" value="Fenêtre"></div>' +
+      '<div><label>Largeur (m)</label><input class="olarg" type="number" step="0.01" value="1.2"></div>' +
+      '<div><label>Hauteur (m)</label><input class="ohaut" type="number" step="0.01" value="1.15"></div>' +
+    '</div>' +
+    '<div class="row">' +
+      '<div><label>Nombre</label><input class="onb" type="number" min="1" value="1"></div>' +
+      '<div class="check" style="margin-top:24px"><input type="checkbox" class="ovr"><label style="margin:0">Volet roulant</label></div>' +
+    '</div>');
+  b.classList.add("ouverture");
+  niveau.querySelector(".ouvertures").appendChild(b);
+}
+
+$("btnAjoutNiveau").onclick = () => ajouterNiveau("Niveau " + (compteurNiveau + 1), 3.199, true);
+
+function lireNiveaux() {
+  return [...document.querySelectorAll(".niveau")].map(d => {
+    const v = (el, c) => el.querySelector(c) ? el.querySelector(c).value : "";
+    return {
+      nom: v(d, ".nom"),
+      hauteur_m: parseFloat(v(d, ".haut")) || 0,
+      elevation: v(d, ".elev") === "1",
+      corniche: d.querySelector(".corn").checked,
+      murs: [...d.querySelectorAll(".mur")].map(m => ({
+        nom: v(m, ".mnom"), longueur_m: parseFloat(v(m, ".mlong")) || 0,
+        debut: v(m, ".mdeb"), fin: v(m, ".mfin")
+      })),
+      refends: [...d.querySelectorAll(".refend")].map(r => ({
+        nom: v(r, ".rnom"), longueur_m: parseFloat(v(r, ".rlong")) || 0,
+        jonctions: parseInt(v(r, ".rjonc")) || 1
+      })),
+      ouvertures: [...d.querySelectorAll(".ouverture")].map(o => ({
+        nom: v(o, ".onom"), largeur: parseFloat(v(o, ".olarg")) || 0,
+        hauteur: parseFloat(v(o, ".ohaut")) || 0, nb: parseInt(v(o, ".onb")) || 1,
+        volet_roulant: o.querySelector(".ovr").checked
+      }))
+    };
+  });
+}
+
+$("btnCalculer").onclick = async () => {
+  const niveaux = lireNiveaux();
+  if (!niveaux.length) return dire("statusCalcul", "Ajoutez au moins un niveau.", "err");
+  for (const n of niveaux) {
+    if (!(n.hauteur_m > 0)) return dire("statusCalcul", n.nom + " : renseignez une hauteur.", "err");
+    if (!n.murs.length) return dire("statusCalcul", n.nom + " : ajoutez au moins un mur.", "err");
+  }
+  dire("statusCalcul", "Calcul en cours…");
+  $("resultat").innerHTML = "";
+  try {
+    const q = await appel("estimer-nudura", { voile_mm: parseInt($("voile").value), niveaux });
+    let prix = null;
+    const token = localStorage.getItem("scaf_pro_token");
+    if (token) {
+      try { prix = await appel("tarif-pro", { token, lignes: q.fournitures_totales }); }
+      catch (e) { dire("statusCalcul", "Quantités calculées. Tarif indisponible : " + e.message, "err"); }
+    }
+    afficher(q, prix);
+    if (prix) dire("statusCalcul", "");
+  } catch (e) { dire("statusCalcul", e.message, "err"); }
+};
+
+function afficher(q, prix) {
+  let h = "";
+  for (const n of q.detail_par_niveau) {
+    h += '<div class="card"><h2>' + n.niveau + "</h2>";
+    h += '<p class="mini">' + n.rangs + " rangs — hauteur retenue " + n.hauteur_retenue_m + " m — " +
+         n.surface_mur_m2 + " m² de mur" + (n.corniche ? " — corniche Nudura" : "") + "</p>";
+    for (const a of n.avertissements || []) h += '<div class="alerte">' + a + "</div>";
+    h += '<table><thead><tr><th>Fourniture</th><th class="num">Quantité</th></tr></thead><tbody>';
+    for (const f of n.fournitures) h += "<tr><td>" + f.label + '</td><td class="num">' + f.qte + " " + f.unite + "</td></tr>";
+    h += "</tbody></table>";
+    h += '<p class="mini" style="margin-top:10px">Béton pour le remplissage des murs : ' + n.beton_m3 +
+         " m³ — non fourni par SCAF Innovation.</p></div>";
+  }
+
+  h += '<div class="card"><h2>Récapitulatif</h2>';
+  if (prix) {
+    h += '<table><thead><tr><th>Fourniture</th><th class="num">Qté</th><th class="num">Paquets</th><th class="num">Total HT</th></tr></thead><tbody>';
+    for (const l of prix.lignes) {
+      h += "<tr><td>" + l.label + '</td><td class="num">' + l.qte + '</td><td class="num">' +
+           (l.paquets != null ? l.paquets : "—") + '</td><td class="num">' +
+           (l.total_net_ht != null ? eur(l.total_net_ht) : "prix sur demande") + "</td></tr>";
+    }
+    h += "</tbody></table>";
+    const t = prix.totaux;
+    h += '<table style="margin-top:14px"><tbody>' +
+      '<tr><td>Total tarif HT</td><td class="num">' + eur(t.total_tarif_ht) + "</td></tr>" +
+      '<tr><td>Remise ' + prix.compte.remise_pct + " %</td><td class=\"num\">− " + eur(t.remise_ht) + "</td></tr>" +
+      '<tr><td class="total">Total net HT</td><td class="num total">' + eur(t.total_net_ht) + "</td></tr>" +
+      '<tr><td>TVA 20 %</td><td class="num">' + eur(t.tva_20) + "</td></tr>" +
+      '<tr><td class="total">Total net TTC</td><td class="num total">' + eur(t.total_net_ttc) + "</td></tr>" +
+      "</tbody></table>";
+    if (prix.references_sans_prix && prix.references_sans_prix.length)
+      h += '<div class="alerte">Références sans tarif en base : ' + prix.references_sans_prix.join(", ") + "</div>";
+    h += '<div class="alerte">' + prix.avertissement + "</div>";
+  } else {
+    h += '<table><thead><tr><th>Fourniture</th><th class="num">Quantité</th></tr></thead><tbody>';
+    for (const f of q.fournitures_totales) h += "<tr><td>" + f.label + '</td><td class="num">' + f.qte + " " + f.unite + "</td></tr>";
+    h += "</tbody></table>";
+  }
+
+  if (q.a_prevoir_hors_nudura && q.a_prevoir_hors_nudura.length) {
+    h += "<h3>À prévoir hors fournitures Nudura</h3><ul>";
+    for (const a of q.a_prevoir_hors_nudura) h += "<li>" + a.label + " : " + a.qte + " " + a.unite + "</li>";
+    h += "</ul>";
+  }
+  h += '<p class="mini" style="margin-top:14px">' + q.avis + "</p>";
+  h += '<p class="mini">Une question sur ce chiffrage ? contact@scaf-innovation.com</p></div>';
+
+  $("resultat").innerHTML = h;
+  $("resultat").scrollIntoView({ behavior: "smooth" });
+}
+
+(async () => {
+  const token = localStorage.getItem("scaf_pro_token");
+  if (!token) return;
+  try {
+    const j = await appel("compte-pro", { action: "session", token });
+    ouvrirEspace(j.compte);
+  } catch (e) { localStorage.removeItem("scaf_pro_token"); }
+})();
+</script>
+</body>
+</html>
