@@ -383,11 +383,11 @@ function lireNiveaux() {
   return [...document.querySelectorAll(".niveau")].map(d => {
     const v = (el, c) => el.querySelector(c) ? el.querySelector(c).value : "";
     return {
-      nom: v(d, ".nom"), hauteur_m: parseFloat(v(d, ".haut")) || 0,
+      nom: v(d, ".nom"), hauteur_m: num(v(d, ".haut")),
       elevation: v(d, ".elev") === "1", corniche: d.querySelector(".corn").checked,
-      murs: [...d.querySelectorAll(".mur")].map(m => ({ nom: v(m, ".mnom"), longueur_m: parseFloat(v(m, ".mlong")) || 0, debut: v(m, ".mdeb"), fin: v(m, ".mfin") })),
-      refends: [...d.querySelectorAll(".refend")].map(r => ({ nom: v(r, ".rnom"), longueur_m: parseFloat(v(r, ".rlong")) || 0, jonctions: parseInt(v(r, ".rjonc")) || 1 })),
-      ouvertures: [...d.querySelectorAll(".ouverture")].map(o => ({ nom: v(o, ".onom"), largeur: parseFloat(v(o, ".olarg")) || 0, hauteur: parseFloat(v(o, ".ohaut")) || 0, nb: parseInt(v(o, ".onb")) || 1, volet_roulant: o.querySelector(".ovr").checked }))
+      murs: [...d.querySelectorAll(".mur")].map(m => ({ nom: v(m, ".mnom"), longueur_m: num(v(m, ".mlong")), debut: v(m, ".mdeb"), fin: v(m, ".mfin") })),
+      refends: [...d.querySelectorAll(".refend")].map(r => ({ nom: v(r, ".rnom"), longueur_m: num(v(r, ".rlong")), jonctions: parseInt(v(r, ".rjonc")) || 1 })),
+      ouvertures: [...d.querySelectorAll(".ouverture")].map(o => ({ nom: v(o, ".onom"), largeur: num(v(o, ".olarg")), hauteur: num(v(o, ".ohaut")), nb: parseInt(v(o, ".onb")) || 1, volet_roulant: o.querySelector(".ovr").checked }))
     };
   });
 }
