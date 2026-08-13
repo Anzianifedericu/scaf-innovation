@@ -150,6 +150,7 @@ const C90 = {102:1.200,152:1.200,203:1.302,254:1.403,305:1.505};
 const C45 = {102:0.940,152:0.940,203:0.940,254:1.042,305:1.143};
 
 const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? 0 : n; };
 const ecran = (id) => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
 const dire = (el, msg, type) => { const e = $(el); e.textContent = msg; e.className = "status" + (type ? " " + type : ""); };
 const eur = (n) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
