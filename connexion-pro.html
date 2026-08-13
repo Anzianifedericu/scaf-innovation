@@ -344,7 +344,7 @@ function ajouterMur(niveau) {
       '<div><label>Début</label><select class="mdeb">' + opts + '</select></div>' +
       '<div><label>Fin</label><select class="mfin">' + opts + '</select></div>' +
     '</div>' +
-    '<label>Longueur (m)</label><input class="mlong" type="number" step="0.01" value="10">' +
+    '<label>Longueur (m)</label><input class="mlong" type="text" inputmode="decimal" value="10">' +
     '<span class="indic"></span>', "mur");
   b.querySelector(".mlong").oninput = () => majMur(b);
   b.querySelector(".mdeb").onchange = () => majMur(b);
