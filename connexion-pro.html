@@ -224,7 +224,7 @@ const voile = () => parseInt($("voile").value);
 const consoExt = (t) => t === "angle90" ? C90[voile()] / 2 : t === "angle45" ? C45[voile()] / 2 : 0;
 
 function majMur(b) {
-  const L = parseFloat(b.querySelector(".mlong").value) || 0;
+  const L = num(b.querySelector(".mlong").value);
   const c = consoExt(b.querySelector(".mdeb").value) + consoExt(b.querySelector(".mfin").value);
   const ind = b.querySelector(".indic");
   if (!(L > 0)) { ind.textContent = ""; return; }
