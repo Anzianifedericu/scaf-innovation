@@ -275,6 +275,18 @@ function majTout() {
 }
 $("voile").onchange = majTout;
 
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (!t.classList) return;
+  if (t.classList.contains("haut")) { const d = t.closest(".niveau"); if (d) majHauteur(d); }
+  if (t.classList.contains("mlong")) { const b = t.closest(".mur"); if (b) majMur(b); }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (!t.classList) return;
+  if (t.classList.contains("mdeb") || t.classList.contains("mfin")) { const b = t.closest(".mur"); if (b) majMur(b); }
+});
+
 let compteurNiveau = 0;
 function dessinerOnglets() {
   const o = $("onglets"); o.innerHTML = "";
