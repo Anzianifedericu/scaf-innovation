@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://scaf-innovation.com/</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="co" href="https://scaf-innovation.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scaf-innovation.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scaf-innovation.com/"/>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/fr</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="co" href="https://scaf-innovation.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scaf-innovation.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scaf-innovation.com/"/>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/produits</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="co" href="https://scaf-innovation.com/produits"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scaf-innovation.com/produits-fr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scaf-innovation.com/produits"/>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/produits-fr</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="co" href="https://scaf-innovation.com/produits"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://scaf-innovation.com/produits-fr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://scaf-innovation.com/produits"/>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/boutique/</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/demande-etude-nudura.html</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://scaf-innovation.com/texsa.html</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>
