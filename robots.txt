@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Espaces internes et outils de gestion
+Disallow: /console.html
+Disallow: /document.html
+Disallow: /reception.html
+Disallow: /dicter.html
+Disallow: /commande-pro-nudura.html
+Disallow: /estimation-pro-nudura.html
+Disallow: /connexion-pro.html
+Disallow: /api/
+Disallow: /.netlify/
+
+Sitemap: https://scaf-innovation.com/sitemap.xml
