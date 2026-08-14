@@ -884,6 +884,19 @@
     .mobile-summary-toggle{display:flex;}
     .tab-bar{top:0;}
   }
+
+/* Options avancees : repliees par defaut, l essentiel reste visible */
+.niveau-avance{ margin-top:14px; border:1px solid var(--trait,#d8d2c4); border-radius:8px; background:var(--paper-dim,#faf7f0); }
+.niveau-avance > summary{
+  cursor:pointer; padding:10px 14px; font-weight:600; font-size:13.5px;
+  color:var(--beton,#4a4a44); list-style:none; user-select:none;
+}
+.niveau-avance > summary::-webkit-details-marker{ display:none; }
+.niveau-avance > summary::before{ content:"▸ "; display:inline-block; transition:transform .15s; }
+.niveau-avance[open] > summary::before{ content:"▾ "; }
+.niveau-avance > summary:hover{ background:rgba(0,0,0,.03); }
+.niveau-avance > *:not(summary){ padding:0 14px; }
+.niveau-avance > *:last-child{ padding-bottom:14px; }
 </style>
 </head>
 <body>
@@ -2029,6 +2042,21 @@ function debouncedCalcul(){
   calculTimer = setTimeout(calculerGrosOeuvre, 400);
 }
 
+// Le bloc d angle est le meme reference pour un angle sortant ou rentrant
+// en Standard et XR35 : on le retourne sur le chantier. Seule la serie Plus+
+// a deux references distinctes (aile longue / aile courte), la distinction
+// doit donc y rester. One1 s assemble sur site : autre logique encore.
+function ANGLE_REVERSIBLE(gamme){ return gamme === 'standard' || gamme === 'xr35'; }
+
+// Saisie simplifiee : un seul nombre d angles, porte sur ext90.
+function majAnglesTotal(id, total){
+  const n = niveaux.find(x=>x.id===id);
+  if(!n) return;
+  n.coins.ext90 = Math.max(0, total);
+  n.coins.int90 = 0;
+  debouncedCalcul();
+}
+
 function majNiveauChamp(id, champ, valeur){
   const n = niveaux.find(x=>x.id===id);
   if(!n) return;
@@ -2163,20 +2191,18 @@ function renderNiveauCard(n){
           </div>
           <div class="estim-field"><label>Linéaire / périmètre (m) — issu du relevé ci-dessus</label><input type="number" value="${n.lineaire.toFixed(2)}" disabled style="background:var(--paper-dim);color:var(--beton);"></div>
           <div class="estim-field"><label>Hauteur de mur (m)</label><input type="number" step="0.001" min="0" value="${n.hauteur}" oninput="majNiveauChamp(${n.id},'hauteur',parseFloat(this.value)||0)" onchange="renderNiveaux()"></div>
-          <div class="estim-field"><label>Hauteur sous niveau du sol (m)</label><input type="number" step="0.001" min="0" value="${n.hauteurSousSol}" onchange="majNiveauChamp(${n.id},'hauteurSousSol',parseFloat(this.value)||0)"></div>
-          <div class="estim-field"><label>Distance revêtement-sol — parging (m)</label><input type="number" step="0.01" value="${n.distanceParging}" onchange="majNiveauChamp(${n.id},'distanceParging',parseFloat(this.value)||0)"></div>
         </div>
         <div class="niveau-calc-note">${ci.floor} à ${ci.ceil} cours sur ${n.hauteur}m · saillie au-dessus du sol ≈ ${(Math.max(0,n.hauteur-n.hauteurSousSol)).toFixed(2)}m · portion sous le sol ${n.hauteurSousSol.toFixed(2)}m</div>
         ${ajustementHtml}
 
-        <div class="subsection-title">Coins (mur périphérique)</div>
+        <div class="subsection-title">Angles du mur périphérique</div>
         <div class="niveau-grid">
-          <div class="estim-field"><label>${n.gamme==='one1' ? 'PSE côté long' : 'Ext. 90°'}</label><input type="number" value="${n.coins.ext90}" onchange="majNiveauChamp(${n.id},'coins.ext90',parseFloat(this.value)||0)"></div>
-          <div class="estim-field"><label>${n.gamme==='one1' ? 'PSE côté court' : 'Int. 90°'}</label><input type="number" value="${n.coins.int90}" onchange="majNiveauChamp(${n.id},'coins.int90',parseFloat(this.value)||0)"></div>
-          ${n.gamme!=='one1' ? `
-          <div class="estim-field"><label>Ext. 45°</label><input type="number" value="${n.coins.ext45}" onchange="majNiveauChamp(${n.id},'coins.ext45',parseFloat(this.value)||0)"></div>
-          <div class="estim-field"><label>Int. 45°</label><input type="number" value="${n.coins.int45}" onchange="majNiveauChamp(${n.id},'coins.int45',parseFloat(this.value)||0)"></div>
-          ` : ''}
+          ${ANGLE_REVERSIBLE(n.gamme) ? `
+          <div class="estim-field"><label>Angles à 90°</label><input type="number" min="0" value="${n.coins.ext90 + n.coins.int90}" oninput="majAnglesTotal(${n.id}, parseFloat(this.value)||0)"></div>
+          ` : `
+          <div class="estim-field"><label>${n.gamme==='one1' ? 'PSE côté long' : 'Sortants 90°'}</label><input type="number" min="0" value="${n.coins.ext90}" onchange="majNiveauChamp(${n.id},'coins.ext90',parseFloat(this.value)||0)"></div>
+          <div class="estim-field"><label>${n.gamme==='one1' ? 'PSE côté court' : 'Rentrants 90°'}</label><input type="number" min="0" value="${n.coins.int90}" onchange="majNiveauChamp(${n.id},'coins.int90',parseFloat(this.value)||0)"></div>
+          `}
         </div>
         <div class="note" style="margin-top:6px;">${n.gamme==='plus' ? 'Série Plus+ Forms : références distinctes pour angle sortant (ext.) et entrant (int.) — pas de bloc réversible pour cette série.' : n.gamme==='one1' ? "One1 : à chaque angle, le client choisit quel côté reste en PSE apparent (long ou court) — ce n'est pas une notion d'intérieur/extérieur." : "Les blocs d'angle de cette série sont réversibles : les coins intérieurs et extérieurs consomment la même référence catalogue."}</div>
 
@@ -2187,7 +2213,20 @@ function renderNiveauCard(n){
         </table>
         <button class="btn-mini" onclick="ajouterOuverture(${n.id})">+ Ouverture</button>
 
-        <div class="subsection-title">Armature (murs pleins uniquement)</div>
+        <details class="niveau-avance">
+          <summary>Options avancées — enterré, angles à 45°, armature, refend, location, formes spéciales</summary>
+          <div class="subsection-title">Mur enterré</div>
+          <div class="niveau-grid">
+            <div class="estim-field"><label>Hauteur sous niveau du sol (m)</label><input type="number" step="0.001" min="0" value="${n.hauteurSousSol}" onchange="majNiveauChamp(${n.id},'hauteurSousSol',parseFloat(this.value)||0)"></div>
+            <div class="estim-field"><label>Distance revêtement-sol — parging (m)</label><input type="number" step="0.01" value="${n.distanceParging}" onchange="majNiveauChamp(${n.id},'distanceParging',parseFloat(this.value)||0)"></div>
+          </div>
+          ${n.gamme!=='one1' ? `
+          <div class="subsection-title">Angles à 45°</div>
+          <div class="niveau-grid">
+            <div class="estim-field"><label>Sortants 45°</label><input type="number" min="0" value="${n.coins.ext45}" onchange="majNiveauChamp(${n.id},'coins.ext45',parseFloat(this.value)||0)"></div>
+            <div class="estim-field"><label>Rentrants 45°</label><input type="number" min="0" value="${n.coins.int45}" onchange="majNiveauChamp(${n.id},'coins.int45',parseFloat(this.value)||0)"></div>
+          </div>` : ''}
+          <div class="subsection-title">Armature (murs pleins uniquement)</div>
         <div class="option-toggle">
           <input type="checkbox" id="arm-${n.id}" ${n.armature.actif?'checked':''} onchange="majNiveauChamp(${n.id},'armature.actif',this.checked); renderNiveaux();">
           <label for="arm-${n.id}">Calculer l'armature pour ce niveau</label>
@@ -2268,6 +2307,7 @@ function renderNiveauCard(n){
             <div class="estim-field"><label>Rayon intérieur (m)</label><input type="number" step="0.1" value="${n.options.radius.rayonInt}" onchange="majNiveauChamp(${n.id},'options.radius.rayonInt',parseFloat(this.value)||0)"></div>
             <div class="estim-field"><label>Angle de rotation (°)</label><input type="number" step="1" value="${n.options.radius.angle}" onchange="majNiveauChamp(${n.id},'options.radius.angle',parseFloat(this.value)||0)"></div>
           </div>`)}
+        </details>
       </div>
     </div>
   `;
