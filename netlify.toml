@@ -19,20 +19,9 @@
   to = "/.netlify/functions/document"
   status = 200
 
-# Les medias du site sont stockes sur Supabase mais servis sous notre domaine,
-# ce qui permet d y appliquer notre propre politique de cache.
-[[redirects]]
-  from = "/medias/*"
-  to = "https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/:splat"
-  status = 200
-  force = true
-
-# Ces fichiers ne changent jamais : leur nom porte un horodatage.
-[[headers]]
-  for = "/medias/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
+# Cache long pour les medias deposes dans le depot : leur nom porte un
+# horodatage, ils ne changent donc jamais. Actuellement inutilise, les
+# medias de /fr etant servis depuis Supabase Storage.
 [[headers]]
   for = "/assets/*"
   [headers.values]
