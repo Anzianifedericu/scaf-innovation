@@ -284,8 +284,15 @@ function calculerNiveauUnique(n, gabaritFlag){
       notes.push("Comptage des blocs droits par cours : la longueur consommée par les blocs d'angle n'est pas déduite du linéaire (donnée de consommation par angle non disponible) — légère surestimation possible si des coins sont présents, à vérifier avec SCAF sur les configurations avec beaucoup d'angles.");
     }
     const nBlocsParCours = arrondiSupTolerant(n.lineaire, LONGUEUR_BLOC_M);
-    qDroit = nBlocsParCours * nCoursesPleins;
+    // Les ouvertures retirent des blocs : on deduit la surface percee nette de
+    // perte (WASTE_OUVERTURE_PCT), convertie en modules entiers. Arrondi a
+    // l'inferieur pour ne jamais sous-commander.
+    const blocsOuvertures = Math.floor(surfaceOuvertures / RENDEMENT_BLOC_M2);
+    qDroit = Math.max(0, nBlocsParCours * nCoursesPleins - blocsOuvertures);
     ajouter(panier, refs.droit, qDroit);
+    if(blocsOuvertures > 0){
+      notes.push(`Ouvertures : ${blocsOuvertures} bloc(s) droit(s) deduit(s) du comptage, apres application de la marge de perte de ${WASTE_OUVERTURE_PCT}% sur la surface percee.`);
+    }
     qAngle90 = n.coins.ext90 * coursesPourAngles + n.coins.int90 * coursesPourAngles;
     ajouter(panier, refs.angleExt, n.coins.ext90 * coursesPourAngles);
     ajouter(panier, refs.angleInt, n.coins.int90 * coursesPourAngles);
