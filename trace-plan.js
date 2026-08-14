@@ -138,9 +138,13 @@ function dessiner(etat, svg, vue){
   const minX=Math.min(0,...xs), maxX=Math.max(0,...xs);
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
   const w=Math.max(6, maxX-minX), h=Math.max(4, maxY-minY);
-  const pad=Math.max(w,h)*0.18+1.2, vbW=w+pad*2, vbH=h+pad*2;
-  svg.setAttribute('viewBox', `${minX-pad} ${-(maxY+pad)} ${vbW} ${vbH}`);
+  const pad=Math.max(w,h)*0.18+1.2;
+  // Cadrage automatique tant que l'utilisateur n'a pas pris la main.
+  vue.cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:h+pad*2 };
+  const c = vue.cadre || vue.cadreAuto;
+  svg.setAttribute('viewBox', `${c.x} ${c.y} ${c.w} ${c.h}`);
 
+  const vbW=c.w, vbH=c.h;
   const u=Math.max(vbW,vbH), tr=u/300, po=u/48, ra=u/140, dec=po*1.55;
   let g='';
 
@@ -326,7 +330,8 @@ function ouvrir(options){
     ferme:     repris ? !!repris.ferme : false,
     filigrane: opt.filigrane || null,
   };
-  const vue = { mode:'contour', ortho:true, curseur:null, refEnCours:null, survol:null };
+  const vue = { mode:'contour', ortho:true, curseur:null, refEnCours:null, survol:null,
+                cadre:null, cadreAuto:null };
 
   if(!document.getElementById('tp-css')){
     const st=document.createElement('style'); st.id='tp-css'; st.textContent=CSS;
@@ -355,6 +360,7 @@ function ouvrir(options){
             <button class="tp-b on" data-a="ortho">Angles droits</button>
             <button class="tp-b" data-a="annuler">Annuler</button>
             <button class="tp-b" data-a="fermer">Fermer le contour</button>
+            <button class="tp-b" data-a="recadrer" title="Revenir au cadrage automatique">Recadrer</button>
             <button class="tp-b" data-a="effacer">Effacer</button>
           </div>
           <svg class="tp-svg" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
@@ -414,6 +420,49 @@ function ouvrir(options){
     });
     return best;
   }
+
+  // Zoom a la molette, centre sur le curseur : le point vise ne bouge pas.
+  svg.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const c = vue.cadre || vue.cadreAuto;
+    if(!c) return;
+    const r = svg.getBoundingClientRect();
+    const k = Math.min(r.width/c.w, r.height/c.h);
+    const mx = (r.width - c.w*k)/2, my = (r.height - c.h*k)/2;
+    const px = c.x + (e.clientX - r.left - mx)/k;
+    const py = c.y + (e.clientY - r.top  - my)/k;
+
+    const pas = e.deltaY < 0 ? 0.82 : 1/0.82;
+    const w = Math.max(2, Math.min(400, c.w*pas));
+    const h = w * (c.h/c.w);
+    vue.cadre = { x: px - (px-c.x)*(w/c.w), y: py - (py-c.y)*(h/c.h), w, h };
+    rendre();
+  }, { passive:false });
+
+  // Deplacement au bouton du milieu ou au clic droit : le clic gauche
+  // reste entierement dedie au trace.
+  let glisse = null;
+  svg.addEventListener('contextmenu', e=>e.preventDefault());
+  svg.addEventListener('mousedown', e=>{
+    if(e.button !== 1 && e.button !== 2) return;
+    e.preventDefault();
+    const c = vue.cadre || vue.cadreAuto;
+    glisse = { xs:e.clientX, ys:e.clientY, cadre:{...c} };
+    svg.style.cursor = 'grabbing';
+  });
+  const finGlisse = ()=>{ if(glisse){ glisse = null; svg.style.cursor = ''; } };
+  const pendantGlisse = (e)=>{
+    if(!glisse) return;
+    const r = svg.getBoundingClientRect();
+    const c = glisse.cadre;
+    const k = Math.min(r.width/c.w, r.height/c.h);
+    vue.cadre = { ...c,
+      x: c.x - (e.clientX - glisse.xs)/k,
+      y: c.y - (e.clientY - glisse.ys)/k };
+    rendre();
+  };
+  window.addEventListener('mouseup', finGlisse);
+  window.addEventListener('mousemove', pendantGlisse);
 
   svg.addEventListener('mousemove', e=>{
     const p=versMetres(e);
@@ -513,6 +562,7 @@ function ouvrir(options){
       case 'ortho': vue.ortho=!vue.ortho; b.classList.toggle('on', vue.ortho); break;
       case 'annuler': annulerDernier(); break;
       case 'fermer': fermerContour(); break;
+      case 'recadrer': vue.cadre = null; rendre(); break;
       case 'effacer': etat.murs=[]; etat.refends=[]; etat.ouvertures=[]; etat.ferme=false;
                       vue.refEnCours=null; setMode('contour'); break;
       case 'annuler-tout': quitter(); break;
@@ -530,6 +580,8 @@ function ouvrir(options){
 
   function quitter(){
     document.removeEventListener('keydown', auClavier);
+    window.removeEventListener('mouseup', finGlisse);
+    window.removeEventListener('mousemove', pendantGlisse);
     fond.remove();
   }
 
@@ -539,7 +591,7 @@ function ouvrir(options){
     dessiner(etat, svg, vue);
 
     aide.innerHTML = vue.mode==='contour'
-      ? `Cliquez pour poser chaque angle. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule. Cliquez sur le point de départ pour refermer.`
+      ? `Cliquez pour poser chaque angle. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule. Cliquez sur le point de départ pour refermer. Molette pour zoomer, clic droit pour déplacer.`
       : vue.mode==='refend'
       ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`
       : `Cliquez sur un mur ou un refend pour y poser une ouverture.`;
