@@ -214,11 +214,10 @@ $("btnVerifier").onclick = async () => {
 $("btnDeconnexion").onclick = () => { localStorage.removeItem("scaf_pro_token"); location.reload(); };
 
 function ouvrirEspace(compte) {
-  $("proNom").textContent = compte.raison_sociale || "Espace professionnel";
-  $("proInfos").innerHTML = "SIRET " + (compte.siret || "") +
-    (compte.remise ? ' &nbsp;<span class="badge">remise ' + Math.round(compte.remise * 100) + " %</span>" : "");
-  if (!$("niveaux").children.length) ajouterNiveau("Vide sanitaire", 0.914, false);
-  ecran("screenPro");
+  // Le chiffrage se fait desormais sur une page unique, partagee avec les
+  // particuliers : meme trace, meme moteur, seuls les tarifs different.
+  // La session (scaf_pro_token) y est relue telle quelle.
+  location.href = "/calculateur.html";
 }
 
 const voile = () => parseInt($("voile").value);
