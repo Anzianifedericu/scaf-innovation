@@ -316,8 +316,14 @@ const CSS = `
 
 function ouvrir(options){
   const opt = options || {};
+  // Un trace deja realise est repris tel quel : rouvrir ne doit jamais
+  // faire perdre le travail. La page conserve cet etat sur le niveau.
+  const repris = opt.initial;
   const etat = {
-    murs: [], refends: [], ouvertures: [], ferme: false,
+    murs:      repris ? repris.murs.map(m=>({...m})) : [],
+    refends:   repris ? repris.refends.map(r=>({pts:r.pts.map(p=>({...p}))})) : [],
+    ouvertures:repris ? repris.ouvertures.map(o=>({...o})) : [],
+    ferme:     repris ? !!repris.ferme : false,
     filigrane: opt.filigrane || null,
   };
   const vue = { mode:'contour', ortho:true, curseur:null, refEnCours:null, survol:null };
@@ -332,7 +338,7 @@ function ouvrir(options){
   fond.innerHTML=`
     <div class="tp-boite" role="dialog" aria-modal="true" aria-label="Tracé du plan">
       <div class="tp-tete">
-        <span class="tp-titre">Tracé du plan — ${opt.nom || 'niveau'}</span>
+        <span class="tp-titre">Tracé du plan — ${opt.nom || 'niveau'}${opt.bloc ? ` <span style="font-weight:400;color:#6B6459">· ${opt.bloc}</span>` : ''}</span>
         <div style="display:flex;gap:7px">
           <button class="tp-b" data-a="annuler-tout">Fermer sans enregistrer</button>
           <button class="tp-b valider" data-a="valider">Utiliser ce tracé</button>
@@ -512,7 +518,12 @@ function ouvrir(options){
       case 'annuler-tout': quitter(); break;
       case 'valider':
         if(!etat.ferme){ rendre('Refermez le contour avant de valider.'); return; }
-        if(opt.onValider) opt.onValider(releve(etat));
+        if(opt.onValider) opt.onValider(releve(etat), {
+          murs: etat.murs.map(m=>({...m})),
+          refends: etat.refends.map(r=>({pts:r.pts.map(p=>({...p}))})),
+          ouvertures: etat.ouvertures.map(o=>({...o})),
+          ferme: etat.ferme,
+        });
         quitter(); break;
     }
   });
