@@ -388,8 +388,9 @@ function calculerNiveauUnique(n, gabaritFlag){
   if(epaisseurNumerique && REF_LINTEAU[epaisseurNumerique]){
     let nbSegmentsLinteau = 0;
     n.ouvertures.forEach(o=>{
-      const estFenetre = (o.type||'').trim().toLowerCase().startsWith('fen');
-      nbSegmentsLinteau += arrondiSupTolerant(o.largeur, LONGUEUR_LINTEAU_SEGMENT_M) * o.qte * (estFenetre ? 2 : 1);
+      // Le fond de linteau se pose uniquement en partie haute de l'ouverture,
+      // quel que soit son type : une seule rangee par ouverture.
+      nbSegmentsLinteau += arrondiSupTolerant(o.largeur, LONGUEUR_LINTEAU_SEGMENT_M) * o.qte;
     });
     ajouter(panier, REF_LINTEAU[epaisseurNumerique], nbSegmentsLinteau);
   }
