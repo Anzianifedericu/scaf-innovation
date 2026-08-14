@@ -370,7 +370,63 @@ const largeurOccupee=(niv,s)=> niv.ouvertures.filter(o=>memeSupport(o,s)).reduce
    de verite. Elle gere les demi-rangs, le controle du module, les bandes
    en T par jonction, la corniche et le beton. Rien n'est calcule ici. */
 
-const API_ESTIM = 'https://crbvlowxxmspjnyculzl.supabase.co/functions/v1/estimer-nudura';
+const API = 'https://crbvlowxxmspjnyculzl.supabase.co/functions/v1';
+const API_ESTIM = API + '/estimer-nudura';
+
+/* Trois publics, une seule page.
+   - professionnel identifie : quantites et tarifs
+   - particulier ayant demande une etude : quantites seules
+   - visiteur : quantites seules egalement, les tarifs restent au devis
+   Les prix ne sont jamais calcules ici : ils viennent de tarif-pro,
+   qui verifie le jeton avant de repondre. */
+let MODE = 'libre';       // 'pro' | 'etude' | 'libre'
+let prixParRef = null, tarifs = null;
+
+async function determinerMode(){
+  const p = new URLSearchParams(location.search);
+  const je = p.get('etude');
+  if(je){
+    try{ localStorage.setItem('scaf_etude_acces', je); }catch{}
+    const u = new URL(location); u.searchParams.delete('etude');
+    history.replaceState({}, '', u);
+  }
+  if(localStorage.getItem('scaf_pro_token')){ MODE = 'pro'; return; }
+  const jeton = je || localStorage.getItem('scaf_etude_acces');
+  if(!jeton) return;
+  try{
+    const r = await fetch(API + '/acces-etude', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'verifier', jeton }),
+    });
+    const d = await r.json();
+    if(d && d.acces) MODE = 'etude';
+    else if(d && d.motif === 'expire'){ try{ localStorage.removeItem('scaf_etude_acces'); }catch{} }
+  }catch(e){ /* reseau indisponible : on reste en mode libre */ }
+}
+
+async function chargerTarifs(lignes){
+  if(MODE !== 'pro') return null;
+  const token = localStorage.getItem('scaf_pro_token');
+  if(!token) return null;
+  try{
+    const r = await fetch(API + '/tarif-pro', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token, lignes }),
+    });
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function bandeauMode(){
+  if(MODE === 'pro') return;
+  const b = document.createElement('div');
+  b.style.cssText = 'background:var(--vert);color:#fff;padding:9px 16px;font-size:13px;text-align:center';
+  b.textContent = MODE === 'etude'
+    ? "Vous obtenez ici la liste des matériaux de votre projet. Les tarifs figureront dans le devis que nous préparons."
+    : "Quantités indicatives. Les tarifs sont réservés aux professionnels identifiés — connectez-vous à l'espace pro.";
+  document.body.insertBefore(b, document.body.firstChild);
+}
 let resultat = null;      // derniere reponse du serveur
 let calculEnCours = false;
 
@@ -475,6 +531,21 @@ async function calculer(){
       return { epaisseur: Number(ep), data: d };
     }));
     resultat = reponses;
+    if(MODE === 'pro'){
+      // On envoie le cumul par reference, pour que la remise s'applique
+      // sur l'ensemble et non ligne a ligne.
+      const cumul = {};
+      reponses.forEach(({data})=>data.fournitures_totales.forEach(f=>{
+        if(!cumul[f.ref]) cumul[f.ref] = { ...f, qte: 0 };
+        cumul[f.ref].qte += f.qte;
+      }));
+      tarifs = await chargerTarifs(Object.values(cumul));
+      prixParRef = null;
+      if(tarifs && Array.isArray(tarifs.lignes)){
+        prixParRef = {};
+        tarifs.lignes.forEach(l=>{ if(l.ref) prixParRef[l.ref] = l; });
+      }
+    }
   }catch(err){
     resultat = null;
     document.getElementById('panier').innerHTML =
@@ -527,11 +598,34 @@ function rendreQuantitatif(){
   });
 
   h += `<div class="groupe total">Total du projet — par référence</div>`;
+  const eur = x => Number(x).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
   Object.keys(parRef).sort().forEach(ref=>{
-    h += lig(parRef[ref].label, parRef[ref].qte, ref);
+    const p = prixParRef && prixParRef[ref];
+    if(p && p.prix_unitaire_ht != null){
+      const paq = p.paquets ? ` · ${p.paquets} paquet(s) de ${p.par_paquet}` : '';
+      h += `<div class="ligne-ref">
+              <span>${parRef[ref].label}<div class="desc">${ref} · ${eur(p.prix_unitaire_ht)} la pièce${paq}</div></span>
+              <span class="qte">${parRef[ref].qte} · ${eur(p.total_net_ht)}</span></div>`;
+    } else {
+      h += lig(parRef[ref].label, parRef[ref].qte, ref);
+    }
   });
   h += lig('Surface de mur', surf.toFixed(1) + ' m²', '');
   h += lig('Béton', beton.toFixed(2) + ' m³', 'non fourni par SCAF');
+
+  if(tarifs && tarifs.totaux){
+    const t = tarifs.totaux, c = tarifs.compte || {};
+    h += `<div class="groupe total">Fourniture — ${c.raison_sociale || 'votre compte'}${c.remise_pct ? ` · remise ${c.remise_pct} %` : ''}</div>`;
+    h += lig('Tarif catalogue HT', eur(t.total_tarif_ht), '');
+    if(t.remise_ht > 0) h += lig('Remise', '− ' + eur(t.remise_ht), '');
+    h += `<div class="ligne-ref" style="font-weight:600"><span>Total HT</span><span class="qte">${eur(t.total_net_ht)}</span></div>`;
+    h += lig('TVA 20 %', eur(t.tva_20), '');
+    h += `<div class="ligne-ref" style="background:var(--paper-dim);font-weight:600">
+            <span>Total TTC</span><span class="qte">${eur(t.total_net_ttc)}</span></div>`;
+    if(tarifs.references_sans_prix && tarifs.references_sans_prix.length){
+      h += `<div class="verdict ko" style="margin:10px 14px">Sans tarif au catalogue : ${tarifs.references_sans_prix.join(', ')}. À chiffrer manuellement.</div>`;
+    }
+  }
 
   pn.innerHTML = h;
 }
@@ -1067,7 +1161,7 @@ function exemple(){
   iNiveau=1; refEnCours=null; curseur=null; setMode('contour');
 }
 
-recalcul();
+determinerMode().then(()=>{ bandeauMode(); recalcul(); });
 </script>
 </body>
 </html>
