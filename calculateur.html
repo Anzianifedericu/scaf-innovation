@@ -76,6 +76,8 @@ th{text-align:left;font-weight:500;font-size:10.5px;text-transform:uppercase;let
 td{padding:4px 14px;border-bottom:1px solid var(--paper-dim)}
 tr:last-child td{border-bottom:0}
 td.num{font:500 11.5px 'IBM Plex Mono',monospace;color:var(--beton);width:34px}
+#blocDemande input,#blocDemande select{width:100%;font:400 13px 'IBM Plex Sans',sans-serif;
+  padding:8px 10px;border:1px solid var(--trait);border-radius:6px;background:#fff;color:var(--encre)}
 input[type=number]{width:66px;font:500 13px 'IBM Plex Mono',monospace;padding:4px 6px;
   border:1px solid var(--trait);border-radius:5px;background:#fff;color:var(--encre)}
 select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:4px 5px;
@@ -193,6 +195,36 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span style="font-size:11.5px;color:var(--beton)" id="nbOuv"></span>
       </div>
       <div id="tableOuv"></div>
+    </div>
+
+    <div class="panneau" id="blocDemande" hidden style="margin-bottom:16px">
+      <div class="panneau-tete"><span class="panneau-titre">Recevoir mon estimation</span></div>
+      <div style="padding:12px 14px">
+        <p style="font-size:12.5px;color:var(--beton);margin-bottom:12px">
+          Nous vous envoyons le devis correspondant à ce plan, avec les tarifs. Sans engagement.</p>
+        <div style="display:grid;gap:9px">
+          <input id="dNom" placeholder="Nom et prénom" autocomplete="name">
+          <input id="dEmail" type="email" placeholder="Adresse électronique *" autocomplete="email">
+          <input id="dTel" type="tel" placeholder="Téléphone" autocomplete="tel">
+          <div style="display:flex;gap:9px">
+            <input id="dCommune" placeholder="Commune" autocomplete="address-level2" style="flex:2">
+            <input id="dCp" placeholder="Code postal" inputmode="numeric" style="flex:1">
+          </div>
+          <select id="dProfil">
+            <option value="particulier">Un particulier</option>
+            <option value="professionnel">Une entreprise du bâtiment</option>
+            <option value="architecte">Architecte ou maître d'œuvre</option>
+            <option value="autre">Autre</option>
+          </select>
+          <textarea id="dMessage" rows="3" placeholder="Votre projet en quelques mots"
+                    style="font:400 13px 'IBM Plex Sans',sans-serif;padding:8px 10px;
+                           border:1px solid var(--trait);border-radius:6px;resize:vertical"></textarea>
+        </div>
+        <button id="bEnvoyer" onclick="envoyerPlan()" style="margin-top:11px;width:100%;
+                background:var(--vert);border-color:var(--vert);color:#fff;font-weight:600;padding:10px">
+          Envoyer mon plan</button>
+        <div id="dMsg" class="verdict" style="display:none;margin:10px 0 0"></div>
+      </div>
     </div>
 
     <div class="panneau">
@@ -555,6 +587,72 @@ async function calculer(){
   }
   calculEnCours = false;
   rendreQuantitatif();
+}
+
+/* Le plan trace est une piste commerciale : on le transmet avec les
+   coordonnees, et les surfaces sont recalculees cote serveur. */
+function pointsContour(niv){
+  const p=[{x:0,y:0}];
+  niv.murs.forEach(m=>{ const d=p[p.length-1];
+    p.push({x:d.x+m.dx*m.longueur, y:d.y+m.dy*m.longueur}); });
+  return niv.ferme ? p.slice(0,-1) : p;
+}
+
+async function envoyerPlan(){
+  const prets = niveaux.filter(n=>n.ferme && n.murs.length);
+  const msg = document.getElementById('dMsg');
+  const dire = (t,c)=>{ msg.textContent=t; msg.className='verdict '+c; msg.style.display='block'; };
+
+  if(!prets.length) return dire("Refermez d'abord au moins un contour.", 'ko');
+  const email = document.getElementById('dEmail').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){
+    document.getElementById('dEmail').focus();
+    return dire("Merci d'indiquer une adresse électronique valide.", 'ko');
+  }
+
+  const b = document.getElementById('bEnvoyer');
+  b.disabled = true; b.textContent = 'Envoi en cours…';
+
+  const charge = prets.map(n=>{
+    const a = anglesDe(n);
+    return {
+      nom: n.nom, hauteur: n.hauteur,
+      murs: n.murs.map(m=>({ longueur: m.longueur })),
+      points: pointsContour(n),
+      angles: a.s90 + a.r90 + a.s45 + a.r45,
+      refendLineaire: totalRefends(n),
+      ouvertures: n.ouvertures.map(o=>({
+        type: o.nature === 'porte' ? 'porte' : 'fenetre',
+        largeur: o.largeur, hauteur: o.hauteur, qte: 1,
+      })),
+    };
+  });
+
+  try{
+    const r = await fetch(API + '/plan-public', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nom: document.getElementById('dNom').value.trim(),
+        email,
+        telephone: document.getElementById('dTel').value.trim(),
+        commune: document.getElementById('dCommune').value.trim(),
+        codePostal: document.getElementById('dCp').value.trim(),
+        profil: document.getElementById('dProfil').value,
+        message: document.getElementById('dMessage').value.trim(),
+        niveaux: charge,
+      }),
+    });
+    const d = await r.json();
+    if(!r.ok || !d.ok){
+      b.disabled=false; b.textContent='Envoyer mon plan';
+      return dire(d.erreur || "L'envoi n'a pas abouti. Réessayez.", 'ko');
+    }
+    dire(`Votre plan nous est parvenu sous la référence ${d.reference}. Nous revenons vers vous sous deux jours ouvrés.`, 'ok');
+    b.textContent = 'Plan envoyé';
+  }catch(e){
+    b.disabled=false; b.textContent='Envoyer mon plan';
+    dire("La connexion a échoué. Vérifiez votre réseau.", 'ko');
+  }
 }
 
 function rendreQuantitatif(){
@@ -1161,7 +1259,11 @@ function exemple(){
   iNiveau=1; refEnCours=null; curseur=null; setMode('contour');
 }
 
-determinerMode().then(()=>{ bandeauMode(); recalcul(); });
+determinerMode().then(()=>{
+  bandeauMode();
+  if(MODE !== 'pro') document.getElementById('blocDemande').hidden = false;
+  recalcul();
+});
 </script>
 </body>
 </html>
