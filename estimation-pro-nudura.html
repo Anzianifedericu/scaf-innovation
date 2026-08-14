@@ -897,6 +897,17 @@
 .niveau-avance > summary:hover{ background:rgba(0,0,0,.03); }
 .niveau-avance > *:not(summary){ padding:0 14px; }
 .niveau-avance > *:last-child{ padding-bottom:14px; }
+
+/* Mode particulier : tout ce qui porte un montant disparait. Le catalogue
+   tarifaire n'etant pas charge, ces regles ne masquent pas des prix reels
+   mais des zeros — elles evitent d'afficher des totaux trompeurs. */
+body.sans-prix .totals,
+body.sans-prix .recap-global,
+body.sans-prix .product-price,
+body.sans-prix .lot-line .amt,
+body.sans-prix #mobileSummaryLabel,
+body.sans-prix #btnEnvoyer{ display:none !important; }
+body.sans-prix .summary-title::after{ content:''; }
 </style>
 </head>
 <body>
@@ -1250,12 +1261,17 @@ let PRODUCTS = [];
 let catalogueCharge = false;
 
 async function chargerCatalogue(){
-  const url = `${SUPABASE_URL}/rest/v1/nudura_pro_products?select=ref,cat,label,prix_ht,pkg,qte_pkg,kg&active=eq.true&order=cat.asc,label.asc`;
+  // Mode particulier : on ne demande que designation et conditionnement.
+  // Les prix ne transitent pas, il n'y a donc rien a masquer ni a contourner.
+  const champs = MODE_PRIX
+    ? 'ref,cat,label,prix_ht,pkg,qte_pkg,kg'
+    : 'ref,cat,label,pkg,qte_pkg,kg';
+  const url = `${SUPABASE_URL}/rest/v1/nudura_pro_products?select=${champs}&active=eq.true&order=cat.asc,label.asc`;
   const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
   if(!res.ok) throw new Error('catalogue indisponible (' + res.status + ')');
   const rows = await res.json();
   if(!rows.length) throw new Error('catalogue vide');
-  PRODUCTS = rows.map(r=>({ cat:r.cat, ref:r.ref, label:r.label, prixHT:Number(r.prix_ht), pkg:r.pkg, qtePkg:r.qte_pkg, kg:r.kg }));
+  PRODUCTS = rows.map(r=>({ cat:r.cat, ref:r.ref, label:r.label, prixHT: MODE_PRIX ? Number(r.prix_ht) : 0, pkg:r.pkg, qtePkg:r.qte_pkg, kg:r.kg }));
   catalogueCharge = true;
 }
 
@@ -1756,7 +1772,8 @@ function renderSummary(){
   document.getElementById('totTTC').textContent = totTTC.toLocaleString('fr-FR',{maximumFractionDigits:0}) + ' €';
   document.getElementById('recapPaiement').textContent = modePaiementComptant ? 'Comptant (−3% appliqué)' : 'À terme';
 
-  document.getElementById('btnEnvoyer').disabled = (totHT <= 0);
+  const be = document.getElementById('btnEnvoyer');
+  if(be) be.disabled = (totHT <= 0);
   const toggleLabel = document.getElementById('mobileSummaryLabel');
   if(toggleLabel) toggleLabel.textContent = totTTC > 0 ? totTTC.toLocaleString('fr-FR',{maximumFractionDigits:0}) + ' € TTC' : 'Mon devis';
   updateProgressBar();
@@ -1773,6 +1790,49 @@ function removeItem(ref){
    que le portail de commande. Le jeton local ne suffit pas, il est
    revalide cote serveur a chaque ouverture. */
 const PRO_WEBHOOK = 'https://hook.eu1.make.com/h9t0hai8vsaqlhnmf6tfnyy6cjv581xm';
+
+/* ---- Deux publics, une seule page ----
+   Le professionnel voit les tarifs. Le particulier qui a demande une etude
+   voit les memes quantites, sans les prix : ceux-ci figureront dans le devis.
+   En mode particulier, le catalogue tarifaire n'est jamais charge. */
+let MODE_PRIX = true, MODE_ETUDE = false, ETUDE_PRENOM = null;
+const ACCES_ETUDE = 'https://crbvlowxxmspjnyculzl.supabase.co/functions/v1/acces-etude';
+
+async function determinerMode(){
+  const params = new URLSearchParams(location.search);
+  let jeton = params.get('etude');
+  if(jeton){
+    try{ localStorage.setItem('scaf_etude_acces', jeton); }catch{}
+    const u = new URL(location); u.searchParams.delete('etude');
+    history.replaceState({}, '', u);           // le jeton quitte la barre d'adresse
+  } else {
+    try{ jeton = localStorage.getItem('scaf_etude_acces'); }catch{}
+  }
+  if(!jeton) return false;
+  try{
+    const r = await fetch(ACCES_ETUDE, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'verifier', jeton }),
+    });
+    const d = await r.json();
+    if(d && d.acces){
+      MODE_PRIX = false; MODE_ETUDE = true; ETUDE_PRENOM = d.prenom || null;
+      document.body.classList.add('sans-prix');
+      return true;
+    }
+    if(d && d.motif === 'expire'){ try{ localStorage.removeItem('scaf_etude_acces'); }catch{} }
+  }catch(e){ /* reseau indisponible : on retombe sur la porte professionnelle */ }
+  return false;
+}
+
+function bandeauEtude(){
+  const b = document.createElement('div');
+  b.style.cssText = 'background:#3F6B4A;color:#fff;padding:9px 16px;font-size:13.5px;text-align:center';
+  b.innerHTML = (ETUDE_PRENOM ? `Bonjour ${ETUDE_PRENOM}. ` : '') +
+    "Vous obtenez ici la liste des materiaux necessaires a votre projet. " +
+    "Les tarifs vous seront communiques dans le devis que nous preparons.";
+  document.body.insertBefore(b, document.body.firstChild);
+}
 
 function ecranAcces(titre, message, lien){
   document.body.innerHTML = `
@@ -2546,7 +2606,10 @@ function calculerGrosOeuvre(){
   renderSummary();
 }
 
-verifierAccesPro().then(ok=>{ if(ok) ajouterNiveau('RDC'); });
+determinerMode().then(async (etude)=>{
+  if(etude){ bandeauEtude(); ajouterNiveau('RDC'); return; }
+  if(await verifierAccesPro()) ajouterNiveau('RDC');
+});
 
 chargerCatalogue().then(initGate).catch(echecCatalogue);
 renderDraftList();
