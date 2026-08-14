@@ -1768,6 +1768,55 @@ function removeItem(ref){
   renderSummary();
 }
 
+/* ---- Accès réservé aux professionnels ----
+   Le calculateur expose la logique de chiffrage : il suit la meme porte
+   que le portail de commande. Le jeton local ne suffit pas, il est
+   revalide cote serveur a chaque ouverture. */
+const PRO_WEBHOOK = 'https://hook.eu1.make.com/h9t0hai8vsaqlhnmf6tfnyy6cjv581xm';
+
+function ecranAcces(titre, message, lien){
+  document.body.innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+                background:var(--paper,#F4EEE1);font-family:system-ui,sans-serif">
+      <div style="max-width:440px;text-align:center">
+        <h1 style="font:600 24px/1.3 Georgia,serif;color:#2E2B26;margin-bottom:10px">${titre}</h1>
+        <p style="color:#6B6459;font-size:14.5px;line-height:1.6;margin-bottom:20px">${message}</p>
+        <a href="${lien}" style="display:inline-block;padding:11px 22px;border-radius:8px;
+           background:#3F6B4A;color:#fff;text-decoration:none;font-weight:600;font-size:14px">
+           Accès professionnel</a>
+      </div>
+    </div>`;
+}
+
+async function verifierAccesPro(){
+  const jeton = localStorage.getItem('scaf_pro_access');
+  if(!jeton){
+    ecranAcces("Espace professionnel",
+      "Le calculateur de quantitatifs Nudura est réservé aux entreprises. Connectez-vous pour y accéder.",
+      "/commande-pro-nudura.html");
+    return false;
+  }
+  try{
+    const res = await fetch(PRO_WEBHOOK, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'checkAccess', token:jeton }),
+    });
+    const r = res.ok ? await res.json() : { access:false };
+    if(!r.access){
+      localStorage.removeItem('scaf_pro_access');
+      ecranAcces("Accès expiré",
+        "Votre accès professionnel n'est plus valide. Reconnectez-vous pour reprendre vos chiffrages.",
+        "/commande-pro-nudura.html");
+      return false;
+    }
+    return true;
+  }catch(err){
+    // Reseau indisponible : on laisse passer plutot que de bloquer un
+    // utilisateur legitime, la page ne contient aucun prix.
+    return true;
+  }
+}
+
 // ---- Estimation gros œuvre ----
 // ===== Moteur de chiffrage =====
 // Le moteur vit desormais dans /nudura-engine.js, charge juste au-dessus.
@@ -2497,7 +2546,7 @@ function calculerGrosOeuvre(){
   renderSummary();
 }
 
-ajouterNiveau('RDC');
+verifierAccesPro().then(ok=>{ if(ok) ajouterNiveau('RDC'); });
 
 chargerCatalogue().then(initGate).catch(echecCatalogue);
 renderDraftList();
