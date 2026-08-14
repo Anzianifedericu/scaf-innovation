@@ -324,7 +324,20 @@ function calculerNiveauUnique(n, gabaritFlag){
     } else {
       const refsRefend = getRefs(n.refend.gamme, n.refend.epaisseurMm, n.refend.rajoutPSE);
       if(refsRefend){
-        ajouter(panier, refsRefend.droit, Math.ceil(surfaceRefend / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100)));
+        // Un refend qui change de direction consomme un bloc d'angle par cours,
+        // exactement comme le mur peripherique. Le lineaire correspondant
+        // n'est donc plus a compter en blocs droits.
+        const coursRefend = coursesInfo(n.refend.hauteur).floor;
+        const nb90 = Math.max(0, n.refend.angles90 || 0);
+        const nb45 = Math.max(0, n.refend.angles45 || 0);
+        const lineaireAngles = (nb90 + nb45) * LONGUEUR_BLOC_M;
+        const lineaireDroit = Math.max(0, n.refend.lineaire - lineaireAngles);
+        const surfaceDroite = lineaireDroit * n.refend.hauteur;
+
+        ajouter(panier, refsRefend.droit, Math.ceil(surfaceDroite / RENDEMENT_BLOC_M2 * (1 + PERTE_PCT/100)));
+        if(nb90 > 0) ajouter(panier, refsRefend.angleExt, nb90 * coursRefend);
+        if(nb45 > 0 && refsRefend.angle45) ajouter(panier, refsRefend.angle45, nb45 * coursRefend);
+        else if(nb45 > 0) notes.push('Refend : angles a 45 degres non disponibles pour cette gamme/epaisseur — a valider avec SCAF.');
       } else {
         notes.push('Refend : gamme/épaisseur sans référence catalogue calculable — à valider avec SCAF.');
       }
@@ -436,7 +449,7 @@ const NIVEAU_DEFAUT = {
   coins:{ int90:0, ext90:0, int45:0, ext45:0 },
   ouvertures:[],
   armature:{ actif:false, espaceH:457, espaceV:406, nappe:'simple', diametre:'HA10' },
-  refend:{ actif:false, lineaire:0, hauteur:2.5, gamme:'standard', epaisseurMm:152, rajoutPSE:25 },
+  refend:{ actif:false, lineaire:0, hauteur:2.5, gamme:'standard', epaisseurMm:152, rajoutPSE:25, angles90:0, angles45:0 },
   options:{
     brickLedge:{ actif:false, lineaire:0 }, taperTop:{ actif:false, lineaire:0 },
     tWalls:{ actif:false, nb:0 }, gableEnds:{ actif:false, largeur:0, hauteur:0, qte:0 },
