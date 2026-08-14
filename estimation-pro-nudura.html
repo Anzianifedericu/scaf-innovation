@@ -1834,7 +1834,7 @@ function renderReleveNiveauHTML(n){
     return `
     <tr>
       <td>${i+1}</td>
-      <td><input type="number" step="0.01" min="0" value="${m.longueur}" onchange="majMurReleve(${n.id},${m.id},'longueur',parseFloat(this.value)||0)"></td>
+      <td><input type="number" step="0.001" min="0" value="${m.longueur}" onchange="majMurReleve(${n.id},${m.id},'longueur',parseFloat(this.value)||0)"></td>
       <td>${angleCell}</td>
       <td><button class="rm-row" onclick="supprimerMurReleve(${n.id},${m.id})">✕</button></td>
     </tr>`;
@@ -2108,8 +2108,8 @@ function renderNiveauCard(n){
   const ouvRows = n.ouvertures.map(o => `
     <tr>
       <td><input type="text" value="${o.type}" onchange="ouvChamp(${n.id},${o.id},'type',this.value)"></td>
-      <td><input type="number" step="0.01" value="${o.largeur}" onchange="ouvChamp(${n.id},${o.id},'largeur',parseFloat(this.value)||0)"></td>
-      <td><input type="number" step="0.01" value="${o.hauteur}" onchange="ouvChamp(${n.id},${o.id},'hauteur',parseFloat(this.value)||0)"></td>
+      <td><input type="number" step="0.001" min="0" value="${o.largeur}" onchange="ouvChamp(${n.id},${o.id},'largeur',parseFloat(this.value)||0)"></td>
+      <td><input type="number" step="0.001" min="0" value="${o.hauteur}" onchange="ouvChamp(${n.id},${o.id},'hauteur',parseFloat(this.value)||0)"></td>
       <td><input type="number" step="1" value="${o.qte}" onchange="ouvChamp(${n.id},${o.id},'qte',parseFloat(this.value)||0)"></td>
       <td><button class="rm-row" onclick="supprimerOuverture(${n.id},${o.id})">✕</button></td>
     </tr>`).join('');
@@ -2130,7 +2130,7 @@ function renderNiveauCard(n){
     ${n.refend.actif ? `
       <div class="option-fields">
         <div class="estim-field"><label>Linéaire refend (m)</label><input type="number" step="0.1" value="${n.refend.lineaire}" onchange="majNiveauChamp(${n.id},'refend.lineaire',parseFloat(this.value)||0)"></div>
-        <div class="estim-field"><label>Hauteur refend (m)</label><input type="number" step="0.01" value="${n.refend.hauteur}" onchange="majNiveauChamp(${n.id},'refend.hauteur',parseFloat(this.value)||0)"></div>
+        <div class="estim-field"><label>Hauteur refend (m)</label><input type="number" step="0.001" min="0" value="${n.refend.hauteur}" onchange="majNiveauChamp(${n.id},'refend.hauteur',parseFloat(this.value)||0)"></div>
         ${renderGammeEpaisseurFields(n, 'refend.', n.refend)}
       </div>
       <div class="note">Le refend peut avoir sa propre gamme/épaisseur, différente du mur périphérique. La jonction avec le mur extérieur se chiffre via l'option "Intersections en T" ci-dessous.</div>
@@ -2162,8 +2162,8 @@ function renderNiveauCard(n){
             </select>
           </div>
           <div class="estim-field"><label>Linéaire / périmètre (m) — issu du relevé ci-dessus</label><input type="number" value="${n.lineaire.toFixed(2)}" disabled style="background:var(--paper-dim);color:var(--beton);"></div>
-          <div class="estim-field"><label>Hauteur de mur (m)</label><input type="number" step="0.01" value="${n.hauteur}" onchange="majNiveauChamp(${n.id},'hauteur',parseFloat(this.value)||0); renderNiveaux();"></div>
-          <div class="estim-field"><label>Hauteur sous niveau du sol (m)</label><input type="number" step="0.01" value="${n.hauteurSousSol}" onchange="majNiveauChamp(${n.id},'hauteurSousSol',parseFloat(this.value)||0)"></div>
+          <div class="estim-field"><label>Hauteur de mur (m)</label><input type="number" step="0.001" min="0" value="${n.hauteur}" oninput="majNiveauChamp(${n.id},'hauteur',parseFloat(this.value)||0)" onchange="renderNiveaux()"></div>
+          <div class="estim-field"><label>Hauteur sous niveau du sol (m)</label><input type="number" step="0.001" min="0" value="${n.hauteurSousSol}" onchange="majNiveauChamp(${n.id},'hauteurSousSol',parseFloat(this.value)||0)"></div>
           <div class="estim-field"><label>Distance revêtement-sol — parging (m)</label><input type="number" step="0.01" value="${n.distanceParging}" onchange="majNiveauChamp(${n.id},'distanceParging',parseFloat(this.value)||0)"></div>
         </div>
         <div class="niveau-calc-note">${ci.floor} à ${ci.ceil} cours sur ${n.hauteur}m · saillie au-dessus du sol ≈ ${(Math.max(0,n.hauteur-n.hauteurSousSol)).toFixed(2)}m · portion sous le sol ${n.hauteurSousSol.toFixed(2)}m</div>
