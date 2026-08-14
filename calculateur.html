@@ -114,15 +114,53 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
   color:var(--beton);border-top:1px solid var(--paper-dim)}
 .legende span{display:inline-flex;align-items:center;gap:5px}
 .ech{width:15px;height:2px;flex:none}
+
+/* Impression : le plan de chaque niveau, puis le recapitulatif.
+   Tout ce qui sert a la saisie disparait. */
+@media print{
+  @page{ margin:14mm; }
+  body{ background:#fff; padding:0; }
+  header, .panneau-tete, .barre, .modes, .aide, .legende, .niveaux-onglets,
+  #blocDemande, #bImprimer, #bCsv, #bCalculer, .verdict.neutre,
+  #tableMurs input, #tableOuv select, .rm{ display:none !important; }
+  .grid{ display:block; }
+  .panneau{ border:0; break-inside:avoid; }
+  #scene{ display:none; }
+  #impression{ display:block !important; }
+  details.niv{ break-inside:avoid; }
+  details.niv > summary{ font-weight:600; }
+  details.niv:not([open]) > div{ display:block; }
+  .entete-impression{ display:block !important; }
+}
+.entete-impression{ display:none; }
+#impression{ display:none; }
+#impression svg{ width:100%; height:auto; max-height:150mm; break-inside:avoid; }
+#impression h3{ font:600 14px 'Fraunces',Georgia,serif; margin:14px 0 6px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
+<div class="entete-impression">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;
+              border-bottom:2px solid var(--encre);padding-bottom:8px;margin-bottom:14px">
+    <div>
+      <div style="font:600 17px 'Fraunces',Georgia,serif">SCAF Innovation</div>
+      <div style="font-size:11px;color:var(--beton)">Distributeur exclusif Nudura en Corse · Borgo, Haute-Corse · 04 95 61 88 36</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:var(--beton)">
+      <div style="font-weight:600;color:var(--encre);font-size:13px">Estimation de fourniture</div>
+      <div id="dateImpression"></div>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>Calculateur Nudura</h1>
   <p class="sub">Tracez votre plan niveau par niveau. Les quantités sont calculées par le moteur SCAF : blocs, accessoires, béton.</p>
 </header>
+
+<div id="impression"></div>
 
 <div class="grid">
   <div>
@@ -230,9 +268,13 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
     <div class="panneau">
       <div class="panneau-tete">
         <span class="panneau-titre">Quantitatif</span>
+        <span style="display:flex;gap:6px">
+          <button id="bImprimer" onclick="imprimer()" hidden>Imprimer</button>
+          <button id="bCsv" onclick="telechargerCsv()" hidden>Télécharger</button>
         <button id="bCalculer" onclick="calculer()"
                 style="background:var(--vert);border-color:var(--vert);color:#fff;font-weight:600">
           Calculer</button>
+        </span>
       </div>
       <div id="panier"></div>
     </div>
@@ -586,6 +628,8 @@ async function calculer(){
     return;
   }
   calculEnCours = false;
+  document.getElementById('bImprimer').hidden = false;
+  document.getElementById('bCsv').hidden = false;
   rendreQuantitatif();
 }
 
@@ -653,6 +697,81 @@ async function envoyerPlan(){
     b.disabled=false; b.textContent='Envoyer mon plan';
     dire("La connexion a échoué. Vérifiez votre réseau.", 'ko');
   }
+}
+
+/* Impression : on redessine chaque niveau dans un conteneur dedie, pour
+   que la feuille porte tous les plans et pas seulement celui a l'ecran. */
+function imprimer(){
+  const zone = document.getElementById('impression');
+  const memeNiveau = iNiveau, memeMode = mode, memeCadre = cadre;
+  let h = '';
+
+  niveaux.forEach((n, i)=>{
+    if(!n.ferme || !n.murs.length) return;
+    iNiveau = i; mode = 'contour'; cadre = null; curseur = null; survol = null;
+    rendreScene();
+    const a = anglesDe(n);
+    h += `<h3>${n.nom} — ${perimetre(n).toFixed(2)} m de périmètre · ` +
+         `${a.s90 + a.r90} angles · hauteur ${n.hauteur.toFixed(2)} m · ${n.epaisseur} mm</h3>`;
+    h += `<svg viewBox="${scene.getAttribute('viewBox')}" xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet">${scene.innerHTML}</svg>`;
+  });
+
+  iNiveau = memeNiveau; mode = memeMode; cadre = memeCadre;
+  rendreScene();
+
+  zone.innerHTML = h;
+  document.getElementById('dateImpression').textContent =
+    new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  window.print();
+}
+
+/* Telechargement : un fichier de tableur, exploitable dans un devis.
+   Point-virgule et BOM pour qu'Excel l'ouvre correctement en francais. */
+function telechargerCsv(){
+  if(!resultat) return;
+  const lignes = [['Reference','Designation','Quantite','Unite','Prix unitaire HT','Total HT']];
+
+  const parRef = {};
+  resultat.forEach(({data})=>data.fournitures_totales.forEach(f=>{
+    if(!parRef[f.ref]) parRef[f.ref] = { ...f, qte: 0 };
+    parRef[f.ref].qte += f.qte;
+  }));
+
+  Object.keys(parRef).sort().forEach(ref=>{
+    const f = parRef[ref], p = prixParRef && prixParRef[ref];
+    lignes.push([ ref, f.label, f.qte, f.unite || 'piece',
+      p && p.prix_unitaire_ht != null ? String(p.prix_unitaire_ht).replace('.', ',') : '',
+      p && p.total_net_ht != null ? String(p.total_net_ht).replace('.', ',') : '' ]);
+  });
+
+  let surf = 0, beton = 0;
+  resultat.forEach(({data})=>{ surf += data.recapitulatif.surface_mur_m2;
+                               beton += data.recapitulatif.beton_m3; });
+  lignes.push([]);
+  lignes.push(['', 'Surface de mur', String(surf.toFixed(1)).replace('.', ','), 'm2', '', '']);
+  lignes.push(['', 'Beton (non fourni)', String(beton.toFixed(2)).replace('.', ','), 'm3', '', '']);
+  if(tarifs && tarifs.totaux){
+    const t = tarifs.totaux;
+    lignes.push([]);
+    lignes.push(['', 'Total tarif HT', '', '', '', String(t.total_tarif_ht).replace('.', ',')]);
+    if(t.remise_ht > 0) lignes.push(['', 'Remise', '', '', '', '-' + String(t.remise_ht).replace('.', ',')]);
+    lignes.push(['', 'Total net HT', '', '', '', String(t.total_net_ht).replace('.', ',')]);
+    lignes.push(['', 'TVA 20 %', '', '', '', String(t.tva_20).replace('.', ',')]);
+    lignes.push(['', 'Total TTC', '', '', '', String(t.total_net_ttc).replace('.', ',')]);
+  }
+
+  const csv = '\ufeff' + lignes.map(l=>l.map(c=>{
+    const v = String(c ?? '');
+    return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }).join(';')).join('\r\n');
+
+  const d = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `estimation-nudura-${d}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function rendreQuantitatif(){
