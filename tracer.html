@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracez le plan de votre maison — SCAF Innovation</title>
+<meta name="description" content="Dessinez le plan de votre projet en quelques clics et recevez ses surfaces, son emprise au sol et une estimation Nudura. Gratuit, sans engagement.">
+<link rel="canonical" href="https://scaf-innovation.com/tracer.html">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="SCAF Innovation">
+<meta property="og:title" content="Tracez le plan de votre maison">
+<meta property="og:description" content="Dessinez votre projet, obtenez ses surfaces et son emprise au sol. Gratuit, sans engagement.">
+<meta property="og:url" content="https://scaf-innovation.com/tracer.html">
+<meta property="og:image" content="https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4EEE1; --paper-dim:#EDE5D4; --trait:#D6CBB4;
+  --encre:#2E2B26; --beton:#6B6459;
+  --vert:#3F6B4A; --terre:#A8481F; --bleu:#3A6A8C;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--encre);
+  font:16px/1.6 'IBM Plex Sans',system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+header.site{border-bottom:1px solid var(--trait);background:var(--paper);padding:14px 0}
+header.site .wrap{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.marque{font:600 18px 'Fraunces',Georgia,serif;text-decoration:none;color:var(--encre)}
+.marque span{color:var(--vert)}
+.nav a{color:var(--beton);text-decoration:none;font-size:14px;margin-left:18px}
+.nav a:hover{color:var(--encre)}
+
+.intro{padding:38px 0 26px;border-bottom:1px solid var(--trait)}
+h1{font:600 clamp(27px,4vw,38px)/1.15 'Fraunces',Georgia,serif;letter-spacing:-.015em;max-width:19ch}
+.intro p{color:var(--beton);font-size:16.5px;margin-top:12px;max-width:60ch}
+.pas{display:flex;gap:26px;flex-wrap:wrap;margin-top:22px}
+.pas div{font-size:14px;color:var(--beton);display:flex;gap:8px;align-items:baseline}
+.pas b{font:600 15px 'IBM Plex Mono',monospace;color:var(--vert)}
+
+main{padding:26px 0 70px}
+.zone{background:#fff;border:1px solid var(--trait);border-radius:10px;overflow:hidden}
+.zone-tete{padding:13px 17px;border-bottom:1px solid var(--trait);
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.zone-titre{font-weight:600;font-size:15px}
+#accroche{padding:56px 22px;text-align:center}
+#accroche p{color:var(--beton);max-width:46ch;margin:0 auto 22px}
+
+.b{font:600 15px 'IBM Plex Sans',sans-serif;padding:12px 24px;border-radius:8px;border:0;
+  background:var(--vert);color:#fff;cursor:pointer}
+.b:hover{background:#365B3F}
+.b.clair{background:var(--paper);color:var(--encre);border:1px solid var(--trait);font-weight:500}
+.b.clair:hover{background:var(--paper-dim)}
+.b.petit{font-size:13.5px;padding:8px 16px}
+.b:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
+.b:disabled{opacity:.45;cursor:not-allowed}
+
+.mesures{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:0;
+  border-top:1px solid var(--trait)}
+.mesure{padding:15px 17px;border-right:1px solid var(--paper-dim)}
+.mesure:last-child{border-right:0}
+.mesure .lib{font-size:12px;color:var(--beton);text-transform:uppercase;letter-spacing:.05em}
+.mesure .val{font:500 23px 'IBM Plex Mono',monospace;margin-top:3px}
+.mesure .val small{font-size:13px;color:var(--beton);font-weight:400}
+
+.form{padding:20px 17px;border-top:1px solid var(--trait);background:var(--paper-dim)}
+.form h3{font:600 17px 'Fraunces',Georgia,serif;margin-bottom:4px}
+.form .sous{font-size:14px;color:var(--beton);margin-bottom:16px;max-width:58ch}
+.champs{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
+label{display:block;font-size:13px;color:var(--beton);margin-bottom:5px}
+input,select,textarea{width:100%;font:400 15px 'IBM Plex Sans',sans-serif;padding:9px 11px;
+  border:1px solid var(--trait);border-radius:7px;background:#fff;color:var(--encre)}
+textarea{min-height:74px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--vert);outline-offset:-1px;border-color:var(--vert)}
+.pleine{grid-column:1/-1}
+.envoi{margin-top:17px;display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.mention{font-size:12.5px;color:var(--beton);max-width:56ch}
+.mention a{color:var(--vert)}
+
+.msg{margin-top:14px;padding:11px 14px;border-radius:7px;font-size:14px;border:1px solid;display:none}
+.msg.ko{display:block;background:#FBF1EC;border-color:#EBCFC0;color:var(--terre)}
+.msg.ok{display:block;background:#F1F6F2;border-color:#CBDCCF;color:var(--vert)}
+
+#fin{display:none;padding:46px 24px;text-align:center}
+#fin h2{font:600 25px 'Fraunces',Georgia,serif;margin-bottom:10px}
+#fin p{color:var(--beton);max-width:50ch;margin:0 auto 8px}
+#fin .ref{font:500 19px 'IBM Plex Mono',monospace;color:var(--vert);margin:16px 0 22px}
+
+footer{border-top:1px solid var(--trait);padding:26px 0 40px;color:var(--beton);font-size:13.5px}
+footer a{color:var(--beton)}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="marque" href="/fr">SCAF <span>Innovation</span></a>
+    <nav class="nav">
+      <a href="/fr">Accueil</a>
+      <a href="/produits-fr">Produits</a>
+      <a href="/boutique/">Boutique</a>
+      <a href="/commande-pro-nudura.html">Espace pro</a>
+    </nav>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
+    <h1>Tracez le plan de votre maison</h1>
+    <p>Dessinez le contour de votre projet, ajoutez les murs porteurs et les ouvertures.
+       Vous obtenez immédiatement son périmètre, son emprise au sol et sa surface de murs —
+       les chiffres qu'on vous demandera à chaque devis.</p>
+    <div class="pas">
+      <div><b>1</b> Vous dessinez, les cotes se corrigent au clavier</div>
+      <div><b>2</b> Vos surfaces s'affichent</div>
+      <div><b>3</b> Nous vous envoyons une estimation Nudura</div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="wrap">
+    <div class="zone">
+      <div class="zone-tete">
+        <span class="zone-titre">Votre plan</span>
+        <button class="b petit clair" id="bRouvrir" style="display:none" onclick="tracer()">Modifier le tracé</button>
+      </div>
+
+      <div id="accroche">
+        <p>Aucun logiciel à installer. Le tracé se fait à la souris, sur un quadrillage au mètre.
+           Comptez cinq minutes pour une maison courante.</p>
+        <button class="b" onclick="tracer()">Commencer le tracé</button>
+      </div>
+
+      <div id="apres" style="display:none">
+        <div class="mesures" id="mesures"></div>
+
+        <div class="form">
+          <h3>Recevez votre estimation</h3>
+          <p class="sous">Nous vous renvoyons le quantitatif Nudura correspondant à votre plan :
+             blocs, béton, accessoires. Sans engagement.</p>
+
+          <div class="champs">
+            <div><label for="nom">Nom et prénom</label><input id="nom" autocomplete="name"></div>
+            <div><label for="email">Adresse électronique *</label><input id="email" type="email" autocomplete="email" required></div>
+            <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel"></div>
+            <div><label for="commune">Commune du projet</label><input id="commune" autocomplete="address-level2"></div>
+            <div><label for="cp">Code postal</label><input id="cp" inputmode="numeric" autocomplete="postal-code"></div>
+            <div>
+              <label for="profil">Vous êtes</label>
+              <select id="profil">
+                <option value="particulier">Un particulier</option>
+                <option value="professionnel">Une entreprise du bâtiment</option>
+                <option value="architecte">Architecte ou maître d'œuvre</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div class="pleine">
+              <label for="message">Votre projet en quelques mots</label>
+              <textarea id="message" placeholder="Échéance, type de construction, contraintes du terrain…"></textarea>
+            </div>
+          </div>
+
+          <div class="envoi">
+            <button class="b" id="bEnvoyer" onclick="envoyer()">Envoyer mon plan</button>
+            <span class="mention">Vos données servent uniquement à établir votre estimation.
+              Elles ne sont ni revendues ni transmises. Vous pouvez demander leur suppression
+              à tout moment à <a href="mailto:scafalliance@gmail.com">scafalliance@gmail.com</a>.</span>
+          </div>
+          <div class="msg" id="msg"></div>
+        </div>
+      </div>
+
+      <div id="fin">
+        <h2>Votre plan nous est bien parvenu</h2>
+        <div class="ref" id="refPlan"></div>
+        <p>Nous préparons votre estimation Nudura et revenons vers vous sous deux jours ouvrés.</p>
+        <p style="margin-top:18px"><a class="b clair petit" href="/produits-fr">Découvrir les blocs Nudura</a></p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    SCAF Innovation — Borgo, Haute-Corse · Distributeur exclusif Nudura en Corse ·
+    <a href="/fr">Retour à l'accueil</a>
+  </div>
+</footer>
+
+<script src="/trace-plan.js"></script>
+<script>
+const API = 'https://crbvlowxxmspjnyculzl.supabase.co/functions/v1/plan-public';
+let dernierTrace = null;   // état brut, pour pouvoir rouvrir sans rien perdre
+let dernierReleve = null;
+
+function tracer(){
+  if(typeof TracePlan === 'undefined'){
+    afficher("L'outil de tracé n'a pas pu se charger. Rechargez la page.", 'ko');
+    return;
+  }
+  TracePlan.ouvrir({
+    nom: 'votre projet',
+    initial: dernierTrace,
+    onValider: (releve, brut)=>{
+      dernierTrace = brut;
+      dernierReleve = releve;
+      montrerMesures(releve);
+    },
+  });
+}
+
+function montrerMesures(r){
+  // Surfaces seules : les quantités de blocs restent réservées aux professionnels.
+  const emprise = empriseDepuis(dernierTrace);
+  const cases = [
+    ['Périmètre', r.perimetre.toFixed(2), 'm'],
+    ['Emprise au sol', emprise.toFixed(2), 'm²'],
+    ['Angles', r.coins.ext90 + r.coins.ext45, ''],
+  ];
+  if(r.refend.actif) cases.push(['Murs porteurs', r.refend.lineaire.toFixed(2), 'm']);
+  if(r.ouvertures.length){
+    const n = r.ouvertures.reduce((s,o)=>s+o.qte, 0);
+    cases.push(['Ouvertures', n, '']);
+  }
+  document.getElementById('mesures').innerHTML = cases.map(([l,v,u])=>
+    `<div class="mesure"><div class="lib">${l}</div>
+     <div class="val">${v}${u?` <small>${u}</small>`:''}</div></div>`).join('');
+
+  document.getElementById('accroche').style.display = 'none';
+  document.getElementById('apres').style.display = 'block';
+  document.getElementById('bRouvrir').style.display = 'inline-block';
+}
+
+// Aire du contour, par la formule du lacet.
+function empriseDepuis(brut){
+  if(!brut || !brut.murs.length) return 0;
+  const p = [{x:0,y:0}];
+  brut.murs.forEach(m=>{ const d=p[p.length-1];
+    p.push({x:d.x+m.dx*m.longueur, y:d.y+m.dy*m.longueur}); });
+  const q = brut.ferme ? p.slice(0,-1) : p;
+  if(q.length < 3) return 0;
+  let a=0;
+  for(let i=0;i<q.length;i++){ const s=q[(i+1)%q.length]; a += q[i].x*s.y - s.x*q[i].y; }
+  return Math.abs(a)/2;
+}
+
+function pointsDuContour(brut){
+  const p=[{x:0,y:0}];
+  brut.murs.forEach(m=>{ const d=p[p.length-1];
+    p.push({x:d.x+m.dx*m.longueur, y:d.y+m.dy*m.longueur}); });
+  return brut.ferme ? p.slice(0,-1) : p;
+}
+
+function afficher(texte, type){
+  const m = document.getElementById('msg');
+  m.textContent = texte;
+  m.className = 'msg ' + type;
+}
+
+async function envoyer(){
+  if(!dernierReleve){ afficher('Tracez d\'abord votre plan.', 'ko'); return; }
+  const email = document.getElementById('email').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){
+    afficher('Merci d\'indiquer une adresse électronique valide.', 'ko');
+    document.getElementById('email').focus();
+    return;
+  }
+
+  const bouton = document.getElementById('bEnvoyer');
+  bouton.disabled = true;
+  bouton.textContent = 'Envoi en cours…';
+  afficher('', '');
+
+  const niveau = {
+    nom: 'Niveau 1',
+    hauteur: 2.70,
+    murs: dernierTrace.murs.map(m=>({ longueur: m.longueur })),
+    points: pointsDuContour(dernierTrace),
+    angles: dernierReleve.coins.ext90 + dernierReleve.coins.ext45,
+    refendLineaire: dernierReleve.refend.actif ? dernierReleve.refend.lineaire : 0,
+    ouvertures: dernierReleve.ouvertures,
+  };
+
+  try{
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nom: document.getElementById('nom').value.trim(),
+        email,
+        telephone: document.getElementById('tel').value.trim(),
+        commune: document.getElementById('commune').value.trim(),
+        codePostal: document.getElementById('cp').value.trim(),
+        profil: document.getElementById('profil').value,
+        message: document.getElementById('message').value.trim(),
+        niveaux: [niveau],
+      }),
+    });
+    const r = await res.json();
+    if(!res.ok || !r.ok){
+      afficher(r.erreur || "L'envoi n'a pas abouti. Réessayez dans un instant.", 'ko');
+      bouton.disabled = false;
+      bouton.textContent = 'Envoyer mon plan';
+      return;
+    }
+    document.getElementById('refPlan').textContent = r.reference;
+    document.getElementById('apres').style.display = 'none';
+    document.getElementById('bRouvrir').style.display = 'none';
+    document.getElementById('fin').style.display = 'block';
+  }catch(err){
+    afficher("La connexion a échoué. Vérifiez votre réseau et réessayez.", 'ko');
+    bouton.disabled = false;
+    bouton.textContent = 'Envoyer mon plan';
+  }
+}
+</script>
+</body>
+</html>
