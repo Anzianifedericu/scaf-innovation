@@ -1226,6 +1226,7 @@ document.getElementById('registerForm').addEventListener('submit', async e=>{
 });
 </script>
 
+<script src="/trace-plan.js"></script>
 <script src="/nudura-engine.js"></script>
 <script>
 /* ============================================================
@@ -1876,6 +1877,10 @@ function renderReleveNiveauHTML(n){
 
   return `
     <div class="subsection-title" style="margin-top:0;padding-top:0;border-top:none;">Relevé de côtes — plan de ce niveau (source du linéaire et du quantitatif)</div>
+    <div style="margin:2px 0 10px;">
+      <button class="btn-mini" onclick="ouvrirTraceur(${n.id})" style="background:#3F6B4A;border-color:#3F6B4A;color:#fff;font-weight:600;">Tracer le plan à la souris</button>
+      <span class="note" style="display:inline;margin-left:8px;">Dessinez le contour, les refends et les ouvertures : le relevé, les angles et les quantités se remplissent seuls.</span>
+    </div>
     <div class="niveau-grid">
       <div class="estim-field"><label>Angle de départ (avant le 1er mur)</label>
         <select onchange="majAngleDepart(${n.id}, this.value)">
@@ -2055,6 +2060,59 @@ function majAnglesTotal(id, total){
   n.coins.ext90 = Math.max(0, total);
   n.coins.int90 = 0;
   debouncedCalcul();
+}
+
+/* Ouvre le traceur de plan et applique son releve au niveau.
+   Le traceur ne calcule aucun prix : il produit la geometrie, et
+   nudura-engine.js fait le chiffrage comme pour une saisie manuelle. */
+function ouvrirTraceur(id){
+  const n = niveaux.find(x=>x.id===id);
+  if(!n) return;
+  if(typeof TracePlan === 'undefined'){
+    alert("Le module de trace n'a pas pu etre charge. Rechargez la page.");
+    return;
+  }
+  // Le niveau precedent sert de calque : on monte toujours un mur sur son porteur.
+  const rang = niveaux.indexOf(n);
+  let filigrane = null;
+  if(rang > 0){
+    const bas = niveaux[rang-1];
+    if(bas.releve && bas.releve.murs.length){
+      const pts = calculerReleveNiveau(bas).points;
+      filigrane = [];
+      for(let i=0;i<pts.length-1;i++) filigrane.push([pts[i], pts[i+1]]);
+    }
+  }
+
+  TracePlan.ouvrir({
+    nom: n.nom,
+    filigrane,
+    onValider: (r)=>{
+      n.releve.murs = r.murs.map((m,i)=>({ id:i+1, longueur:m.longueur, angle:m.angle }));
+      n.releve.angleDepart = r.murs.length ? r.murs[r.murs.length-1].angle : 'sortant90';
+      n.lineaire = r.perimetre;
+      n.coins = { ...n.coins, ...r.coins };
+
+      n.refend.actif = r.refend.actif;
+      if(r.refend.actif){
+        n.refend.lineaire = r.refend.lineaire;
+        n.refend.angles90 = r.refend.angles90;
+        n.refend.angles45 = r.refend.angles45;
+        if(!n.refend.hauteur) n.refend.hauteur = n.hauteur;
+      }
+
+      n.options.tWalls.actif = r.tWalls > 0;
+      n.options.tWalls.nb = r.tWalls;
+
+      ouvIdSeq = ouvIdSeq || 0;
+      n.ouvertures = r.ouvertures.map(o=>({
+        id: ++ouvIdSeq, type: o.type==='porte' ? 'Porte' : 'Fenetre',
+        largeur:o.largeur, hauteur:o.hauteur, qte:o.qte,
+      }));
+
+      renderNiveaux();
+    },
+  });
 }
 
 function majNiveauChamp(id, champ, valeur){
