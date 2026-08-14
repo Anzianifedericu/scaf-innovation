@@ -2159,9 +2159,11 @@ function renderNiveauCard(n){
       <div class="option-fields">
         <div class="estim-field"><label>Linéaire refend (m)</label><input type="number" step="0.1" value="${n.refend.lineaire}" onchange="majNiveauChamp(${n.id},'refend.lineaire',parseFloat(this.value)||0)"></div>
         <div class="estim-field"><label>Hauteur refend (m)</label><input type="number" step="0.001" min="0" value="${n.refend.hauteur}" onchange="majNiveauChamp(${n.id},'refend.hauteur',parseFloat(this.value)||0)"></div>
+        <div class="estim-field"><label>Angles à 90°</label><input type="number" min="0" value="${n.refend.angles90 || 0}" onchange="majNiveauChamp(${n.id},'refend.angles90',parseFloat(this.value)||0)"></div>
+        <div class="estim-field"><label>Angles à 45°</label><input type="number" min="0" value="${n.refend.angles45 || 0}" onchange="majNiveauChamp(${n.id},'refend.angles45',parseFloat(this.value)||0)"></div>
         ${renderGammeEpaisseurFields(n, 'refend.', n.refend)}
       </div>
-      <div class="note">Le refend peut avoir sa propre gamme/épaisseur, différente du mur périphérique. La jonction avec le mur extérieur se chiffre via l'option "Intersections en T" ci-dessous.</div>
+      <div class="note">Un refend qui change de direction — en L, en T, en U — consomme un bloc d'angle par rang, comme le mur périphérique. Comptez ses angles ici. Le refend peut avoir sa propre gamme et épaisseur. La jonction avec le mur extérieur se chiffre via "Intersections en T" ci-dessous.</div>
     ` : ''}
   `;
 
