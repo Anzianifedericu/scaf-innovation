@@ -85,6 +85,19 @@
     .confirm{padding:56px 0;}
     .confirm-ctas{flex-direction:column; align-items:stretch;}
   }
+
+.acces-calc{margin:34px 0 30px;padding:22px 24px;border:1px solid var(--trait,#D6CBB4);
+  border-radius:10px;background:var(--paper-dim,#EDE5D4);}
+.acces-calc h2{margin:0 0 8px;font-size:1.15rem;}
+.acces-calc p{margin:0 0 14px;font-size:0.95rem;line-height:1.6;}
+.acces-ligne{display:flex;gap:10px;flex-wrap:wrap;}
+.acces-ligne input{flex:1 1 240px;padding:11px 13px;border:1px solid var(--trait,#D6CBB4);
+  border-radius:7px;font:400 0.95rem system-ui,sans-serif;background:#fff;}
+.acces-ligne input:focus{outline:2px solid #3F6B4A;outline-offset:-1px;}
+.acces-ligne .btn{white-space:nowrap;}
+.acces-msg{margin:12px 0 0;font-size:0.9rem;min-height:1.2em;}
+.acces-msg.ok{color:#3F6B4A;}
+.acces-msg.ko{color:#A8481F;}
 </style>
 </head>
 <body>
@@ -120,6 +133,19 @@
       </ol>
     </div>
 
+    <div class="acces-calc">
+      <h2>En attendant, chiffrez votre projet</h2>
+      <p>Tracez le plan de votre maison et obtenez la liste des matériaux nécessaires :
+         blocs, béton, accessoires. Nous vous envoyons le lien d'accès à l'adresse
+         indiquée dans votre demande.</p>
+      <div class="acces-ligne">
+        <input type="email" id="accesEmail" placeholder="Votre adresse électronique"
+               autocomplete="email" aria-label="Adresse électronique">
+        <button class="btn" id="accesBouton" type="button">Recevoir mon accès</button>
+      </div>
+      <p class="acces-msg" id="accesMsg" role="status"></p>
+    </div>
+
     <div class="confirm-ctas">
       <a href="fr.html#top" class="btn">Retour à l'accueil</a>
       <a href="fr.html#projets" class="btn btn-ghost">Revoir les types de projets</a>
@@ -136,5 +162,47 @@
   </div>
 </footer>
 
+
+<script>
+/* Le lien d'acces part vers l'adresse deja connue de SCAF : personne ne peut
+   se l'attribuer en saisissant l'adresse d'un tiers. */
+(function(){
+  const bouton = document.getElementById('accesBouton');
+  const champ  = document.getElementById('accesEmail');
+  const msg    = document.getElementById('accesMsg');
+  if(!bouton) return;
+
+  bouton.addEventListener('click', async ()=>{
+    const email = champ.value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){
+      msg.textContent = "Merci d'indiquer une adresse électronique valide.";
+      msg.className = 'acces-msg ko';
+      champ.focus();
+      return;
+    }
+    bouton.disabled = true;
+    const initial = bouton.textContent;
+    bouton.textContent = 'Envoi…';
+    msg.textContent = '';
+    try{
+      const r = await fetch('https://crbvlowxxmspjnyculzl.supabase.co/functions/v1/acces-etude', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json();
+      msg.textContent = d.message || "Le lien vient d'être envoyé.";
+      msg.className = 'acces-msg ok';
+      champ.value = '';
+    }catch(e){
+      msg.textContent = "L'envoi n'a pas abouti. Réessayez dans un instant.";
+      msg.className = 'acces-msg ko';
+    }
+    bouton.disabled = false;
+    bouton.textContent = initial;
+  });
+
+  champ.addEventListener('keydown', e=>{ if(e.key === 'Enter') bouton.click(); });
+})();
+</script>
 </body>
 </html>
