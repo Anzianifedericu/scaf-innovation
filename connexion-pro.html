@@ -68,6 +68,7 @@
   .check{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.85rem;font-weight:600;}
   .check input{width:auto;margin:0;}
 </style>
+<script src="/trace-plan.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -304,6 +305,91 @@ function activerNiveau(d) {
   dessinerOnglets();
 }
 
+/* Le traceur produit une geometrie ; cette page attend des murs, des refends
+   et des ouvertures sous forme de lignes. On remplit donc le formulaire a
+   partir du trace, sans changer le format envoye a estimer-nudura. */
+const tracesParNiveau = new WeakMap();
+
+function ouvrirTraceur(niveau) {
+  if (typeof TracePlan === "undefined") {
+    dire("statusCalcul", "L'outil de trace n'a pas pu se charger. Rechargez la page.", "err");
+    return;
+  }
+
+  // Le niveau precedent sert de calque : un mur repose sur son porteur.
+  let filigrane = null;
+  const tous = [...document.querySelectorAll(".niveau")];
+  const rang = tous.indexOf(niveau);
+  if (rang > 0) {
+    const bas = tracesParNiveau.get(tous[rang - 1]);
+    if (bas && bas.murs.length) {
+      const p = [{ x: 0, y: 0 }];
+      bas.murs.forEach(m => { const d = p[p.length - 1];
+        p.push({ x: d.x + m.dx * m.longueur, y: d.y + m.dy * m.longueur }); });
+      const q = bas.ferme ? p.slice(0, -1) : p;
+      filigrane = [];
+      for (let i = 0; i < q.length; i++) filigrane.push([q[i], q[(i + 1) % q.length]]);
+    }
+  }
+
+  TracePlan.ouvrir({
+    nom: niveau.querySelector(".nom").value || "Niveau",
+    filigrane,
+    initial: tracesParNiveau.get(niveau) || null,
+    onValider: (releve, brut) => {
+      tracesParNiveau.set(niveau, brut);
+      appliquerTrace(niveau, releve);
+    },
+  });
+}
+
+function appliquerTrace(niveau, r) {
+  // Murs : chaque cote du trace devient une ligne, avec son type d'angle.
+  niveau.querySelectorAll(".mur").forEach(m => m.remove());
+  const typeAngle = a =>
+    a === "sortant45" || a === "rentrant45" ? "angle45"
+    : a === "droit" ? "about" : "angle90";
+
+  r.murs.forEach((m, i) => {
+    ajouterMur(niveau);
+    const b = niveau.querySelectorAll(".mur")[i];
+    b.querySelector(".mnom").value  = "Mur " + (i + 1);
+    b.querySelector(".mlong").value = m.longueur.toFixed(3);
+    const prec = r.murs[(i - 1 + r.murs.length) % r.murs.length];
+    b.querySelector(".mdeb").value = typeAngle(prec.angle);
+    b.querySelector(".mfin").value = typeAngle(m.angle);
+    majMur(b);
+  });
+
+  // Refends : le trace donne un lineaire global et le nombre de jonctions.
+  niveau.querySelectorAll(".refend").forEach(x => x.remove());
+  if (r.refend.actif && r.refend.lineaire > 0) {
+    ajouterRefend(niveau);
+    const b = niveau.querySelector(".refend");
+    b.querySelector(".rnom").value  = "Refends";
+    b.querySelector(".rlong").value = r.refend.lineaire.toFixed(2);
+    b.querySelector(".rjonc").value = Math.max(1, Math.min(4, r.tWalls || 2));
+  }
+
+  // Ouvertures : deja regroupees par dimensions identiques.
+  niveau.querySelectorAll(".ouverture").forEach(x => x.remove());
+  r.ouvertures.forEach((o, i) => {
+    ajouterOuverture(niveau);
+    const b = niveau.querySelectorAll(".ouverture")[i];
+    b.querySelector(".onom").value  = o.type === "porte" ? "Porte" : "Fenêtre";
+    b.querySelector(".olarg").value = o.largeur.toFixed(2);
+    b.querySelector(".ohaut").value = o.hauteur.toFixed(2);
+    b.querySelector(".onb").value   = o.qte;
+  });
+
+  const nb = r.murs.length;
+  dire("statusCalcul",
+    `Tracé repris : ${nb} mur${nb > 1 ? "s" : ""}, périmètre ${r.perimetre.toFixed(2)} m` +
+    (r.refend.actif ? `, ${r.refend.lineaire.toFixed(2)} m de refends` : "") +
+    (r.ouvertures.length ? `, ${r.ouvertures.reduce((s, o) => s + o.qte, 0)} ouverture(s)` : "") +
+    ". Vérifiez les cotes puis lancez le calcul.", "ok");
+}
+
 function ajouterNiveau(nom, hauteur, elevation) {
   compteurNiveau++;
   const d = document.createElement("div");
@@ -316,6 +402,10 @@ function ajouterNiveau(nom, hauteur, elevation) {
     '<label>Hauteur (m)</label><input class="haut" type="text" inputmode="decimal" value="' + (hauteur || 3.199) + '">' +
     '<span class="indic indicH"></span>' +
     '<div class="check"><input type="checkbox" class="corn" id="corn' + compteurNiveau + '"><label for="corn' + compteurNiveau + '" style="margin:0">Corniche Nudura sur le dernier rang</label></div>' +
+    '<div style="margin:14px 0 4px"><button class="tracerPlan" type="button" ' +
+      'style="background:#0A3D66;color:#fff;border:0;border-radius:7px;padding:9px 16px;' +
+      'font:600 13.5px system-ui,sans-serif;cursor:pointer">Tracer le plan à la souris</button>' +
+      '<span class="mini" style="margin-left:9px">Dessinez le contour : murs, refends et ouvertures se remplissent seuls.</span></div>' +
     '<h3>Murs de périphérie</h3><div class="murs"></div>' +
     '<button class="ghost small addMur" type="button">Ajouter un mur</button>' +
     '<h3>Murs de refend</h3><div class="refends"></div>' +
@@ -323,6 +413,7 @@ function ajouterNiveau(nom, hauteur, elevation) {
     '<h3>Ouvertures</h3><div class="ouvertures"></div>' +
     '<button class="ghost small addOuv" type="button">Ajouter une ouverture</button>' +
     '<div style="margin-top:16px"><button class="ghost small supprNiv" type="button">Retirer ce niveau</button></div>';
+  d.querySelector(".tracerPlan").onclick = () => ouvrirTraceur(d);
   d.querySelector(".addMur").onclick = () => ajouterMur(d);
   d.querySelector(".addRefend").onclick = () => ajouterRefend(d);
   d.querySelector(".addOuv").onclick = () => ajouterOuverture(d);
