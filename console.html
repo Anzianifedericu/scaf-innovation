@@ -39,6 +39,12 @@ button{background:#238636;border:0;color:#fff;border-radius:8px;padding:12px 18p
 button:disabled{opacity:.5;cursor:not-allowed}
 .aide{color:var(--ink2);font-size:12px;line-height:1.7;margin-top:14px}
 .aide code{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
+
+#sortir{margin-left:auto;background:none;border:1px solid currentColor;color:inherit;
+  opacity:.55;font:inherit;font-size:.8rem;padding:3px 10px;border-radius:5px;cursor:pointer}
+#sortir:hover{opacity:1}
+#sortir:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -47,6 +53,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <h1>CONSOLE SCAF</h1>
     <span class="sub">administration</span>
     <span id="etat">verification…</span>
+    <button id="sortir" type="button" title="Oublier le code d'acces sur cet appareil">Deconnexion</button>
   </header>
 
   <div id="flux"></div>
@@ -85,6 +92,23 @@ function afficher(commande, texte, classe){
 }
 
 let code = sessionStorage.getItem('scaf_code') || '';
+
+/* Le code d'acces vit dans la session de l'onglet. Sans ce bouton, il fallait
+   fermer le navigateur pour le rendre : genant sur un poste partage. */
+document.getElementById('sortir').addEventListener('click', () => {
+  sessionStorage.removeItem('scaf_code');
+  code = '';
+  etat.textContent = 'deconnecte';
+  etat.className = '';
+  document.getElementById('c').disabled = true;
+  document.getElementById('b').disabled = true;
+  // Le jeton est dans l'adresse : on l'efface aussi de la barre et de
+  // l'historique, sinon un retour arriere suffirait a revenir.
+  const u = new URL(location);
+  u.searchParams.delete('t');
+  history.replaceState({}, '', u);
+  afficher('', 'Deconnecte. Rouvrez votre lien d\'acces pour revenir.', '');
+});
 
 async function envoyer(commande){
   const r = await fetch(API, {
