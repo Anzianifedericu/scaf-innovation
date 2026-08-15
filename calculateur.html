@@ -127,15 +127,38 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
   .panneau{ border:0; break-inside:avoid; }
   #scene{ display:none; }
   #impression{ display:block !important; }
-  details.niv{ break-inside:avoid; }
+  details.niv, .panneau, #panier{ display:none !important; }
   details.niv > summary{ font-weight:600; }
-  details.niv:not([open]) > div{ display:block; }
   .entete-impression{ display:block !important; }
 }
 .entete-impression{ display:none; }
 #impression{ display:none; }
 #impression svg{ width:100%; height:auto; max-height:150mm; break-inside:avoid; }
 #impression h3{ font:600 14px 'Fraunces',Georgia,serif; margin:14px 0 6px; }
+
+/* --- Document imprime : une section par niveau, comme un devis --- */
+#impression section{ break-inside:avoid-page; margin-bottom:20px; }
+#impression h2{ font:600 15px 'Fraunces',Georgia,serif; margin:0 0 4px;
+  padding-bottom:5px; border-bottom:1.5px solid var(--encre); }
+#impression .contexte{ font-size:11px; color:var(--beton); line-height:1.5; margin:0 0 9px; }
+#impression .plan-impr{ max-width:52%; margin:0 0 10px; }
+#impression .plan-impr svg{ width:100%; height:auto; max-height:78mm; }
+#impression table{ width:100%; border-collapse:collapse; font-size:11px; margin-bottom:6px; }
+#impression thead th{ text-align:left; font-size:9px; text-transform:uppercase;
+  letter-spacing:.04em; color:var(--beton); padding:4px 6px;
+  border-bottom:1px solid var(--trait); }
+#impression td{ padding:3.5px 6px; border-bottom:1px solid var(--paper-dim); vertical-align:top; }
+#impression .ref{ font:500 10px 'IBM Plex Mono',monospace; white-space:nowrap; }
+#impression .n{ text-align:right; white-space:nowrap; }
+#impression thead th.n{ text-align:right; }
+#impression tr.sous-total td{ font-weight:600; border-top:1px solid var(--trait);
+  border-bottom:0; padding-top:6px; }
+#impression table.totaux{ width:auto; min-width:58mm; margin-left:auto; margin-top:8px; }
+#impression table.totaux td{ border-bottom:0; padding:3px 6px; }
+#impression table.totaux tr.fort td{ font-weight:600; border-top:1px solid var(--trait); }
+#impression .alerte{ font-size:10px; color:var(--terre); line-height:1.45;
+  margin:5px 0 0; padding:5px 8px; background:#FBF1EC; border-left:2px solid var(--terre); }
+#impression .recap-impr{ break-before:page; }
 </style>
 </head>
 <body>
@@ -699,26 +722,124 @@ async function envoyerPlan(){
   }
 }
 
-/* Impression : on redessine chaque niveau dans un conteneur dedie, pour
-   que la feuille porte tous les plans et pas seulement celui a l'ecran. */
+/* Impression au format d'un devis de fourniture : une section par niveau,
+   avec ses blocs et ses accessoires, puis le recapitulatif de commande.
+   Le detail par niveau permet de repartir les livraisons et de suivre le
+   chantier etage par etage. */
 function imprimer(){
+  if(!resultat) return;
   const zone = document.getElementById('impression');
-  const memeNiveau = iNiveau, memeMode = mode, memeCadre = cadre;
-  let h = '';
+  const eur = x => Number(x).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
+  // Les plans, redessines hors ecran pour figurer en tete du document.
+  const memeNiveau = iNiveau, memeMode = mode, memeCadre = cadre;
+  const plans = {};
   niveaux.forEach((n, i)=>{
     if(!n.ferme || !n.murs.length) return;
     iNiveau = i; mode = 'contour'; cadre = null; curseur = null; survol = null;
     rendreScene();
-    const a = anglesDe(n);
-    h += `<h3>${n.nom} — ${perimetre(n).toFixed(2)} m de périmètre · ` +
-         `${a.s90 + a.r90} angles · hauteur ${n.hauteur.toFixed(2)} m · ${n.epaisseur} mm</h3>`;
-    h += `<svg viewBox="${scene.getAttribute('viewBox')}" xmlns="http://www.w3.org/2000/svg"
-           preserveAspectRatio="xMidYMid meet">${scene.innerHTML}</svg>`;
+    plans[n.nom] = `<svg viewBox="${scene.getAttribute('viewBox')}" xmlns="http://www.w3.org/2000/svg"
+                     preserveAspectRatio="xMidYMid meet">${scene.innerHTML}</svg>`;
+  });
+  iNiveau = memeNiveau; mode = memeMode; cadre = memeCadre; rendreScene();
+
+  const ligne = (ref, label, qte, pu, tot) =>
+    `<tr><td class="ref">${ref}</td><td>${label}</td><td class="n">${qte}</td>` +
+    `<td class="n">${pu ?? ''}</td><td class="n">${tot ?? ''}</td></tr>`;
+
+  let h = '';
+
+  // ---------- une section par niveau ----------
+  resultat.forEach(({epaisseur, data})=>{
+    data.detail_par_niveau.forEach(n=>{
+      h += `<section class="niveau-impr">
+        <h2>${n.niveau}</h2>
+        <p class="contexte">Chiffré sur une hauteur de ${n.hauteur_retenue_m.toFixed(2).replace('.', ',')} m
+           (${n.rangs} rang${n.rangs > 1 ? 's' : ''})${n.demi_rang ? ', dont un demi-rang' : ''} —
+           voile béton ${epaisseur} mm<br>
+           À titre indicatif : ${n.surface_mur_m2.toFixed(1).replace('.', ',')} m² de blocs /
+           ${n.beton_m3.toFixed(1).replace('.', ',')} m³ de béton</p>`;
+
+      if(plans[n.niveau]) h += `<div class="plan-impr">${plans[n.niveau]}</div>`;
+
+      h += `<table><thead><tr>
+              <th>Référence</th><th>Libellé</th><th class="n">Qté</th>
+              <th class="n">PU HT</th><th class="n">Total HT</th></tr></thead><tbody>`;
+
+      let sousTotal = 0;
+      n.fournitures.forEach(f=>{
+        const p = prixParRef && prixParRef[f.ref];
+        if(p && p.prix_unitaire_ht != null){
+          const t = Number(p.prix_unitaire_ht) * f.qte;
+          sousTotal += t;
+          h += ligne(f.ref, f.label, f.qte, eur(p.prix_unitaire_ht), eur(t));
+        } else {
+          h += ligne(f.ref, f.label, f.qte);
+        }
+      });
+
+      if(sousTotal > 0){
+        h += `<tr class="sous-total"><td></td><td>Sous-total ${n.niveau}</td>
+              <td></td><td></td><td class="n">${eur(sousTotal)}</td></tr>`;
+      }
+      h += `</tbody></table>`;
+
+      if(n.avertissements.length){
+        h += `<p class="alerte">` + n.avertissements.join('<br>') + `</p>`;
+      }
+      h += `</section>`;
+    });
   });
 
-  iNiveau = memeNiveau; mode = memeMode; cadre = memeCadre;
-  rendreScene();
+  // ---------- recapitulatif de commande ----------
+  const parRef = {};
+  let surf = 0, beton = 0;
+  resultat.forEach(({data})=>{
+    data.fournitures_totales.forEach(f=>{
+      if(!parRef[f.ref]) parRef[f.ref] = { ...f, qte: 0 };
+      parRef[f.ref].qte += f.qte;
+    });
+    surf  += data.recapitulatif.surface_mur_m2;
+    beton += data.recapitulatif.beton_m3;
+  });
+
+  h += `<section class="recap-impr">
+    <h2>Récapitulatif de commande</h2>
+    <p class="contexte">Cumul de tous les niveaux, par référence catalogue.</p>
+    <table><thead><tr>
+      <th>Référence</th><th>Libellé</th><th class="n">Qté</th>
+      <th class="n">PU HT</th><th class="n">Total HT</th></tr></thead><tbody>`;
+
+  Object.keys(parRef).sort().forEach(ref=>{
+    const f = parRef[ref], p = prixParRef && prixParRef[ref];
+    if(p && p.prix_unitaire_ht != null){
+      h += ligne(ref, f.label, f.qte, eur(p.prix_unitaire_ht), eur(p.total_net_ht));
+    } else {
+      h += ligne(ref, f.label, f.qte);
+    }
+  });
+  h += `</tbody></table>`;
+
+  if(tarifs && tarifs.totaux){
+    const t = tarifs.totaux, c = tarifs.compte || {};
+    h += `<table class="totaux"><tbody>
+      <tr><td>Tarif catalogue HT</td><td class="n">${eur(t.total_tarif_ht)}</td></tr>`;
+    if(t.remise_ht > 0) h += `<tr><td>Remise${c.remise_pct ? ` ${c.remise_pct} %` : ''}</td>
+                              <td class="n">− ${eur(t.remise_ht)}</td></tr>`;
+    h += `<tr class="fort"><td>Total HT</td><td class="n">${eur(t.total_net_ht)}</td></tr>
+          <tr><td>TVA 20 %</td><td class="n">${eur(t.tva_20)}</td></tr>
+          <tr class="fort"><td>Total TTC</td><td class="n">${eur(t.total_net_ttc)}</td></tr>
+          </tbody></table>`;
+    if(tarifs.references_sans_prix && tarifs.references_sans_prix.length){
+      h += `<p class="alerte">Sans tarif au catalogue : ${tarifs.references_sans_prix.join(', ')}.</p>`;
+    }
+  }
+
+  h += `<p class="contexte" style="margin-top:14px">
+          Surface de mur : ${surf.toFixed(1).replace('.', ',')} m² —
+          Béton : ${beton.toFixed(1).replace('.', ',')} m³, non fourni par SCAF Innovation.<br>
+          Quantités indicatives, à confronter à un métré précis avant commande.</p>
+        </section>`;
 
   zone.innerHTML = h;
   document.getElementById('dateImpression').textContent =
@@ -730,37 +851,60 @@ function imprimer(){
    Point-virgule et BOM pour qu'Excel l'ouvre correctement en francais. */
 function telechargerCsv(){
   if(!resultat) return;
-  const lignes = [['Reference','Designation','Quantite','Unite','Prix unitaire HT','Total HT']];
+  const num = v => String(v).replace('.', ',');
+  const lignes = [['Niveau','Reference','Designation','Quantite','Unite','PU HT','Total HT']];
 
-  const parRef = {};
-  resultat.forEach(({data})=>data.fournitures_totales.forEach(f=>{
-    if(!parRef[f.ref]) parRef[f.ref] = { ...f, qte: 0 };
-    parRef[f.ref].qte += f.qte;
-  }));
-
-  Object.keys(parRef).sort().forEach(ref=>{
-    const f = parRef[ref], p = prixParRef && prixParRef[ref];
-    lignes.push([ ref, f.label, f.qte, f.unite || 'piece',
-      p && p.prix_unitaire_ht != null ? String(p.prix_unitaire_ht).replace('.', ',') : '',
-      p && p.total_net_ht != null ? String(p.total_net_ht).replace('.', ',') : '' ]);
+  // Detail par niveau : c'est ce qui sert a repartir les livraisons.
+  resultat.forEach(({data})=>{
+    data.detail_par_niveau.forEach(n=>{
+      lignes.push([n.niveau,
+        `hauteur ${num(n.hauteur_retenue_m)} m, ${n.rangs} rangs`,
+        `${num(n.surface_mur_m2)} m2 de blocs / ${num(n.beton_m3)} m3 de beton`, '', '', '', '']);
+      n.fournitures.forEach(f=>{
+        const p = prixParRef && prixParRef[f.ref];
+        lignes.push([n.niveau, f.ref, f.label, f.qte, f.unite || 'piece',
+          p && p.prix_unitaire_ht != null ? num(p.prix_unitaire_ht) : '',
+          p && p.prix_unitaire_ht != null ? num((p.prix_unitaire_ht * f.qte).toFixed(2)) : '']);
+      });
+      lignes.push([]);
+    });
   });
 
+  // Recapitulatif : c'est ce qui part en commande.
+  lignes.push(['RECAPITULATIF DE COMMANDE', '', '', '', '', '', '']);
+  const parRef = {};
   let surf = 0, beton = 0;
-  resultat.forEach(({data})=>{ surf += data.recapitulatif.surface_mur_m2;
-                               beton += data.recapitulatif.beton_m3; });
+  resultat.forEach(({data})=>{
+    data.fournitures_totales.forEach(f=>{
+      if(!parRef[f.ref]) parRef[f.ref] = { ...f, qte: 0 };
+      parRef[f.ref].qte += f.qte;
+    });
+    surf += data.recapitulatif.surface_mur_m2;
+    beton += data.recapitulatif.beton_m3;
+  });
+  Object.keys(parRef).sort().forEach(ref=>{
+    const f = parRef[ref], p = prixParRef && prixParRef[ref];
+    lignes.push(['Total', ref, f.label, f.qte, f.unite || 'piece',
+      p && p.prix_unitaire_ht != null ? num(p.prix_unitaire_ht) : '',
+      p && p.total_net_ht != null ? num(p.total_net_ht) : '']);
+  });
+
   lignes.push([]);
-  lignes.push(['', 'Surface de mur', String(surf.toFixed(1)).replace('.', ','), 'm2', '', '']);
-  lignes.push(['', 'Beton (non fourni)', String(beton.toFixed(2)).replace('.', ','), 'm3', '', '']);
+  lignes.push(['', '', 'Surface de mur', num(surf.toFixed(1)), 'm2', '', '']);
+  lignes.push(['', '', 'Beton (non fourni)', num(beton.toFixed(1)), 'm3', '', '']);
+
   if(tarifs && tarifs.totaux){
     const t = tarifs.totaux;
     lignes.push([]);
-    lignes.push(['', 'Total tarif HT', '', '', '', String(t.total_tarif_ht).replace('.', ',')]);
-    if(t.remise_ht > 0) lignes.push(['', 'Remise', '', '', '', '-' + String(t.remise_ht).replace('.', ',')]);
-    lignes.push(['', 'Total net HT', '', '', '', String(t.total_net_ht).replace('.', ',')]);
-    lignes.push(['', 'TVA 20 %', '', '', '', String(t.tva_20).replace('.', ',')]);
-    lignes.push(['', 'Total TTC', '', '', '', String(t.total_net_ttc).replace('.', ',')]);
+    lignes.push(['', '', 'Total tarif HT', '', '', '', num(t.total_tarif_ht)]);
+    if(t.remise_ht > 0) lignes.push(['', '', 'Remise', '', '', '', '-' + num(t.remise_ht)]);
+    lignes.push(['', '', 'Total net HT', '', '', '', num(t.total_net_ht)]);
+    lignes.push(['', '', 'TVA 20 %', '', '', '', num(t.tva_20)]);
+    lignes.push(['', '', 'Total TTC', '', '', '', num(t.total_net_ttc)]);
   }
 
+  // Point-virgule, virgule decimale et BOM : Excel ouvre le fichier en
+  // colonnes sans passer par l'assistant d'importation.
   const csv = '\ufeff' + lignes.map(l=>l.map(c=>{
     const v = String(c ?? '');
     return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
@@ -769,7 +913,7 @@ function telechargerCsv(){
   const d = new Date().toISOString().slice(0, 10);
   const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
   const a = document.createElement('a');
-  a.href = url; a.download = `estimation-nudura-${d}.csv`;
+  a.href = url; a.download = `quantitatif-nudura-${d}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
 }
