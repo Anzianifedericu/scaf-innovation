@@ -156,6 +156,8 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 #impression table.totaux{ width:auto; min-width:58mm; margin-left:auto; margin-top:8px; }
 #impression table.totaux td{ border-bottom:0; padding:3px 6px; }
 #impression table.totaux tr.fort td{ font-weight:600; border-top:1px solid var(--trait); }
+#impression .note{ font-size:9.5px; color:var(--beton); line-height:1.4; margin-top:2px; }
+#impression .materiel-impr{ break-inside:avoid-page; }
 #impression .alerte{ font-size:10px; color:var(--terre); line-height:1.45;
   margin:5px 0 0; padding:5px 8px; background:#FBF1EC; border-left:2px solid var(--terre); }
 #impression .recap-impr{ break-before:page; }
@@ -837,9 +839,34 @@ function imprimer(){
 
   h += `<p class="contexte" style="margin-top:14px">
           Surface de mur : ${surf.toFixed(1).replace('.', ',')} m² —
-          Béton : ${beton.toFixed(1).replace('.', ',')} m³, non fourni par SCAF Innovation.<br>
-          Quantités indicatives, à confronter à un métré précis avant commande.</p>
+          Béton : ${beton.toFixed(1).replace('.', ',')} m³, non fourni par SCAF Innovation.</p>
         </section>`;
+
+  // Materiel de chantier : ce qui ne part pas en commande Nudura mais
+  // doit etre prevu, etaiement en tete.
+  const prevoir = [];
+  resultat.forEach(({data})=>(data.a_prevoir_hors_nudura || []).forEach(a=>{
+    const m = prevoir.find(x=>x.label === a.label);
+    if(m) m.qte = Math.max(m.qte, a.qte); else prevoir.push({ ...a });
+  }));
+
+  if(prevoir.length){
+    h += `<section class="materiel-impr">
+      <h2>Matériel et consommables de chantier</h2>
+      <p class="contexte">Hors fourniture Nudura. L'étaiement se réutilise d'un niveau
+         à l'autre : la quantité correspond au niveau le plus exigeant.</p>
+      <table><thead><tr><th>Désignation</th><th class="n">Qté</th><th>Unité</th>
+        <th class="n">PU</th><th class="n">Total</th></tr></thead><tbody>`;
+    prevoir.forEach(a=>{
+      h += `<tr><td>${a.label}${a.note ? `<div class="note">${a.note}</div>` : ''}</td>
+            <td class="n">${a.qte}</td><td>${a.unite}</td>
+            <td class="n">${a.prix_unitaire_eur != null ? eur(a.prix_unitaire_eur) : ''}</td>
+            <td class="n">${a.total_eur != null ? eur(a.total_eur) : ''}</td></tr>`;
+    });
+    h += `</tbody></table>
+      <p class="contexte">Quantités indicatives, à confronter à un métré précis avant commande.</p>
+      </section>`;
+  }
 
   zone.innerHTML = h;
   document.getElementById('dateImpression').textContent =
@@ -892,6 +919,19 @@ function telechargerCsv(){
   lignes.push([]);
   lignes.push(['', '', 'Surface de mur', num(surf.toFixed(1)), 'm2', '', '']);
   lignes.push(['', '', 'Beton (non fourni)', num(beton.toFixed(1)), 'm3', '', '']);
+
+  const prevoir = [];
+  resultat.forEach(({data})=>(data.a_prevoir_hors_nudura || []).forEach(a=>{
+    const m = prevoir.find(x=>x.label === a.label);
+    if(m) m.qte = Math.max(m.qte, a.qte); else prevoir.push({ ...a });
+  }));
+  if(prevoir.length){
+    lignes.push([]);
+    lignes.push(['MATERIEL DE CHANTIER', '', 'hors fourniture Nudura', '', '', '', '']);
+    prevoir.forEach(a=>lignes.push(['Chantier', '', a.label, a.qte, a.unite,
+      a.prix_unitaire_eur != null ? num(a.prix_unitaire_eur) : '',
+      a.total_eur != null ? num(a.total_eur) : '']));
+  }
 
   if(tarifs && tarifs.totaux){
     const t = tarifs.totaux;
@@ -973,6 +1013,19 @@ function rendreQuantitatif(){
   });
   h += lig('Surface de mur', surf.toFixed(1) + ' m²', '');
   h += lig('Béton', beton.toFixed(2) + ' m³', 'non fourni par SCAF');
+
+  const prevoir = [];
+  resultat.forEach(({data})=>(data.a_prevoir_hors_nudura || []).forEach(a=>{
+    const m = prevoir.find(x=>x.label === a.label);
+    if(m) m.qte = Math.max(m.qte, a.qte); else prevoir.push({ ...a });
+  }));
+  if(prevoir.length){
+    h += `<div class="groupe">Matériel de chantier — hors fourniture Nudura</div>`;
+    prevoir.forEach(a=>{
+      h += lig(a.label, `${a.qte} ${a.unite}`,
+               a.total_eur != null ? `${eur(a.prix_unitaire_eur)} le jeu · ${eur(a.total_eur)}` : (a.note || ''));
+    });
+  }
 
   if(tarifs && tarifs.totaux){
     const t = tarifs.totaux, c = tarifs.compte || {};
