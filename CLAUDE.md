@@ -62,8 +62,17 @@ fenêtre modale, produit une géométrie, et ne calcule aucun prix.
 **Pages qui redirigent vers le calculateur**, à ne pas ressusciter :
 `tracer.html`, `estimation-pro-nudura.html`.
 
-**`nudura-engine.js` est mort.** C'était un second moteur, plus pauvre, qui
-tournait dans le navigateur. Il n'est plus référencé. À supprimer.
+**`nudura-engine.js` n'est plus utilisé par les pages** — c'était un second
+moteur, plus pauvre, qui tournait dans le navigateur. **Mais ne pas le
+supprimer** : la fonction Netlify `netlify/functions/chiffrage-nudura.js`
+en dépend (déclarée dans `included_files` du `netlify.toml`), et l'URL
+courte `/api/chiffrage` qu'elle sert est prévue pour les appels Make et
+Telegram. Avant toute suppression, vérifier qu'aucun scénario Make ni le
+bot ERP ne l'appelle.
+
+La version présente inclut les corrections du 14 août (angles de refend,
+fonds de linteau, déduction des ouvertures), donc elle reste cohérente avec
+`estimer-nudura`.
 
 ### Fonctions Supabase (Edge Functions)
 
@@ -132,8 +141,6 @@ contrôlées, mais c'est à traiter avant tout élargissement.
 dans `/mnt/user-data/outputs/fr-allege/` d'une session précédente ; la règle
 de cache est déjà dans `netlify.toml` pour `/assets/*`.
 
-**`_verif-commit.txt`** est un résidu vide, à supprimer.
-
 **Le HTML de certaines pages est encodé en JSON** sur une seule ligne
 (`fr.html` l'était). Avant toute manipulation texte, vérifier — `grep` et
 `sed` échouent silencieusement dessus.
@@ -158,7 +165,8 @@ Fait ce jour :
 À faire :
 
 - Tester le parcours pro connecté de bout en bout.
-- Supprimer `nudura-engine.js` et `_verif-commit.txt`.
+- Vérifier si `/api/chiffrage` est encore appelée (Make, bot Telegram) ;
+  si non, retirer la fonction Netlify et `nudura-engine.js` ensemble.
 - Optimiser les images des pages produits.
 - Mesure d'audience (aucune installée).
 - Séquences de relance (aucune : tous les automatismes sont transactionnels).
