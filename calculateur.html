@@ -241,7 +241,9 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
-        <span><span class="ech" style="background:var(--terre)"></span>A1 aile longue</span>
+        <span><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
+        <span><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
+        <span><span class="ech" style="background:#A8481F;height:6px"></span>Coupe &lt; 30 cm</span>
       </div>
       <p class="aide" id="aide"></p>
     </div>
@@ -1271,20 +1273,41 @@ function rendreScene(){
       if(aileDep[i] > 0) g += rect(0, Math.min(aileDep[i], L), '#C08A2E', 0.30);
       if(aileFin[i] > 0) g += rect(Math.max(L-aileFin[i], 0), L, '#C08A2E', 0.30);
 
-      // trame des blocs droits, depuis la fin de l'aile de depart
+      // Les blocs droits se posent depuis les deux extremites et se
+      // rejoignent au centre : c'est la que tombe la coupe. La voir permet
+      // d'ajuster la cote du mur pour qu'elle soit exploitable.
       const d0 = Math.min(aileDep[i], L), dMax = Math.max(L - aileFin[i], d0);
-      for(let d=d0+LONG_BLOC; d<dMax-0.02; d+=LONG_BLOC){
+      const Ld = dMax - d0;
+      const nEnt = Math.floor(Ld / LONG_BLOC + 1e-9);
+      const nG = Math.floor(nEnt / 2), nD = nEnt - nG;
+      const coupe = Ld - nEnt * LONG_BLOC;
+      const trait = (d, coul, ep) => {
         const x=a0.x+dx*d, y=a0.y+dy*d;
         g+=`<line x1="${x}" y1="${-y}" x2="${x+nx}" y2="${-(y+ny)}"
-              stroke="#9A9488" stroke-width="${tr*0.5}"/>`;
-      }
-      // limites des zones d'angle, plus marquees
-      [d0, dMax].forEach(d=>{
-        if(d>0.02 && d<L-0.02){
-          const x=a0.x+dx*d, y=a0.y+dy*d;
-          g+=`<line x1="${x}" y1="${-y}" x2="${x+nx}" y2="${-(y+ny)}"
-                stroke="#C08A2E" stroke-width="${tr*0.9}"/>`;
+              stroke="${coul}" stroke-width="${tr*ep}"/>`;
+      };
+
+      // joints depuis la gauche, puis depuis la droite
+      for(let k=1;k<=nG;k++) trait(d0 + k*LONG_BLOC, '#9A9488', 0.5);
+      for(let k=1;k<=nD;k++) trait(dMax - k*LONG_BLOC, '#9A9488', 0.5);
+
+      // la coupe centrale, s'il en reste une
+      if(coupe > 0.02 && Ld > 0.05){
+        const cd = d0 + nG*LONG_BLOC, cf = cd + coupe;
+        const dur = coupe < 0.30;   // une coupe trop courte se pose mal
+        g += rect(cd, cf, dur ? '#A8481F' : '#3F6B4A', dur ? 0.30 : 0.18);
+        if(coupe / u > 0.035){
+          const mx=a0.x+dx*(cd+cf)/2 + nx*0.5, my=a0.y+dy*(cd+cf)/2 + ny*0.5;
+          g+=`<text x="${mx}" y="${-my}" font-size="${po*.55}"
+                font-family="IBM Plex Mono,monospace" fill="${dur?'#A8481F':'#2F5138'}"
+                font-weight="600" text-anchor="middle" dominant-baseline="middle"
+                >${coupe.toFixed(2)}</text>`;
         }
+      }
+
+      // limites des zones d'angle
+      [d0, dMax].forEach(d=>{
+        if(d>0.02 && d<L-0.02) trait(d, '#C08A2E', 0.9);
       });
     }
   }
