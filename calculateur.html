@@ -216,6 +216,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
           <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
           <button id="bAiles" onclick="basculerAiles()" title="Reperer le cote long et le cote court des blocs d angle">Ailes L/C</button>
+          <button id="bRang" onclick="inverserAiles()" hidden title="Basculer entre rang impair et rang pair">Rang pair</button>
           <button id="bReporter" onclick="reporterDepuisDessus()">Reporter du dessus</button>
           <button id="bAnnuler" onclick="annuler()">Annuler</button>
           <button id="bFermer" onclick="fermerTrace()">Fermer</button>
@@ -338,7 +339,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 // C'est ce que le mur occupe reellement au sol.
 const HORS_TOUT = { 102:0.235, 152:0.286, 203:0.337, 254:0.387, 305:0.438 };
 const LONG_BLOC = 2.438;
-let vueEpaisse = true, vueAiles = false;
+let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
    deux cotes decales, ce qui donne des angles nets meme sur un rentrant. */
@@ -1277,9 +1278,13 @@ function rendreScene(){
       if(t==='s90'||t==='r90'||t==='s45'||t==='r45'){
         const nb = niv.murs.length;
         const av = niv.murs[(i-1+nb)%nb], ap = niv.murs[i];
-        const versAv = av.longueur >= ap.longueur;
-        const dL = versAv ? { x:-av.dx, y:-av.dy } : { x:ap.dx, y:ap.dy };
-        const dC = versAv ? { x:ap.dx, y:ap.dy }   : { x:-av.dx, y:-av.dy };
+        // Aile longue toujours du meme cote en parcourant le contour :
+        // chaque mur recoit ainsi un long a une extremite et un court a
+        // l'autre, ce qui fait croiser les joints d'un rang au suivant.
+        // Le bouton inverse la pose pour lire le rang pair.
+        const dArr = { x:-av.dx, y:-av.dy }, dAv = { x:ap.dx, y:ap.dy };
+        const dL = ailesInversees ? dAv : dArr;
+        const dC = ailesInversees ? dArr : dAv;
         g+=`<text x="${p.x+dL.x*po*1.9}" y="${-(p.y+dL.y*po*1.9)}" font-size="${po*.72}"
               font-family="IBM Plex Mono,monospace" fill="var(--terre)" font-weight="600"
               text-anchor="middle" dominant-baseline="middle">L</text>`;
@@ -1634,7 +1639,8 @@ function majGamme(g){
   const n=N(); n.gamme=g;
   // En Plus+ le bloc d'angle n'est pas reversible : le reperage devient utile.
   if(g==='plus' && !vueAiles){ vueAiles=true;
-    const b=document.getElementById('bAiles'); if(b) b.classList.add('actif'); }
+    const b=document.getElementById('bAiles'); if(b) b.classList.add('actif');
+    const r=document.getElementById('bRang'); if(r) r.hidden=false; }
   // l'epaisseur courante n'existe pas forcement dans la nouvelle gamme
   if(!EPAISSEURS[g].includes(n.epaisseur)) n.epaisseur=EPAISSEURS[g][0];
   rendrePanneaux();
@@ -1691,7 +1697,17 @@ function effacerNiveau(){
 function basculerEpaisseur(){ vueEpaisse=!vueEpaisse;
   document.getElementById('bEpais').classList.toggle('actif',vueEpaisse); rendreScene(); }
 function basculerAiles(){ vueAiles=!vueAiles;
-  document.getElementById('bAiles').classList.toggle('actif',vueAiles); rendreScene(); }
+  document.getElementById('bAiles').classList.toggle('actif',vueAiles);
+  document.getElementById('bRang').hidden = !vueAiles;
+  rendreScene(); }
+
+/* Les blocs d'angle se posent en alternance : ce qui est long au rang impair
+   devient court au rang pair. C'est ce croisement qui chaine les angles. */
+function inverserAiles(){ ailesInversees=!ailesInversees;
+  const b=document.getElementById('bRang');
+  b.textContent = ailesInversees ? 'Rang impair' : 'Rang pair';
+  b.classList.toggle('actif',ailesInversees);
+  rendreScene(); }
 
 function basculerOrtho(){ ortho=!ortho;
   document.getElementById('bOrtho').classList.toggle('actif',ortho); }
