@@ -284,9 +284,9 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
-        <span><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
-        <span><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
-        <span><span class="ech" style="background:#A8481F;height:6px"></span>Fausse coupe, cale bois</span>
+        <span class="pose"><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
+        <span class="pose"><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
+        <span class="pose"><span class="ech" style="background:#A8481F;height:6px"></span>Fausse coupe, cale bois</span>
       </div>
       <p class="aide" id="aide"></p>
     </div>
@@ -1455,8 +1455,10 @@ function rendreScene(){
       };
 
       // zones tenues par les blocs d'angle
-      if(aileDep[i] > 0) g += rect(0, Math.min(aileDep[i], L), '#C08A2E', 0.30);
-      if(aileFin[i] > 0) g += rect(Math.max(L-aileFin[i], 0), L, '#C08A2E', 0.30);
+      if(vuePro()){
+        if(aileDep[i] > 0) g += rect(0, Math.min(aileDep[i], L), '#C08A2E', 0.30);
+        if(aileFin[i] > 0) g += rect(Math.max(L-aileFin[i], 0), L, '#C08A2E', 0.30);
+      }
 
       // Les blocs droits se posent depuis les deux extremites et se
       // rejoignent au centre : c'est la que tombe la coupe. La voir permet
@@ -1477,7 +1479,7 @@ function rendreScene(){
       for(let k=1;k<=nD;k++) trait(dMax - k*LONG_BLOC, '#9A9488', 0.5);
 
       // la coupe centrale, s'il en reste une
-      if(coupe > 0.02 && Ld > 0.05){
+      if(coupe > 0.02 && Ld > 0.05 && vuePro()){
         const cd = d0 + nG*LONG_BLOC, cf = cd + coupe;
         // Une coupe qui ne tombe pas sur le module laisse un bord sans appui.
         const dur = bilanCoupe(L, niv.epaisseur).etat === 'cale';
@@ -1492,7 +1494,7 @@ function rendreScene(){
       }
 
       // limites des zones d'angle
-      [d0, dMax].forEach(d=>{
+      if(vuePro()) [d0, dMax].forEach(d=>{
         if(d>0.02 && d<L-0.02) trait(d, '#C08A2E', 0.9);
       });
     }
@@ -1634,7 +1636,7 @@ function rendreScene(){
         g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m</text>`;
         // Ce que donnerait la coupe si l'on posait le point ici : mieux vaut
         // le savoir avant, une coupe se joue a quelques centimetres.
-        if(mode==='contour'){
+        if(mode==='contour' && vuePro()){
           const b = bilanCoupe(d, niv.epaisseur);
           const coul = b.etat==='cale' ? 'var(--terre)' : 'var(--vert)';
           let txt = b.etat==='court' ? 'plus court qu\'un angle'
@@ -1763,7 +1765,7 @@ function rendrePanneaux(){
   document.getElementById('nbMurs').textContent=niv.murs.length?`${niv.murs.length} mur${niv.murs.length>1?'s':''}`:'';
   document.getElementById('tableMurs').innerHTML = !niv.murs.length
     ? `<p class="vide">Le tableau se remplit à mesure que vous dessinez.</p>`
-    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th><th>Coupe</th><th>Angle en fin</th><th></th></tr></thead><tbody>`+
+    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th>${vuePro()?'<th>Coupe</th>':''}<th>Angle en fin</th><th></th></tr></thead><tbody>`+
       niv.murs.map((m,i)=>{
         const t=niv.ferme?a.liste[(i+1)%niv.murs.length]:null;
         const lb=t==='s90'?['pt-s','Sortant 90°']:t==='r90'?['pt-r','Rentrant 90°']
@@ -1784,7 +1786,7 @@ function rendrePanneaux(){
           <td><input type="number" step="0.01" min="0.1" placeholder="${niv.hauteur.toFixed(2)}"
                 value="${m.hauteur ?? ''}" onchange="majHauteurMur(${i},this.value)"
                 title="Laisser vide pour suivre la hauteur du niveau"></td>
-          <td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>
+          ${vuePro() ? `<td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>` : ''}
           <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td>
           <td><button class="rm" onclick="supprimerMur(${i})" title="Fusionner avec le mur suivant">✕</button></td></tr>`;
       }).join('')+`</tbody></table>`;
@@ -2264,6 +2266,11 @@ determinerMode().then(()=>{
   if(!vuePro()){
     const b = document.getElementById('bCalculer');
     if(b) b.textContent = 'Voir mon projet';
+    // Reperes de pose : ils n'ont de sens que pour qui monte les blocs.
+    ['bAiles','bRang'].forEach(id=>{
+      const e = document.getElementById(id); if(e) e.hidden = true;
+    });
+    document.querySelectorAll('.legende .pose').forEach(e=>e.hidden = true);
   }
   if(!vuePro()) document.getElementById('blocDemande').hidden = false;
   recalcul();
