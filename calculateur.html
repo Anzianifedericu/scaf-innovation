@@ -616,6 +616,12 @@ const API_ESTIM = API + '/estimer-nudura';
    Les prix ne sont jamais calcules ici : ils viennent de tarif-pro,
    qui verifie le jeton avant de repondre. */
 let MODE = 'libre';       // 'pro' | 'etude' | 'libre'
+/* Un pro peut regarder la page comme la voit un particulier, sans se
+   deconnecter : ?apercu=particulier. Cela retire l'affichage des tarifs et
+   fait apparaitre l'onglet Votre projet. L'inverse n'existe pas : on ne
+   gagne jamais l'acces pro par l'URL. */
+const APERCU = new URLSearchParams(location.search).get('apercu') === 'particulier';
+const vuePro = ()=> MODE === 'pro' && !APERCU;
 let prixParRef = null, tarifs = null;
 
 async function determinerMode(){
@@ -641,7 +647,7 @@ async function determinerMode(){
 }
 
 async function chargerTarifs(lignes){
-  if(MODE !== 'pro') return null;
+  if(!vuePro()) return null;
   const token = localStorage.getItem('scaf_pro_token');
   if(!token) return null;
   try{
@@ -655,9 +661,15 @@ async function chargerTarifs(lignes){
 }
 
 function bandeauMode(){
-  if(MODE === 'pro') return;
+  if(vuePro()) return;
   const b = document.createElement('div');
   b.style.cssText = 'background:var(--vert);color:#fff;padding:9px 16px;font-size:13px;text-align:center';
+  if(APERCU && MODE === 'pro'){
+    b.style.cssText = 'background:var(--ocre);color:#fff;padding:9px 16px;font-size:13px;text-align:center';
+    b.textContent = "Aperçu : la page telle que la voit un particulier. Retirez ?apercu=particulier de l'adresse pour revenir à votre vue professionnelle.";
+    document.body.insertBefore(b, document.body.firstChild);
+    return;
+  }
   b.textContent = MODE === 'etude'
     ? "Vous obtenez ici la liste des matériaux de votre projet. Les tarifs figureront dans le devis que nous préparons."
     : "Quantités indicatives. Les tarifs sont réservés aux professionnels identifiés — connectez-vous à l'espace pro.";
@@ -770,7 +782,7 @@ async function calculer(){
       return { epaisseur: Number(ep), data: d };
     }));
     resultat = reponses;
-    if(MODE === 'pro'){
+    if(vuePro()){
       // On envoie le cumul par reference, pour que la remise s'applique
       // sur l'ensemble et non ligne a ligne.
       const cumul = {};
@@ -1129,13 +1141,13 @@ function rendreQuantitatif(){
     data.detail_par_niveau.forEach(n=>fiches.push({ ...n, epaisseur }));
   });
   if(ongletQuanti >= fiches.length) ongletQuanti = 0;
-  if(ongletQuanti === -2 && MODE === 'pro') ongletQuanti = 0;
+  if(ongletQuanti === -2 && vuePro()) ongletQuanti = 0;
 
   // ---- un onglet par niveau, plus celui de la commande ----
   // Hors acces pro on ouvre sur une lecture du projet plutot que sur des
   // references catalogue : un particulier veut se projeter, pas commander.
   let h = `<div class="onglets-q">`;
-  if(MODE !== 'pro'){
+  if(!vuePro()){
     h += `<button class="onglet-q projet ${ongletQuanti === -2 ? 'actif' : ''}"
             onclick="choisirOngletQuanti(-2)">Votre projet
             <span class="etat">en clair</span></button>`;
@@ -2224,7 +2236,7 @@ function exemple(){
 
 determinerMode().then(()=>{
   bandeauMode();
-  if(MODE !== 'pro') document.getElementById('blocDemande').hidden = false;
+  if(!vuePro()) document.getElementById('blocDemande').hidden = false;
   recalcul();
 });
 </script>
