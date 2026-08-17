@@ -249,7 +249,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
         <span><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
         <span><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
-        <span><span class="ech" style="background:#A8481F;height:6px"></span>Coupe &lt; 30 cm</span>
+        <span><span class="ech" style="background:#A8481F;height:6px"></span>Fausse coupe, cale bois</span>
       </div>
       <p class="aide" id="aide"></p>
     </div>
@@ -366,30 +366,31 @@ const AILE_A1 = 0.803, AILE_A2 = 0.397;
 const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
                      return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
 
-/* Que donnera la coupe centrale pour cette longueur de mur ?
-   En dessous de 10 cm le morceau ne tient pas seul : il faut une cale bois
-   vissee a la jonction. Entre 10 et 30 cm la pose reste delicate. */
+/* Ce qui rend une coupe franche n'est pas sa longueur mais l'endroit ou
+   elle tombe : le bloc porte ses entretoises tous les 0,20317 m, soit douze
+   par bloc. Une coupe entre deux entretoises tient seule ; une coupe qui
+   traverse un module laisse un bord sans appui, et demande alors une cale
+   bois vissee a la jonction. Sa taille est trop variable pour etre chiffree. */
+const MODULE = 0.20317, TOL_MODULE = 0.020;
+
 function bilanCoupe(L, voile){
   const A = ailes(voile), ang = A.a1 + A.a2;
   const Ld = L - ang;
-  if(Ld < -0.01) return { etat:'court', coupe:0, n:0 };
+  if(Ld < -0.01) return { etat:'court', coupe:0, n:0, modules:0 };
   const n = Math.floor(Ld / LONG_BLOC + 1e-9);
   const c = Ld - n * LONG_BLOC;
-  return { n, coupe:c,
-           etat: c < 0.02 ? 'exact' : c < 0.10 ? 'cale' : c < 0.30 ? 'juste' : 'bon' };
+  const m = Ld / MODULE;
+  const ecart = Math.abs(m - Math.round(m)) * MODULE;
+  return { n, coupe:c, modules:m,
+           etat: ecart > TOL_MODULE ? 'cale' : c < 0.02 ? 'exact' : 'bon' };
 }
 
-/* Longueurs voisines donnant une coupe franche : blocs entiers, demi-bloc,
-   ou coupe minimale posable. */
+/* Longueurs voisines tombant juste sur le module. */
 function longueursUtiles(L, voile){
-  const A = ailes(voile), ang = A.a1 + A.a2, out = [];
-  for(let n = 0; n <= 14; n++){
-    out.push(ang + n*LONG_BLOC, ang + n*LONG_BLOC + 0.30, ang + n*LONG_BLOC + LONG_BLOC/2);
-  }
-  return out.filter(x => x > 0.5)
-            .sort((a,b) => Math.abs(a-L) - Math.abs(b-L))
-            .slice(0, 2)
-            .sort((a,b) => a-b);
+  const A = ailes(voile), ang = A.a1 + A.a2;
+  const m = (L - ang) / MODULE;
+  return [Math.floor(m) * MODULE + ang, Math.ceil(m) * MODULE + ang]
+           .filter(x => x > 0.5);
 }
 let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 
@@ -1326,7 +1327,8 @@ function rendreScene(){
       // la coupe centrale, s'il en reste une
       if(coupe > 0.02 && Ld > 0.05){
         const cd = d0 + nG*LONG_BLOC, cf = cd + coupe;
-        const dur = coupe < 0.30;   // une coupe trop courte se pose mal
+        // Une coupe qui ne tombe pas sur le module laisse un bord sans appui.
+        const dur = bilanCoupe(L, niv.epaisseur).etat === 'cale';
         g += rect(cd, cf, dur ? '#A8481F' : '#3F6B4A', dur ? 0.30 : 0.18);
         if(coupe / u > 0.035){
           const mx=a0.x+dx*(cd+cf)/2 + nx*0.5, my=a0.y+dy*(cd+cf)/2 + ny*0.5;
@@ -1477,13 +1479,13 @@ function rendreScene(){
         // le savoir avant, une coupe se joue a quelques centimetres.
         if(mode==='contour'){
           const b = bilanCoupe(d, niv.epaisseur);
-          const coul = b.etat==='cale' ? 'var(--terre)' : b.etat==='juste' ? '#B8860B' : 'var(--vert)';
+          const coul = b.etat==='cale' ? 'var(--terre)' : 'var(--vert)';
           let txt = b.etat==='court' ? 'plus court qu\'un angle'
+                  : b.etat==='cale'  ? 'fausse coupe — cale bois'
                   : b.etat==='exact' ? `${b.n} blocs, sans coupe`
                   : `${b.n} bloc${b.n>1?'s':''} + coupe ${b.coupe.toFixed(2)}`;
-          if(b.etat==='cale') txt += ' — cale bois';
           g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)+po*.55}" font-size="${po*.62}" font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle">${txt}</text>`;
-          if(b.etat==='cale' || b.etat==='juste'){
+          if(b.etat==='cale'){
             const u2 = longueursUtiles(d, niv.epaisseur);
             g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)+po*1.25}" font-size="${po*.55}" font-family="IBM Plex Mono,monospace" fill="var(--beton)" text-anchor="middle">plutôt ${u2.map(x=>x.toFixed(2)).join(' ou ')}</text>`;
           }
@@ -1613,15 +1615,16 @@ function rendrePanneaux(){
         // Une coupe trop courte ne tient pas seule : on le signale ici aussi,
         // pour pouvoir corriger la cote au clavier.
         const b = bilanCoupe(m.longueur, niv.epaisseur);
-        const cl = b.etat==='cale' ? 'coupe-ko' : b.etat==='juste' ? 'coupe-limite' : 'coupe-ok';
-        const util = (b.etat==='cale'||b.etat==='juste')
-          ? longueursUtiles(m.longueur, niv.epaisseur).map(x=>x.toFixed(2)).join(' / ') : '';
+        const cl = b.etat==='cale' ? 'coupe-ko' : 'coupe-ok';
+        const util = b.etat==='cale'
+          ? longueursUtiles(m.longueur, niv.epaisseur).map(x=>x.toFixed(3)).join(' / ') : '';
         const lib = b.etat==='court' ? '—'
+                  : b.etat==='cale'  ? 'fausse'
                   : b.etat==='exact' ? 'aucune'
                   : b.coupe.toFixed(2);
         return `<tr><td class="num">${i+1}</td>
           <td><input type="number" step="0.001" min="0.01" value="${m.longueur.toFixed(3)}" onchange="majLongueur(${i},this.value)"></td>
-          <td class="${cl}" ${util?`title="Longueurs plus franches : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale</small>':''}</td>
+          <td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>
           <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
 
