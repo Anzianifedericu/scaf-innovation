@@ -184,6 +184,12 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .enveloppe .couche{display:block;padding-left:2px}
 .enveloppe .couche i{display:inline-block;width:11px;height:8px;margin-right:6px;
   border:1px solid;vertical-align:-1px}
+
+/* Etat de la coupe centrale d'un mur, dans le tableau de saisie. */
+.coupe-ok{font:500 12px 'IBM Plex Mono',monospace;color:var(--vert)}
+.coupe-limite{font:500 12px 'IBM Plex Mono',monospace;color:#B8860B;cursor:help}
+.coupe-ko{font:600 12px 'IBM Plex Mono',monospace;color:var(--terre);cursor:help}
+.coupe-ko small,.coupe-limite small{font-size:9.5px;font-weight:400;opacity:.8}
 </style>
 </head>
 <body>
@@ -359,6 +365,32 @@ const EPS_PSE = 0.067;   // panneau PSE de chaque face, catalogue Nudura
 const AILE_A1 = 0.803, AILE_A2 = 0.397;
 const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
                      return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
+
+/* Que donnera la coupe centrale pour cette longueur de mur ?
+   En dessous de 10 cm le morceau ne tient pas seul : il faut une cale bois
+   vissee a la jonction. Entre 10 et 30 cm la pose reste delicate. */
+function bilanCoupe(L, voile){
+  const A = ailes(voile), ang = A.a1 + A.a2;
+  const Ld = L - ang;
+  if(Ld < -0.01) return { etat:'court', coupe:0, n:0 };
+  const n = Math.floor(Ld / LONG_BLOC + 1e-9);
+  const c = Ld - n * LONG_BLOC;
+  return { n, coupe:c,
+           etat: c < 0.02 ? 'exact' : c < 0.10 ? 'cale' : c < 0.30 ? 'juste' : 'bon' };
+}
+
+/* Longueurs voisines donnant une coupe franche : blocs entiers, demi-bloc,
+   ou coupe minimale posable. */
+function longueursUtiles(L, voile){
+  const A = ailes(voile), ang = A.a1 + A.a2, out = [];
+  for(let n = 0; n <= 14; n++){
+    out.push(ang + n*LONG_BLOC, ang + n*LONG_BLOC + 0.30, ang + n*LONG_BLOC + LONG_BLOC/2);
+  }
+  return out.filter(x => x > 0.5)
+            .sort((a,b) => Math.abs(a-L) - Math.abs(b-L))
+            .slice(0, 2)
+            .sort((a,b) => a-b);
+}
 let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
@@ -1439,7 +1471,24 @@ function rendreScene(){
     if(dep){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
-      if(d>.05) g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m</text>`;
+      if(d>.05){
+        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m</text>`;
+        // Ce que donnerait la coupe si l'on posait le point ici : mieux vaut
+        // le savoir avant, une coupe se joue a quelques centimetres.
+        if(mode==='contour'){
+          const b = bilanCoupe(d, niv.epaisseur);
+          const coul = b.etat==='cale' ? 'var(--terre)' : b.etat==='juste' ? '#B8860B' : 'var(--vert)';
+          let txt = b.etat==='court' ? 'plus court qu\'un angle'
+                  : b.etat==='exact' ? `${b.n} blocs, sans coupe`
+                  : `${b.n} bloc${b.n>1?'s':''} + coupe ${b.coupe.toFixed(2)}`;
+          if(b.etat==='cale') txt += ' — cale bois';
+          g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)+po*.55}" font-size="${po*.62}" font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle">${txt}</text>`;
+          if(b.etat==='cale' || b.etat==='juste'){
+            const u2 = longueursUtiles(d, niv.epaisseur);
+            g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)+po*1.25}" font-size="${po*.55}" font-family="IBM Plex Mono,monospace" fill="var(--beton)" text-anchor="middle">plutôt ${u2.map(x=>x.toFixed(2)).join(' ou ')}</text>`;
+          }
+        }
+      }
     }
     if(mode==='refend'&&!refEnCours) g+=`<circle cx="${curseur.x}" cy="${-curseur.y}" r="${ra}" fill="var(--ocre)"/>`;
   }
@@ -1555,14 +1604,24 @@ function rendrePanneaux(){
   document.getElementById('nbMurs').textContent=niv.murs.length?`${niv.murs.length} mur${niv.murs.length>1?'s':''}`:'';
   document.getElementById('tableMurs').innerHTML = !niv.murs.length
     ? `<p class="vide">Le tableau se remplit à mesure que vous dessinez.</p>`
-    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Angle en fin</th></tr></thead><tbody>`+
+    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Coupe</th><th>Angle en fin</th></tr></thead><tbody>`+
       niv.murs.map((m,i)=>{
         const t=niv.ferme?a.liste[(i+1)%niv.murs.length]:null;
         const lb=t==='s90'?['pt-s','Sortant 90°']:t==='r90'?['pt-r','Rentrant 90°']
                 :t==='s45'?['pt-s','Sortant 45°']:t==='r45'?['pt-r','Rentrant 45°']
                 :t==='droit'?['pt-d','Aligné']:null;
+        // Une coupe trop courte ne tient pas seule : on le signale ici aussi,
+        // pour pouvoir corriger la cote au clavier.
+        const b = bilanCoupe(m.longueur, niv.epaisseur);
+        const cl = b.etat==='cale' ? 'coupe-ko' : b.etat==='juste' ? 'coupe-limite' : 'coupe-ok';
+        const util = (b.etat==='cale'||b.etat==='juste')
+          ? longueursUtiles(m.longueur, niv.epaisseur).map(x=>x.toFixed(2)).join(' / ') : '';
+        const lib = b.etat==='court' ? '—'
+                  : b.etat==='exact' ? 'aucune'
+                  : b.coupe.toFixed(2);
         return `<tr><td class="num">${i+1}</td>
           <td><input type="number" step="0.001" min="0.01" value="${m.longueur.toFixed(3)}" onchange="majLongueur(${i},this.value)"></td>
+          <td class="${cl}" ${util?`title="Longueurs plus franches : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale</small>':''}</td>
           <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
 
