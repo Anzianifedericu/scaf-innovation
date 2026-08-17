@@ -211,6 +211,21 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .vitrine .appel button{margin-top:11px;width:100%;background:var(--vert);border-color:var(--vert);
   color:#fff;font-weight:600;padding:10px}
 .vitrine .mention{font-size:11px;color:var(--beton);line-height:1.55;margin:12px 0 0}
+
+/* Panneau du particulier : le metre carre habitable domine. */
+.hab-total{background:var(--vert);border-radius:10px;padding:14px 16px;margin-bottom:11px}
+.hab-total span{display:block;font-size:12px;color:rgba(255,255,255,.85)}
+.hab-total b{font:500 30px 'Fraunces',Georgia,serif;color:#fff;line-height:1.2}
+.hab-detail{margin-bottom:14px}
+.niv-hab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:7px 2px;border-bottom:1px solid var(--paper-dim)}
+.niv-hab span{font-size:13px;color:var(--encre)}
+.niv-hab em{display:block;font-style:normal;font-size:11px;color:var(--beton);margin-top:1px}
+.niv-hab b{font:500 15px 'IBM Plex Mono',monospace;color:var(--encre);white-space:nowrap}
+.vitrine .deux{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.vitrine .deux>div{background:var(--paper-dim);border-radius:8px;padding:10px 11px}
+.vitrine .deux .et{display:block;font-size:11px;color:var(--beton);margin-bottom:3px}
+.vitrine .deux b{font:500 18px 'Fraunces',Georgia,serif;color:var(--encre)}
 </style>
 </head>
 <body>
@@ -622,6 +637,21 @@ let MODE = 'libre';       // 'pro' | 'etude' | 'libre'
    gagne jamais l'acces pro par l'URL. */
 const APERCU = new URLSearchParams(location.search).get('apercu') === 'particulier';
 const vuePro = ()=> MODE === 'pro' && !APERCU;
+
+/* Surface habitable d'un niveau : l'emprise mesuree au nu interieur des
+   murs. C'est le chiffre que regarde un particulier, avant tout autre. */
+function surfaceHabitable(niv){
+  if(!niv.ferme || niv.murs.length < 3) return 0;
+  const pts = sommetsDe(niv).slice(0, -1);
+  if(pts.length < 3) return 0;
+  const dedans = versInterieur(pts, HORS_TOUT[niv.epaisseur] ?? 0.286, aireSignee(niv) > 0);
+  let a = 0;
+  for(let i=0;i<dedans.length;i++){
+    const q = dedans[(i+1)%dedans.length];
+    a += dedans[i].x*q.y - q.x*dedans[i].y;
+  }
+  return Math.abs(a/2);
+}
 let prixParRef = null, tarifs = null;
 
 async function determinerMode(){
@@ -806,7 +836,8 @@ async function calculer(){
   }
   calculEnCours = false;
   document.getElementById('bImprimer').hidden = false;
-  document.getElementById('bCsv').hidden = false;
+  // Le fichier de references ne sert qu'a passer commande.
+  document.getElementById('bCsv').hidden = !vuePro();
   rendreQuantitatif();
 }
 
@@ -1143,57 +1174,39 @@ function rendreQuantitatif(){
   if(ongletQuanti >= fiches.length) ongletQuanti = 0;
   if(ongletQuanti === -2 && vuePro()) ongletQuanti = 0;
 
-  // ---- un onglet par niveau, plus celui de la commande ----
-  // Hors acces pro on ouvre sur une lecture du projet plutot que sur des
-  // references catalogue : un particulier veut se projeter, pas commander.
-  let h = `<div class="onglets-q">`;
+  // Un particulier ne commande pas : il projette. On lui montre ses metres
+  // carres habitables, pas des references catalogue.
   if(!vuePro()){
-    h += `<button class="onglet-q projet ${ongletQuanti === -2 ? 'actif' : ''}"
-            onclick="choisirOngletQuanti(-2)">Votre projet
-            <span class="etat">en clair</span></button>`;
-  }
-  fiches.forEach((n, k)=>{
-    const blocs = n.quantites.droits + n.quantites.a90 + n.quantites.a45;
-    h += `<button class="onglet-q ${k === ongletQuanti ? 'actif' : ''}"
-            onclick="choisirOngletQuanti(${k})">${n.niveau}
-            <span class="etat">${blocs} blocs</span></button>`;
-  });
-  h += `<button class="onglet-q total ${ongletQuanti === -1 ? 'actif' : ''}"
-          onclick="choisirOngletQuanti(-1)">Total projet
-          <span class="etat">commande</span></button></div>`;
+    const m2 = x => x.toFixed(1).replace('.', ',');
+    let total = 0, beton = 0;
+    resultat.forEach(({data})=> beton += data.recapitulatif.beton_m3);
 
-  // ---- lecture du projet, pour un particulier ----
-  if(ongletQuanti === -2){
-    let surf = 0, beton = 0, surfInt = 0;
-    resultat.forEach(({data})=>{
-      surf  += data.recapitulatif.surface_mur_m2;
-      beton += data.recapitulatif.beton_m3;
-    });
-    // Surface habitable : l'emprise au nu interieur du niveau le plus grand.
+    let lignes = '';
     niveaux.forEach(n=>{
-      if(!n.ferme || !n.murs.length) return;
-      const pts = sommetsDe(n).slice(0, -1);
-      if(pts.length < 3) return;
-      const dedans = versInterieur(pts, HORS_TOUT[n.epaisseur] ?? 0.286, aireSignee(n) > 0);
-      let a = 0;
-      for(let i=0;i<dedans.length;i++){
-        const q = dedans[(i+1)%dedans.length];
-        a += dedans[i].x*q.y - q.x*dedans[i].y;
-      }
-      surfInt = Math.max(surfInt, Math.abs(a/2));
+      const s = surfaceHabitable(n);
+      if(s <= 0) return;
+      total += s;
+      lignes += `<div class="niv-hab">
+          <span>${n.nom}<em>hauteur ${n.hauteur.toFixed(2).replace('.', ',')} m</em></span>
+          <b>${m2(s)} m²</b></div>`;
     });
+
     const ep = (niveaux[iNiveau].epaisseur ?? 152) + EPS_PSE*2000;
     const R  = R_GAMME[niveaux[iNiveau].gamme] ?? 4.2;
 
-    h += `<div class="vitrine">
-      <div class="chiffres">
-        <div><span class="et">Surface habitable</span><b>${surfInt.toFixed(1).replace('.', ',')} m²</b></div>
+    let h2 = `<div class="vitrine">
+      <div class="hab-total">
+        <span>Surface habitable</span>
+        <b>${m2(total)} m²</b>
+      </div>
+      ${lignes ? `<div class="hab-detail">${lignes}</div>` : ''}
+
+      <div class="deux">
         <div><span class="et">Isolation du mur</span><b>R = ${String(R).replace('.', ',')}</b></div>
-        <div><span class="et">Épaisseur totale</span><b>${ep.toFixed(0)} mm</b></div>
+        <div><span class="et">Épaisseur du mur</span><b>${ep.toFixed(0)} mm</b></div>
       </div>
 
       <p class="titre-v">Ce que ça change chez vous</p>
-
       <div class="arg"><b>Isolation continue, sans pont thermique.</b>
         L'isolant enveloppe le béton des deux côtés, sans interruption aux angles
         ni aux planchers.</div>
@@ -1210,12 +1223,24 @@ function rendreQuantitatif(){
         <button onclick="ouvrirDemande()">Demander mon étude</button>
       </div>
 
-      <p class="mention">Quantités indicatives, établies d'après le plan que vous avez tracé.
-        SCAF Innovation, distributeur exclusif Nudura pour la Corse.</p>
+      <p class="mention">Surfaces mesurées au nu intérieur des murs, d'après le plan
+        que vous avez tracé. SCAF Innovation, distributeur exclusif Nudura pour la Corse.</p>
     </div>`;
-    pn.innerHTML = h;
+    pn.innerHTML = h2;
     return;
   }
+
+  // ---- acces pro : un onglet par niveau, plus celui de la commande ----
+  let h = `<div class="onglets-q">`;
+  fiches.forEach((n, k)=>{
+    const blocs = n.quantites.droits + n.quantites.a90 + n.quantites.a45;
+    h += `<button class="onglet-q ${k === ongletQuanti ? 'actif' : ''}"
+            onclick="choisirOngletQuanti(${k})">${n.niveau}
+            <span class="etat">${blocs} blocs</span></button>`;
+  });
+  h += `<button class="onglet-q total ${ongletQuanti === -1 ? 'actif' : ''}"
+          onclick="choisirOngletQuanti(-1)">Total projet
+          <span class="etat">commande</span></button></div>`;
 
   // ---- fiche d'un niveau ----
   if(ongletQuanti !== -1){
@@ -2236,6 +2261,10 @@ function exemple(){
 
 determinerMode().then(()=>{
   bandeauMode();
+  if(!vuePro()){
+    const b = document.getElementById('bCalculer');
+    if(b) b.textContent = 'Voir mon projet';
+  }
   if(!vuePro()) document.getElementById('blocDemande').hidden = false;
   recalcul();
 });
