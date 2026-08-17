@@ -192,6 +192,25 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .coupe-limite{font:500 12px 'IBM Plex Mono',monospace;color:#B8860B;cursor:help}
 .coupe-ko{font:600 12px 'IBM Plex Mono',monospace;color:var(--terre);cursor:help}
 .coupe-ko small,.coupe-limite small{font-size:9.5px;font-weight:400;opacity:.8}
+
+/* Lecture du projet pour un particulier : les memes chiffres, dits autrement. */
+.onglet-q.projet{border-right:1px solid var(--trait)}
+.onglet-q.projet.actif{border-bottom-color:var(--ocre)}
+.vitrine{padding:14px}
+.vitrine .chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px;margin-bottom:16px}
+.vitrine .chiffres>div{background:var(--paper-dim);border-radius:8px;padding:10px 11px}
+.vitrine .chiffres .et{display:block;font-size:11px;color:var(--beton);margin-bottom:3px}
+.vitrine .chiffres b{font:500 20px 'Fraunces',Georgia,serif;color:var(--encre)}
+.vitrine .titre-v{font:500 14px 'IBM Plex Sans',sans-serif;margin:0 0 9px}
+.vitrine .arg{font-size:12.5px;line-height:1.6;color:var(--beton);margin-bottom:10px;
+  padding-left:11px;border-left:2px solid var(--vert)}
+.vitrine .arg b{color:var(--encre);font-weight:500}
+.vitrine .appel{margin-top:16px;background:#F0F4EE;border-radius:10px;padding:13px 14px}
+.vitrine .appel b{display:block;font:500 14px 'IBM Plex Sans',sans-serif;color:var(--vert-fonce,#2F5138)}
+.vitrine .appel span{display:block;font-size:11.5px;color:var(--beton);margin-top:2px}
+.vitrine .appel button{margin-top:11px;width:100%;background:var(--vert);border-color:var(--vert);
+  color:#fff;font-weight:600;padding:10px}
+.vitrine .mention{font-size:11px;color:var(--beton);line-height:1.55;margin:12px 0 0}
 </style>
 </head>
 <body>
@@ -365,6 +384,8 @@ const LONG_BLOC = 2.438;
 // donc chaque aile s'allonge de la difference. La somme retombe sur la
 // consommation d'angle du catalogue, a un millimetre pres.
 const EPS_PSE = 0.067;   // panneau PSE de chaque face, catalogue Nudura
+// Resistance thermique du complexe, valeur catalogue. A confirmer par gamme.
+const R_GAMME = { standard: 4.2, xr35: 4.2, plus: 4.2 };
 const AILE_A1 = 0.803, AILE_A2 = 0.397;
 const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
                      return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
@@ -786,6 +807,17 @@ function pointsContour(niv){
   return niv.ferme ? p.slice(0,-1) : p;
 }
 
+/* Le formulaire de demande existe deja plus bas dans la colonne : on l'y
+   amene plutot que d'en ouvrir un second. */
+function ouvrirDemande(){
+  const b = document.getElementById('blocDemande');
+  if(!b) return;
+  b.hidden = false;
+  if(b.scrollIntoView) b.scrollIntoView({ behavior:'smooth', block:'center' });
+  const n = document.getElementById('dNom');
+  if(n) setTimeout(()=>n.focus(), 350);
+}
+
 async function envoyerPlan(){
   const prets = niveaux.filter(n=>n.ferme && n.murs.length);
   const msg = document.getElementById('dMsg');
@@ -1077,7 +1109,8 @@ function telechargerCsv(){
   URL.revokeObjectURL(url);
 }
 
-let ongletQuanti = 0;   // 0..n-1 = niveaux, -1 = total du projet
+// 0..n-1 = niveaux, -1 = total du projet, -2 = lecture pour un particulier
+let ongletQuanti = 0;
 
 function choisirOngletQuanti(k){ ongletQuanti = k; rendreQuantitatif(); }
 
@@ -1096,9 +1129,17 @@ function rendreQuantitatif(){
     data.detail_par_niveau.forEach(n=>fiches.push({ ...n, epaisseur }));
   });
   if(ongletQuanti >= fiches.length) ongletQuanti = 0;
+  if(ongletQuanti === -2 && MODE === 'pro') ongletQuanti = 0;
 
   // ---- un onglet par niveau, plus celui de la commande ----
+  // Hors acces pro on ouvre sur une lecture du projet plutot que sur des
+  // references catalogue : un particulier veut se projeter, pas commander.
   let h = `<div class="onglets-q">`;
+  if(MODE !== 'pro'){
+    h += `<button class="onglet-q projet ${ongletQuanti === -2 ? 'actif' : ''}"
+            onclick="choisirOngletQuanti(-2)">Votre projet
+            <span class="etat">en clair</span></button>`;
+  }
   fiches.forEach((n, k)=>{
     const blocs = n.quantites.droits + n.quantites.a90 + n.quantites.a45;
     h += `<button class="onglet-q ${k === ongletQuanti ? 'actif' : ''}"
@@ -1108,6 +1149,61 @@ function rendreQuantitatif(){
   h += `<button class="onglet-q total ${ongletQuanti === -1 ? 'actif' : ''}"
           onclick="choisirOngletQuanti(-1)">Total projet
           <span class="etat">commande</span></button></div>`;
+
+  // ---- lecture du projet, pour un particulier ----
+  if(ongletQuanti === -2){
+    let surf = 0, beton = 0, surfInt = 0;
+    resultat.forEach(({data})=>{
+      surf  += data.recapitulatif.surface_mur_m2;
+      beton += data.recapitulatif.beton_m3;
+    });
+    // Surface habitable : l'emprise au nu interieur du niveau le plus grand.
+    niveaux.forEach(n=>{
+      if(!n.ferme || !n.murs.length) return;
+      const pts = sommetsDe(n).slice(0, -1);
+      if(pts.length < 3) return;
+      const dedans = versInterieur(pts, HORS_TOUT[n.epaisseur] ?? 0.286, aireSignee(n) > 0);
+      let a = 0;
+      for(let i=0;i<dedans.length;i++){
+        const q = dedans[(i+1)%dedans.length];
+        a += dedans[i].x*q.y - q.x*dedans[i].y;
+      }
+      surfInt = Math.max(surfInt, Math.abs(a/2));
+    });
+    const ep = (niveaux[iNiveau].epaisseur ?? 152) + EPS_PSE*2000;
+    const R  = R_GAMME[niveaux[iNiveau].gamme] ?? 4.2;
+
+    h += `<div class="vitrine">
+      <div class="chiffres">
+        <div><span class="et">Surface habitable</span><b>${surfInt.toFixed(1).replace('.', ',')} m²</b></div>
+        <div><span class="et">Isolation du mur</span><b>R = ${String(R).replace('.', ',')}</b></div>
+        <div><span class="et">Épaisseur totale</span><b>${ep.toFixed(0)} mm</b></div>
+      </div>
+
+      <p class="titre-v">Ce que ça change chez vous</p>
+
+      <div class="arg"><b>Isolation continue, sans pont thermique.</b>
+        L'isolant enveloppe le béton des deux côtés, sans interruption aux angles
+        ni aux planchers.</div>
+      <div class="arg"><b>${beton.toFixed(1).replace('.', ',')} m³ de béton armé.</b>
+        Une structure monolithique, adaptée aux exigences sismiques de la Corse.</div>
+      <div class="arg"><b>Des murs montés en quelques jours.</b>
+        Coffrage, isolation intérieure et extérieure posés en une seule opération.</div>
+
+      <div class="appel">
+        <div>
+          <b>Recevez votre étude personnalisée</b>
+          <span>Chiffrage détaillé, sans engagement</span>
+        </div>
+        <button onclick="ouvrirDemande()">Demander mon étude</button>
+      </div>
+
+      <p class="mention">Quantités indicatives, établies d'après le plan que vous avez tracé.
+        SCAF Innovation, distributeur exclusif Nudura pour la Corse.</p>
+    </div>`;
+    pn.innerHTML = h;
+    return;
+  }
 
   // ---- fiche d'un niveau ----
   if(ongletQuanti !== -1){
