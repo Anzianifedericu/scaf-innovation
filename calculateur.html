@@ -710,6 +710,40 @@ async function chargerTarifs(lignes){
   }catch(e){ return null; }
 }
 
+/* Le vocabulaire de chantier ne dit rien a un particulier : on nomme les
+   memes choses avec ses mots a lui. Le plan reste identique. */
+function traduirePourParticulier(){
+  if(vuePro()) return;
+  const t = {
+    mRefend:   'Murs porteurs',
+    mOuv:      'Portes et fenêtres',
+    mDep:      'Déplacer',
+    bEpais:    'Épaisseur',
+    titreRefends: 'Murs porteurs intérieurs',
+    titreMurs:    'Murs extérieurs',
+    labelEpaisseur: 'Épaisseur du mur',
+    labelGamme:     'Type de bloc',
+  };
+  const b = id => document.getElementById(id);
+  if(b('mRefend')) b('mRefend').textContent = t.mRefend;
+  if(b('mOuv'))    b('mOuv').textContent    = t.mOuv;
+
+  const titres = {
+    'Refends':     'Murs porteurs intérieurs',
+    'Ouvertures':  'Portes et fenêtres',
+    'Quantitatif': 'Votre projet',
+  };
+  document.querySelectorAll('.panneau-titre').forEach(e=>{
+    const v = titres[e.textContent.trim()];
+    if(v) e.textContent = v;
+  });
+  document.querySelectorAll('.champ-libelle, label').forEach(e=>{
+    const v = e.textContent.trim();
+    if(v === 'Bloc')     e.textContent = t.labelGamme;
+    if(v === 'Épaisseur')e.textContent = t.labelEpaisseur;
+  });
+}
+
 function bandeauMode(){
   if(vuePro()) return;
   const b = document.createElement('div');
@@ -896,10 +930,16 @@ async function envoyerPlan(){
   const b = document.getElementById('bEnvoyer');
   b.disabled = true; b.textContent = 'Envoi en cours…';
 
+  // On joint le dessin de chaque niveau : sans lui, le plan reçu se lit
+  // en colonnes de chiffres et ne se comprend pas.
+  const dessins = plansDesNiveaux();
+
   const charge = prets.map(n=>{
     const a = anglesDe(n);
     return {
       nom: n.nom, hauteur: n.hauteur,
+      svg: dessins[n.nom] ? dessins[n.nom].slice(0, 120000) : null,
+      surfaceHabitable: Number(surfaceHabitable(n).toFixed(2)),
       murs: n.murs.map(m=>({ longueur: m.longueur })),
       points: pointsContour(n),
       angles: a.s90 + a.r90 + a.s45 + a.r45,
@@ -1958,7 +1998,7 @@ function rendrePanneaux(){
   rendreQuantitatif();
 }
 
-function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); rendrePanneaux(); majAide(); majBoutons(); }
+function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); }
 
 /* ---------------- interactions ---------------- */
 
@@ -2235,10 +2275,10 @@ function majAide(){
   document.getElementById('aide').innerHTML = mode==='contour'
     ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
     : mode==='refend'
-    ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.`
+    ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
     : mode==='deplacer'
     ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
-    : `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.`;
+    : (vuePro() ? `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.` : `Cliquez sur un mur pour y poser une porte ou une fenêtre, puis ajustez ses dimensions dans le tableau.`);
 }
 
 /* Hauteur propre d'un mur : en Corse le terrain est rarement plat et
@@ -2390,6 +2430,7 @@ determinerMode().then(()=>{
       const e = document.getElementById(id); if(e) e.hidden = true;
     });
     document.querySelectorAll('.legende .pose').forEach(e=>e.hidden = true);
+    traduirePourParticulier();
   }
   if(!vuePro()) document.getElementById('blocDemande').hidden = false;
   recalcul();
