@@ -226,6 +226,26 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .vitrine .deux>div{background:var(--paper-dim);border-radius:8px;padding:10px 11px}
 .vitrine .deux .et{display:block;font-size:11px;color:var(--beton);margin-bottom:3px}
 .vitrine .deux b{font:500 18px 'Fraunces',Georgia,serif;color:var(--encre)}
+
+/* Document remis au particulier : lisible, sans jargon de chantier. */
+#impression .resume-projet .grand-chiffre{background:var(--vert);border-radius:8px;
+  padding:12px 16px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+#impression .grand-chiffre span{font-size:12px;color:rgba(255,255,255,.85)}
+#impression .grand-chiffre b{font:500 26px 'Fraunces',Georgia,serif;color:#fff}
+#impression .plan-plaquette{max-width:100%;margin:0 0 8px}
+#impression .plan-plaquette svg{width:100%;height:auto;max-height:110mm}
+#impression .deux-col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:9px}
+#impression .deux-col>div{background:var(--paper-dim);border-radius:6px;padding:9px 11px}
+#impression .deux-col span{display:block;font-size:10px;color:var(--beton);margin-bottom:2px}
+#impression .deux-col b{font:500 17px 'Fraunces',Georgia,serif;color:var(--encre)}
+#impression .compo{font-size:10.5px;color:var(--beton);margin:0 0 12px}
+#impression .atouts p{font-size:11.5px;line-height:1.6;color:var(--beton);margin:0 0 8px;
+  padding-left:10px;border-left:2px solid var(--vert)}
+#impression .atouts b{color:var(--encre);font-weight:600}
+#impression .contact-plaquette{break-inside:avoid}
+#impression .contact-plaquette p{font-size:11.5px;line-height:1.6;color:var(--beton);margin:0 0 8px}
+#impression .coord{padding:10px 12px;background:var(--paper-dim);border-radius:6px}
+#impression .coord b{color:var(--encre)}
 </style>
 </head>
 <body>
@@ -239,7 +259,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
       <div style="font-size:11px;color:var(--beton)">Distributeur exclusif Nudura en Corse · Borgo, Haute-Corse · 04 95 61 88 36</div>
     </div>
     <div style="text-align:right;font-size:11px;color:var(--beton)">
-      <div style="font-weight:600;color:var(--encre);font-size:13px">Estimation de fourniture</div>
+      <div style="font-weight:600;color:var(--encre);font-size:13px" id="titreImpression">Estimation de fourniture</div>
       <div id="dateImpression"></div>
     </div>
   </div>
@@ -922,10 +942,110 @@ async function envoyerPlan(){
    avec ses blocs et ses accessoires, puis le recapitulatif de commande.
    Le detail par niveau permet de repartir les livraisons et de suivre le
    chantier etage par etage. */
+/* Redessine chaque niveau hors ecran, pour le document imprime. */
+function plansDesNiveaux(){
+  const memeNiveau = iNiveau, memeMode = mode, memeCadre = cadre;
+  const out = {};
+  niveaux.forEach((n, i)=>{
+    if(!n.ferme || !n.murs.length) return;
+    iNiveau = i; mode = 'contour'; cadre = null; curseur = null; survol = null;
+    rendreScene();
+    out[n.nom] = `<svg viewBox="${scene.getAttribute('viewBox')}" xmlns="http://www.w3.org/2000/svg"
+                   preserveAspectRatio="xMidYMid meet">${scene.innerHTML}</svg>`;
+  });
+  iNiveau = memeNiveau; mode = memeMode; cadre = memeCadre; rendreScene();
+  return out;
+}
+
+function majDateImpression(titre){
+  const t = document.getElementById('titreImpression');
+  if(t && titre) t.textContent = titre;
+  const e = document.getElementById('dateImpression');
+  if(e) e.textContent = new Date().toLocaleDateString('fr-FR',
+    { day:'numeric', month:'long', year:'numeric' });
+}
+
+/* Document destine au particulier : son plan, ses surfaces, de quoi nous
+   rappeler. Aucune reference catalogue, aucun prix. */
+function plaquetteProjet(){
+  const m2 = x => x.toFixed(1).replace('.', ',');
+  const plans = plansDesNiveaux();
+  let total = 0, beton = 0;
+  resultat.forEach(({data})=> beton += data.recapitulatif.beton_m3);
+
+  const niv = niveaux[iNiveau];
+  const ep = (niv.epaisseur ?? 152) + EPS_PSE*2000;
+  const R  = R_GAMME[niv.gamme] ?? 4.2;
+
+  let lignes = '', pages = '';
+  niveaux.forEach(n=>{
+    const s = surfaceHabitable(n);
+    if(s <= 0) return;
+    total += s;
+    lignes += `<tr><td>${n.nom}</td>
+      <td class="n">${n.hauteur.toFixed(2).replace('.', ',')} m</td>
+      <td class="n"><b>${m2(s)} m²</b></td></tr>`;
+    if(plans[n.nom]){
+      pages += `<section class="niveau-impr">
+        <h2>${n.nom}</h2>
+        <p class="contexte">Hauteur sous plafond ${n.hauteur.toFixed(2).replace('.', ',')} m —
+           surface habitable ${m2(s)} m²</p>
+        <div class="plan-plaquette">${plans[n.nom]}</div>
+      </section>`;
+    }
+  });
+
+  return `
+  <section class="resume-projet">
+    <h2>Votre projet</h2>
+    <div class="grand-chiffre">
+      <span>Surface habitable</span><b>${m2(total)} m²</b>
+    </div>
+    <table><thead><tr><th>Niveau</th><th class="n">Hauteur</th>
+      <th class="n">Surface habitable</th></tr></thead>
+      <tbody>${lignes}</tbody></table>
+    <p class="contexte">Surfaces mesurées au nu intérieur des murs, d'après le plan que
+       vous avez tracé.</p>
+  </section>
+
+  ${pages}
+
+  <section class="mur-plaquette">
+    <h2>Le mur Nudura</h2>
+    <div class="deux-col">
+      <div><span>Isolation</span><b>R = ${String(R).replace('.', ',')}</b></div>
+      <div><span>Épaisseur totale</span><b>${ep.toFixed(0)} mm</b></div>
+      <div><span>Béton armé</span><b>${beton.toFixed(1).replace('.', ',')} m³</b></div>
+    </div>
+    <p class="compo">Bloc coffrage isolant ${(EPS_PSE*1000).toFixed(0)} mm ·
+       béton C25/30 ${niv.epaisseur} mm · bloc coffrage isolant ${(EPS_PSE*1000).toFixed(0)} mm</p>
+
+    <div class="atouts">
+      <p><b>Isolation continue, sans pont thermique.</b> L'isolant enveloppe le béton
+         des deux côtés, sans interruption aux angles ni aux planchers.</p>
+      <p><b>Structure monolithique en béton armé.</b> Adaptée aux exigences sismiques
+         de la Corse.</p>
+      <p><b>Des murs montés en quelques jours.</b> Coffrage, isolation intérieure et
+         extérieure posés en une seule opération.</p>
+    </div>
+  </section>
+
+  <section class="contact-plaquette">
+    <h2>Pour aller plus loin</h2>
+    <p>Nous établissons gratuitement le chiffrage détaillé de votre projet, sans engagement
+       de votre part.</p>
+    <p class="coord"><b>SCAF Innovation</b> — distributeur exclusif Nudura pour la Corse<br>
+       Borgo, Haute-Corse · 04 95 61 88 36 · scaf-innovation.com</p>
+  </section>`;
+}
+
 function imprimer(){
   if(!resultat) return;
   const zone = document.getElementById('impression');
   const eur = x => Number(x).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+
+  // Un particulier ne sort pas un devis de fourniture : il emporte son projet.
+  if(!vuePro()){ zone.innerHTML = plaquetteProjet(); majDateImpression('Votre projet Nudura'); window.print(); return; }
 
   // Les plans, redessines hors ecran pour figurer en tete du document.
   const memeNiveau = iNiveau, memeMode = mode, memeCadre = cadre;
@@ -1063,8 +1183,7 @@ function imprimer(){
   }
 
   zone.innerHTML = h;
-  document.getElementById('dateImpression').textContent =
-    new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  majDateImpression('Estimation de fourniture');
   window.print();
 }
 
