@@ -1281,20 +1281,63 @@ function rendreScene(){
   niv.refends.forEach((r,ri)=>traceRefend(r,'var(--bleu)',ri));
   if(refEnCours) traceRefend(refEnCours,'var(--ocre)');
 
-  // ouvertures, sur murs comme sur refends
+  // ---- ouvertures dessinees comme sur un plan ----
+  // Le mur est reellement interrompu sur la largeur de la baie, les tableaux
+  // sont marques, et la porte montre son sens d'ouverture.
   niv.ouvertures.forEach(o=>{
     const s=supportDe(niv,o); if(!s) return;
     const c={x:s.a.x+(s.b.x-s.a.x)*o.t, y:s.a.y+(s.b.y-s.a.y)*o.t};
     const d=o.largeur/2;
     const x1=c.x-s.dx*d, y1=c.y-s.dy*d, x2=c.x+s.dx*d, y2=c.y+s.dy*d;
-    const ep=s.sur==='mur'?2.6:1.9;
-    g+=`<line x1="${x1}" y1="${-y1}" x2="${x2}" y2="${-y2}" stroke="#FCFAF5" stroke-width="${tr*ep}" stroke-linecap="butt"/>`;
-    g+=`<line x1="${x1}" y1="${-y1}" x2="${x2}" y2="${-y2}" stroke="var(--ciel)" stroke-width="${tr*1.4}" stroke-linecap="butt"/>`;
-    const n={x:-s.dy,y:s.dx};
-    [[x1,y1],[x2,y2]].forEach(([px,py])=>{
-      g+=`<line x1="${px-n.x*tr*1.9}" y1="${-(py-n.y*tr*1.9)}" x2="${px+n.x*tr*1.9}" y2="${-(py+n.y*tr*1.9)}" stroke="var(--ciel)" stroke-width="${tr*1.2}"/>`; });
-    const nx = s.sur==='mur'&&niv.ferme ? normaleExterieure(niv,s) : n;
-    g+=`<text x="${c.x-nx.x*po*.95}" y="${-(c.y-nx.y*po*.95)}" font-size="${po*.8}" font-family="IBM Plex Mono,monospace" fill="var(--ciel)" text-anchor="middle" dominant-baseline="middle">${o.largeur.toFixed(2)}×${o.hauteur.toFixed(2)}</text>`;
+
+    // normale rentrante, celle qui donne l'epaisseur du mur
+    const anti = niv.ferme ? aireSignee(niv) > 0 : true;
+    const sg = anti ? -1 : 1;
+    const nIn = { x: sg*s.dy, y: -sg*s.dx };
+    const e = s.sur==='mur' ? (HORS_TOUT[niv.epaisseur] ?? 0.286) : (HORS_TOUT[niv.epaisseur] ?? 0.286);
+    const sv = mode==='ouverture' && estSurvole(s.sur, s.i, s.seg);
+
+    if(vueEpaisse && niv.ferme){
+      // on evide le mur sur la largeur de la baie
+      const q = [[x1,y1],[x2,y2],[x2+nIn.x*e, y2+nIn.y*e],[x1+nIn.x*e, y1+nIn.y*e]];
+      g+=`<polygon points="${q.map(([px,py])=>`${px},${-py}`).join(' ')}"
+            fill="#FCFAF5" stroke="none"/>`;
+      // tableaux : les deux joues de l'ouverture
+      [[x1,y1],[x2,y2]].forEach(([px,py])=>{
+        g+=`<line x1="${px}" y1="${-py}" x2="${px+nIn.x*e}" y2="${-(py+nIn.y*e)}"
+              stroke="var(--encre)" stroke-width="${tr*0.9}"/>`; });
+    } else {
+      g+=`<line x1="${x1}" y1="${-y1}" x2="${x2}" y2="${-y2}" stroke="#FCFAF5"
+            stroke-width="${tr*(s.sur==='mur'?2.6:1.9)}" stroke-linecap="butt"/>`;
+    }
+
+    const coul = sv ? 'var(--ciel)' : 'var(--bleu)';
+
+    if(o.nature === 'porte'){
+      // vantail ouvert a 90 degres, et son arc de debattement
+      const vx = x1 + nIn.x*e, vy = y1 + nIn.y*e;         // gond, cote interieur
+      const bx = vx + nIn.x*o.largeur, by = vy + nIn.y*o.largeur;
+      g+=`<line x1="${vx}" y1="${-vy}" x2="${bx}" y2="${-by}"
+            stroke="${coul}" stroke-width="${tr*1.3}"/>`;
+      const ex = vx + s.dx*o.largeur, ey = vy + s.dy*o.largeur;
+      g+=`<path d="M ${bx},${-by} A ${o.largeur},${o.largeur} 0 0 ${sg>0?1:0} ${ex},${-ey}"
+            fill="none" stroke="${coul}" stroke-width="${tr*0.6}" stroke-dasharray="${u/150} ${u/190}"/>`;
+    } else {
+      // fenetre : le vitrage, trois traits fins dans l'epaisseur
+      [0.34, 0.5, 0.66].forEach((k, idx)=>{
+        const ox = nIn.x*e*k, oy = nIn.y*e*k;
+        g+=`<line x1="${x1+ox}" y1="${-(y1+oy)}" x2="${x2+ox}" y2="${-(y2+oy)}"
+              stroke="${coul}" stroke-width="${tr*(idx===1?1.1:0.55)}"/>`; });
+    }
+
+    // cote de la baie, rejetee du cote exterieur
+    const nOut = s.sur==='mur'&&niv.ferme ? normaleExterieure(niv,s) : {x:-s.dy,y:s.dx};
+    g+=`<text x="${c.x+nOut.x*po*1.15}" y="${-(c.y+nOut.y*po*1.15)}" font-size="${po*.66}"
+          font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle"
+          dominant-baseline="middle">${o.largeur.toFixed(3)}</text>`;
+    g+=`<text x="${c.x+nOut.x*po*1.85}" y="${-(c.y+nOut.y*po*1.85)}" font-size="${po*.66}"
+          font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle"
+          dominant-baseline="middle">${o.hauteur.toFixed(3)}</text>`;
   });
 
   if(curseur&&mode!=='ouverture'){
