@@ -215,7 +215,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
           <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
-          <button id="bAiles" onclick="basculerAiles()" title="Reperer le cote long et le cote court des blocs d angle">Ailes L/C</button>
+          <button id="bAiles" onclick="basculerAiles()" title="Tracer les ailes A1 et A2 des blocs d angle a leur longueur reelle">Ailes A1/A2</button>
           <button id="bRang" onclick="inverserAiles()" hidden title="Basculer entre rang impair et rang pair">Rang pair</button>
           <button id="bReporter" onclick="reporterDepuisDessus()">Reporter du dessus</button>
           <button id="bAnnuler" onclick="annuler()">Annuler</button>
@@ -232,6 +232,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
+        <span><span class="ech" style="background:var(--terre)"></span>A1 aile longue</span>
       </div>
       <p class="aide" id="aide"></p>
     </div>
@@ -339,6 +340,13 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 // C'est ce que le mur occupe reellement au sol.
 const HORS_TOUT = { 102:0.235, 152:0.286, 203:0.337, 254:0.387, 305:0.438 };
 const LONG_BLOC = 2.438;
+// Ailes du bloc d'angle, relevees pour un voile de 152 mm. Quand le voile
+// epaissit, le coin exterieur s'eloigne d'autant dans les deux directions,
+// donc chaque aile s'allonge de la difference. La somme retombe sur la
+// consommation d'angle du catalogue, a un millimetre pres.
+const AILE_A1 = 0.803, AILE_A2 = 0.397;
+const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
+                     return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
 let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
@@ -1285,12 +1293,29 @@ function rendreScene(){
         const dArr = { x:-av.dx, y:-av.dy }, dAv = { x:ap.dx, y:ap.dy };
         const dL = ailesInversees ? dAv : dArr;
         const dC = ailesInversees ? dArr : dAv;
-        g+=`<text x="${p.x+dL.x*po*1.9}" y="${-(p.y+dL.y*po*1.9)}" font-size="${po*.72}"
-              font-family="IBM Plex Mono,monospace" fill="var(--terre)" font-weight="600"
-              text-anchor="middle" dominant-baseline="middle">L</text>`;
-        g+=`<text x="${p.x+dC.x*po*1.25}" y="${-(p.y+dC.y*po*1.25)}" font-size="${po*.72}"
-              font-family="IBM Plex Mono,monospace" fill="var(--beton)"
-              text-anchor="middle" dominant-baseline="middle">C</text>`;
+        const A = ailes(niv.epaisseur);
+
+        // Les ailes sont tracees a leur longueur reelle : on voit ou tombe
+        // le premier joint droit, et si une aile mange une ouverture.
+        const trait = (d, lg, coul, nom) => {
+          const x2 = p.x + d.x*lg, y2 = p.y + d.y*lg;
+          const nx = -d.y, ny = d.x;
+          const dep = po*0.75;
+          let t = `<line x1="${p.x+nx*dep}" y1="${-(p.y+ny*dep)}"
+                         x2="${x2+nx*dep}" y2="${-(y2+ny*dep)}"
+                         stroke="${coul}" stroke-width="${tr*1.5}" stroke-linecap="round"/>`;
+          [[p.x,p.y],[x2,y2]].forEach(([qx,qy])=>{
+            t += `<line x1="${qx+nx*dep*0.55}" y1="${-(qy+ny*dep*0.55)}"
+                        x2="${qx+nx*dep*1.45}" y2="${-(qy+ny*dep*1.45)}"
+                        stroke="${coul}" stroke-width="${tr*0.9}"/>`; });
+          const mx = (p.x+x2)/2 + nx*dep*1.9, my = (p.y+y2)/2 + ny*dep*1.9;
+          t += `<text x="${mx}" y="${-my}" font-size="${po*.62}"
+                  font-family="IBM Plex Mono,monospace" fill="${coul}" font-weight="600"
+                  text-anchor="middle" dominant-baseline="middle">${nom} ${lg.toFixed(3)}</text>`;
+          return t;
+        };
+        g += trait(dL, A.a1, 'var(--terre)', 'A1');
+        g += trait(dC, A.a2, 'var(--beton)', 'A2');
       }
     }
   });
