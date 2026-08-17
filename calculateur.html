@@ -1274,8 +1274,24 @@ function rendreScene(){
       // Un refend porteur a la meme epaisseur qu'un mur exterieur : le
       // representer d'un trait fin fausserait la lecture des surfaces.
       if(vueEpaisse && ri!==undefined && !ko){
-        const L=Math.hypot(b.x-a.x,b.y-a.y);
+        const L0=Math.hypot(b.x-a.x,b.y-a.y);
+        // Un refend bute contre le mur, il ne le traverse pas : on recule
+        // chaque extremite qui touche le contour, de l'epaisseur du mur.
+        const epM = HORS_TOUT[niv.epaisseur] ?? 0.286;
+        const surContour = q => {
+          for(let k=0;k<niv.murs.length;k++)
+            if(distSegment(q, pts[k], pts[k+1]) < 0.12) return true;
+          return false;
+        };
+        let A={...a}, B={...b};
+        if(L0>0.01){
+          const vx=(b.x-a.x)/L0, vy=(b.y-a.y)/L0;
+          if(surContour(a)){ A.x+=vx*epM; A.y+=vy*epM; }
+          if(surContour(b)){ B.x-=vx*epM; B.y-=vy*epM; }
+        }
+        const L=Math.hypot(B.x-A.x,B.y-A.y);
         if(L>0.01){
+          const a=A, b=B;
           const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
           const e=(HORS_TOUT[niv.epaisseur] ?? 0.286)/2;   // de part et d'autre de l'axe
           const nx=-uy*e, ny=ux*e;
@@ -1853,9 +1869,9 @@ function exemple(){
   niveaux=[
     { nom:'Vide sanitaire', hauteur:1.20, gamme:'standard', epaisseur:203,
       murs:contour.map(m=>({...m})),
-      refends:[{pts:[{x:0,y:7.28},{x:6.78,y:7.28}]}], ouvertures:[], ferme:true },
+      refends:[{pts:[{x:0,y:-7.28},{x:6.78,y:-7.28}]}], ouvertures:[], ferme:true },
     { nom:'RDC', hauteur:2.70, gamme:'standard', epaisseur:152, murs:contour.map(m=>({...m})),
-      refends:[{pts:[{x:0,y:7.28},{x:6.78,y:7.28}]}],
+      refends:[{pts:[{x:0,y:-7.28},{x:6.78,y:-7.28}]}],
       ouvertures:[
         { sur:'mur', i:0, t:0.30, largeur:1.00, hauteur:1.20, nature:'fenetre' },
         { sur:'mur', i:0, t:0.70, largeur:0.80, hauteur:2.10, nature:'porte' },
