@@ -127,7 +127,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
   .panneau{ border:0; break-inside:avoid; }
   #scene{ display:none; }
   #impression{ display:block !important; }
-  details.niv, .panneau, #panier{ display:none !important; }
+  details.niv, .panneau, #panier, .onglets-q{ display:none !important; }
   details.niv > summary{ font-weight:600; }
   .entete-impression{ display:block !important; }
 }
@@ -161,6 +161,21 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 #impression .alerte{ font-size:10px; color:var(--terre); line-height:1.45;
   margin:5px 0 0; padding:5px 8px; background:#FBF1EC; border-left:2px solid var(--terre); }
 #impression .recap-impr{ break-before:page; }
+
+/* Quantitatif : un onglet par niveau, un pour la commande. Empiler quatre
+   niveaux dans une colonne rendait la lecture penible. */
+.onglets-q{display:flex;border-bottom:1px solid var(--trait);background:var(--paper-dim);
+  overflow-x:auto;scrollbar-width:thin}
+.onglet-q{padding:8px 13px;font:500 12.5px 'IBM Plex Sans',sans-serif;border:0;background:none;
+  color:var(--beton);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;
+  text-align:left;line-height:1.25}
+.onglet-q:hover{background:rgba(0,0,0,.03)}
+.onglet-q.actif{background:#fff;color:var(--encre);border-bottom-color:var(--vert)}
+.onglet-q .etat{display:block;font-size:10px;font-weight:400;opacity:.75}
+.onglet-q.total{margin-left:auto;border-left:1px solid var(--trait)}
+.onglet-q.total.actif{border-bottom-color:var(--terre)}
+.contexte-q{padding:9px 14px;font-size:11.5px;color:var(--beton);line-height:1.5;
+  border-bottom:1px solid var(--paper-dim);background:#FCFAF5}
 </style>
 </head>
 <body>
@@ -958,6 +973,10 @@ function telechargerCsv(){
   URL.revokeObjectURL(url);
 }
 
+let ongletQuanti = 0;   // 0..n-1 = niveaux, -1 = total du projet
+
+function choisirOngletQuanti(k){ ongletQuanti = k; rendreQuantitatif(); }
+
 function rendreQuantitatif(){
   const pn = document.getElementById('panier');
   if(!resultat){
@@ -965,55 +984,95 @@ function rendreQuantitatif(){
     return;
   }
 
-  let h = '';
+  const eur = x => Number(x).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
-  // Detail par niveau
+  // Les niveaux, a plat, avec l'epaisseur de leur groupe de calcul.
+  const fiches = [];
   resultat.forEach(({epaisseur, data})=>{
-    data.detail_par_niveau.forEach(n=>{
-      const blocs = n.quantites.droits + n.quantites.a90 + n.quantites.a45;
-      h += `<details class="niv" open>
-        <summary><span>${n.niveau}</span>
-        <span class="res">${epaisseur} mm · ${blocs} blocs · ${n.rangs} rangs</span></summary>`;
-      n.fournitures.forEach(f=>{ h += lig(f.label, f.qte, f.ref); });
-      h += lig('Surface de mur', n.surface_mur_m2.toFixed(1) + ' m²',
-               n.surface_ouvertures_m2 ? `${n.surface_ouvertures_m2.toFixed(1)} m² percés · ${n.blocs_deduits} blocs déduits` : '');
-      h += lig('Béton', n.beton_m3.toFixed(2) + ' m³', 'non fourni par SCAF');
-      if(n.avertissements.length){
-        h += `<div class="verdict ko" style="margin:8px 14px 12px">` +
-             n.avertissements.map(a=>`<div style="margin:3px 0">${a}</div>`).join('') + `</div>`;
-      }
-      h += `</details>`;
-    });
+    data.detail_par_niveau.forEach(n=>fiches.push({ ...n, epaisseur }));
   });
+  if(ongletQuanti >= fiches.length) ongletQuanti = 0;
 
-  // Total, cumule par reference : deux epaisseurs ne se melangent pas.
+  // ---- un onglet par niveau, plus celui de la commande ----
+  let h = `<div class="onglets-q">`;
+  fiches.forEach((n, k)=>{
+    const blocs = n.quantites.droits + n.quantites.a90 + n.quantites.a45;
+    h += `<button class="onglet-q ${k === ongletQuanti ? 'actif' : ''}"
+            onclick="choisirOngletQuanti(${k})">${n.niveau}
+            <span class="etat">${blocs} blocs</span></button>`;
+  });
+  h += `<button class="onglet-q total ${ongletQuanti === -1 ? 'actif' : ''}"
+          onclick="choisirOngletQuanti(-1)">Total projet
+          <span class="etat">commande</span></button></div>`;
+
+  // ---- fiche d'un niveau ----
+  if(ongletQuanti !== -1){
+    const n = fiches[ongletQuanti];
+    h += `<div class="contexte-q">
+            Hauteur retenue ${n.hauteur_retenue_m.toFixed(2).replace('.', ',')} m —
+            ${n.rangs} rang${n.rangs > 1 ? 's' : ''}${n.demi_rang ? ', dont un demi' : ''} —
+            voile ${n.epaisseur} mm<br>
+            ${n.surface_mur_m2.toFixed(1).replace('.', ',')} m² de blocs ·
+            ${n.beton_m3.toFixed(1).replace('.', ',')} m³ de béton</div>`;
+
+    let sousTotal = 0;
+    n.fournitures.forEach(f=>{
+      const p = prixParRef && prixParRef[f.ref];
+      if(p && p.prix_unitaire_ht != null){
+        const t = Number(p.prix_unitaire_ht) * f.qte;
+        sousTotal += t;
+        h += `<div class="ligne-ref">
+                <span>${f.label}<div class="desc">${f.ref} · ${eur(p.prix_unitaire_ht)} l'unité</div></span>
+                <span class="qte">${f.qte} · ${eur(t)}</span></div>`;
+      } else {
+        h += lig(f.label, f.qte, f.ref);
+      }
+    });
+
+    if(n.blocs_deduits > 0){
+      h += lig('Blocs déduits par les ouvertures', `− ${n.blocs_deduits}`,
+               `${n.surface_ouvertures_m2.toFixed(1).replace('.', ',')} m² percés`);
+    }
+    if(sousTotal > 0){
+      h += `<div class="ligne-ref" style="background:var(--paper-dim);font-weight:600">
+              <span>Sous-total ${n.niveau}</span><span class="qte">${eur(sousTotal)}</span></div>`;
+    }
+    if(n.avertissements.length){
+      h += `<div class="verdict ko" style="margin:10px 14px">` +
+           n.avertissements.map(a=>`<div style="margin:3px 0">${a}</div>`).join('') + `</div>`;
+    }
+    pn.innerHTML = h;
+    return;
+  }
+
+  // ---- total du projet ----
   const parRef = {};
   let surf = 0, beton = 0;
   resultat.forEach(({data})=>{
     data.fournitures_totales.forEach(f=>{
-      if(!parRef[f.ref]) parRef[f.ref] = { label:f.label, qte:0, unite:f.unite };
+      if(!parRef[f.ref]) parRef[f.ref] = { ...f, qte: 0 };
       parRef[f.ref].qte += f.qte;
     });
     surf  += data.recapitulatif.surface_mur_m2;
     beton += data.recapitulatif.beton_m3;
   });
 
-  h += `<div class="groupe total">Total du projet — par référence</div>`;
-  const eur = x => Number(x).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  h += `<div class="contexte-q">Cumul de tous les niveaux, par référence catalogue.</div>`;
   Object.keys(parRef).sort().forEach(ref=>{
-    const p = prixParRef && prixParRef[ref];
+    const f = parRef[ref], p = prixParRef && prixParRef[ref];
     if(p && p.prix_unitaire_ht != null){
-      const paq = p.paquets ? ` · ${p.paquets} paquet(s) de ${p.par_paquet}` : '';
       h += `<div class="ligne-ref">
-              <span>${parRef[ref].label}<div class="desc">${ref} · ${eur(p.prix_unitaire_ht)} la pièce${paq}</div></span>
-              <span class="qte">${parRef[ref].qte} · ${eur(p.total_net_ht)}</span></div>`;
+              <span>${f.label}<div class="desc">${ref} · ${eur(p.prix_unitaire_ht)} l'unité</div></span>
+              <span class="qte">${f.qte} · ${eur(p.total_net_ht)}</span></div>`;
     } else {
-      h += lig(parRef[ref].label, parRef[ref].qte, ref);
+      h += lig(f.label, f.qte, ref);
     }
   });
+
   h += lig('Surface de mur', surf.toFixed(1) + ' m²', '');
   h += lig('Béton', beton.toFixed(2) + ' m³', 'non fourni par SCAF');
 
+  // Materiel reutilisable : on retient le plus grand besoin, pas la somme.
   const prevoir = [];
   resultat.forEach(({data})=>(data.a_prevoir_hors_nudura || []).forEach(a=>{
     const m = prevoir.find(x=>x.label === a.label);
