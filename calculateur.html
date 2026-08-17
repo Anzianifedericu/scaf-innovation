@@ -1704,7 +1704,7 @@ function rendrePanneaux(){
   document.getElementById('nbMurs').textContent=niv.murs.length?`${niv.murs.length} mur${niv.murs.length>1?'s':''}`:'';
   document.getElementById('tableMurs').innerHTML = !niv.murs.length
     ? `<p class="vide">Le tableau se remplit à mesure que vous dessinez.</p>`
-    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th><th>Coupe</th><th>Angle en fin</th></tr></thead><tbody>`+
+    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th><th>Coupe</th><th>Angle en fin</th><th></th></tr></thead><tbody>`+
       niv.murs.map((m,i)=>{
         const t=niv.ferme?a.liste[(i+1)%niv.murs.length]:null;
         const lb=t==='s90'?['pt-s','Sortant 90°']:t==='r90'?['pt-r','Rentrant 90°']
@@ -1726,7 +1726,8 @@ function rendrePanneaux(){
                 value="${m.hauteur ?? ''}" onchange="majHauteurMur(${i},this.value)"
                 title="Laisser vide pour suivre la hauteur du niveau"></td>
           <td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>
-          <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td></tr>`;
+          <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td>
+          <td><button class="rm" onclick="supprimerMur(${i})" title="Fusionner avec le mur suivant">✕</button></td></tr>`;
       }).join('')+`</tbody></table>`;
 
   // murets : chacun peut avoir sa hauteur, ce qui suit un terrain en pente
@@ -1986,9 +1987,17 @@ scene.addEventListener('click', e=>{
   recalcul();
 });
 
-scene.addEventListener('dblclick',()=>{
+scene.addEventListener('dblclick', e=>{
   if(mode==='refend') validerRefend();
   if(mode==='muret')  validerMuret();
+  // En mode Deplacer, un double-clic retire ce qui est sous le curseur.
+  if(mode==='deplacer'){
+    const h = poigneeSous(versMetres(e));
+    if(!h) return;
+    if(h.type==='sommet')        supprimerMur((h.i - 1 + N().murs.length) % N().murs.length);
+    else if(h.type==='refend')   { N().refends.splice(h.ri,1); recalcul(); }
+    else if(h.type==='ouverture'){ N().ouvertures.splice(h.oi,1); recalcul(); }
+  }
 });
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') annuler();
@@ -2090,7 +2099,7 @@ function majAide(){
     : mode==='refend'
     ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.`
     : mode==='deplacer'
-    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm.`
+    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
     : mode==='muret'
     ? `Tracez un muret ou un mur ajouté. <kbd>Entrée</kbd> ou double-clic le termine. Sa hauteur se règle dans le tableau.`
     : `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.`;
@@ -2098,6 +2107,31 @@ function majAide(){
 
 /* Hauteur propre d'un mur : en Corse le terrain est rarement plat et
    l'arase basse suit la pente. Vide, le mur prend celle du niveau. */
+/* Supprime un mur : son sommet de fin disparait, si bien que ce mur et le
+   suivant n'en font plus qu'un. Les ouvertures qu'il portait s'en vont avec
+   lui, et celles des murs suivants sont reindexees. */
+function supprimerMur(i){
+  const niv = N();
+  if(niv.murs.length <= 3){
+    const vd=document.getElementById('verdict');
+    vd.className='verdict ko';
+    vd.textContent="Un contour fermé demande au moins trois murs.";
+    return;
+  }
+  const avant = niv.murs.length;          // avant reconstruction
+  const suivant = (i + 1) % avant;
+  const pts = sommets().slice(0, niv.ferme ? -1 : undefined);
+  pts.splice(suivant, 1);
+  murisDepuisPoints(niv, pts);
+
+  // Les deux murs fusionnes perdent leurs ouvertures ; les suivantes se decalent.
+  niv.ouvertures = niv.ouvertures
+    .filter(o => !(o.sur==='mur' && (o.i === i || o.i === suivant)))
+    .map(o => (o.sur==='mur' && o.i > i) ? { ...o, i: o.i - 1 } : o);
+
+  recalcul();
+}
+
 function majHauteurMur(i,v){
   const h=parseFloat(v);
   N().murs[i].hauteur = (h>0) ? h : null;
