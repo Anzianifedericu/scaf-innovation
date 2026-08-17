@@ -214,6 +214,8 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
+          <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
+          <button id="bAiles" onclick="basculerAiles()" title="Reperer le cote long et le cote court des blocs d angle">Ailes L/C</button>
           <button id="bReporter" onclick="reporterDepuisDessus()">Reporter du dessus</button>
           <button id="bAnnuler" onclick="annuler()">Annuler</button>
           <button id="bFermer" onclick="fermerTrace()">Fermer</button>
@@ -228,6 +230,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:var(--ciel);height:4px"></span>Ouvertures</span>
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
+        <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
       </div>
       <p class="aide" id="aide"></p>
     </div>
@@ -331,6 +334,34 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 
 // Le choix du bloc conditionne les references : il est transmis au moteur,
 // qui renvoie les references reelles du catalogue.
+// Epaisseur hors tout du bloc : voile beton + 67 mm de PSE par face.
+// C'est ce que le mur occupe reellement au sol.
+const HORS_TOUT = { 102:0.235, 152:0.286, 203:0.337, 254:0.387, 305:0.438 };
+const LONG_BLOC = 2.438;
+let vueEpaisse = true, vueAiles = false;
+
+/* Decale un contour vers l'interieur : chaque sommet est l'intersection des
+   deux cotes decales, ce qui donne des angles nets meme sur un rentrant. */
+function versInterieur(pts, d, anti){
+  const n = pts.length, out = [];
+  for(let i = 0; i < n; i++){
+    const p = pts[i], a = pts[(i-1+n)%n], b = pts[(i+1)%n];
+    const u = { x:p.x-a.x, y:p.y-a.y }, v = { x:b.x-p.x, y:b.y-p.y };
+    const lu = Math.hypot(u.x,u.y), lv = Math.hypot(v.x,v.y);
+    if(!lu || !lv){ out.push({ ...p }); continue; }
+    const s = anti ? -1 : 1;
+    const n1 = { x: s*u.y/lu, y: -s*u.x/lu };
+    const n2 = { x: s*v.y/lv, y: -s*v.x/lv };
+    const p1 = { x:a.x+n1.x*d, y:a.y+n1.y*d };
+    const p2 = { x:p.x+n2.x*d, y:p.y+n2.y*d };
+    const den = u.x*v.y - u.y*v.x;
+    if(Math.abs(den) < 1e-9){ out.push({ x:p.x+n1.x*d, y:p.y+n1.y*d }); continue; }
+    const t = ((p2.x-p1.x)*v.y - (p2.y-p1.y)*v.x) / den;
+    out.push({ x: p1.x+u.x*t, y: p1.y+u.y*t });
+  }
+  return out;
+}
+
 const GAMMES=[{k:'standard',l:'Standard'},{k:'xr35',l:'XR35'},{k:'plus',l:'Plus+ Forms'}];
 const EPAISSEURS={standard:[102,152,203,254,305], xr35:[152,203], plus:[152,203]};
 
@@ -1144,12 +1175,44 @@ function rendreScene(){
   const segKO=(ri,i)=>orph.some(o=>o.type==='refend'&&o.ri===ri&&o.i===i);
   const estSurvole=(sur,i,seg)=> survol&&survol.sur===sur&&survol.i===i&&(sur==='mur'||survol.seg===seg);
 
+  // ---- murs a leur epaisseur reelle ----
+  // Un trait fin ne dit rien de l'encombrement : le voile plus ses deux faces
+  // de PSE occupent 286 mm pour un 152, et cela se voit sur un plan.
+  const epMur = HORS_TOUT[niv.epaisseur] ?? 0.286;
+  if(vueEpaisse && niv.ferme && pts.length > 3){
+    const contour = pts.slice(0, -1);
+    const anti = aireSignee(niv) > 0;
+    const dedans = versInterieur(contour, epMur, anti);
+    const ext = contour.map(p=>`${p.x},${-p.y}`).join(' ');
+    const int = dedans.map(p=>`${p.x},${-p.y}`).join(' ');
+    // fill-rule evenodd : seul l'entre-deux se remplit, l'interieur reste clair
+    g+=`<path d="M ${ext} Z M ${int} Z" fill="#DFD6C2" fill-rule="evenodd"
+          stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
+
+    // joints de blocs : un tous les 2,438 m, marques sur l'epaisseur
+    for(let i=0;i<contour.length;i++){
+      const a=contour[i], b=contour[(i+1)%contour.length];
+      const L=Math.hypot(b.x-a.x,b.y-a.y);
+      if(L < LONG_BLOC*0.6) continue;
+      const dx=(b.x-a.x)/L, dy=(b.y-a.y)/L;
+      const sgn = anti ? -1 : 1;
+      const nx = sgn*dy*epMur, ny = -sgn*dx*epMur;
+      for(let d=LONG_BLOC; d<L-0.05; d+=LONG_BLOC){
+        const x=a.x+dx*d, y=a.y+dy*d;
+        g+=`<line x1="${x}" y1="${-y}" x2="${x+nx}" y2="${-(y+ny)}"
+              stroke="#B9AE95" stroke-width="${tr*0.55}"/>`;
+      }
+    }
+  }
+
   // murs + cotes rejetées vers l'extérieur
   niv.murs.forEach((m,i)=>{
     const a=pts[i], b=pts[i+1], ko=murKO(i), sv=mode==='ouverture'&&estSurvole('mur',i);
-    g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}"
-         stroke="${ko?'var(--terre)':sv?'var(--ciel)':'var(--encre)'}"
-         stroke-width="${tr*(ko||sv?3:2.2)}" stroke-linecap="square"/>`;
+    if(!vueEpaisse || !niv.ferme || ko || sv)
+      g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}"
+           stroke="${ko?'var(--terre)':sv?'var(--ciel)':'var(--encre)'}"
+           stroke-width="${tr*(ko||sv?3:2.2)}" stroke-linecap="square"
+           ${vueEpaisse && niv.ferme ? 'opacity=".6"' : ''}/>`;
     const nx=niv.ferme?normaleExterieure(niv,m):{x:-m.dy,y:m.dx};
     const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
     g+=`<line x1="${mx+nx.x*dec*.35}" y1="${-(my+nx.y*dec*.35)}" x2="${mx+nx.x*dec*.72}" y2="${-(my+nx.y*dec*.72)}" stroke="var(--trait)" stroke-width="${tr*.8}"/>`;
@@ -1206,6 +1269,25 @@ function rendreScene(){
       c=(t==='s90'||t==='s45')?'var(--terre)':(t==='r90'||t==='r45')?'var(--vert)':'var(--beton)'; }
     else if(i===0) c='var(--vert)';
     g+=`<circle cx="${p.x}" cy="${-p.y}" r="${ra}" fill="${c}"/>`;
+
+    // Cote long et cote court du bloc d'angle. En serie Plus+ les deux ailes
+    // different, et leur orientation conditionne la reference commandee.
+    if(niv.ferme && vueAiles){
+      const t = a.liste[i];
+      if(t==='s90'||t==='r90'||t==='s45'||t==='r45'){
+        const nb = niv.murs.length;
+        const av = niv.murs[(i-1+nb)%nb], ap = niv.murs[i];
+        const versAv = av.longueur >= ap.longueur;
+        const dL = versAv ? { x:-av.dx, y:-av.dy } : { x:ap.dx, y:ap.dy };
+        const dC = versAv ? { x:ap.dx, y:ap.dy }   : { x:-av.dx, y:-av.dy };
+        g+=`<text x="${p.x+dL.x*po*1.9}" y="${-(p.y+dL.y*po*1.9)}" font-size="${po*.72}"
+              font-family="IBM Plex Mono,monospace" fill="var(--terre)" font-weight="600"
+              text-anchor="middle" dominant-baseline="middle">L</text>`;
+        g+=`<text x="${p.x+dC.x*po*1.25}" y="${-(p.y+dC.y*po*1.25)}" font-size="${po*.72}"
+              font-family="IBM Plex Mono,monospace" fill="var(--beton)"
+              text-anchor="middle" dominant-baseline="middle">C</text>`;
+      }
+    }
   });
   if(!niv.ferme&&pts.length>2&&mode==='contour')
     g+=`<circle cx="0" cy="0" r="${ra*2.4}" fill="none" stroke="var(--vert)" stroke-width="${tr}" stroke-dasharray="${u/120} ${u/160}"/>`;
@@ -1550,6 +1632,9 @@ function majAide(){
 function majHauteur(v){ const h=parseFloat(v); if(h>0){ N().hauteur=h; rendrePanneaux(); } }
 function majGamme(g){
   const n=N(); n.gamme=g;
+  // En Plus+ le bloc d'angle n'est pas reversible : le reperage devient utile.
+  if(g==='plus' && !vueAiles){ vueAiles=true;
+    const b=document.getElementById('bAiles'); if(b) b.classList.add('actif'); }
   // l'epaisseur courante n'existe pas forcement dans la nouvelle gamme
   if(!EPAISSEURS[g].includes(n.epaisseur)) n.epaisseur=EPAISSEURS[g][0];
   rendrePanneaux();
@@ -1602,6 +1687,11 @@ function effacerNiveau(){
   niv.murs=[]; niv.refends=[]; niv.ouvertures=[]; niv.ferme=false;
   refEnCours=null; curseur=null; setMode('contour');
 }
+
+function basculerEpaisseur(){ vueEpaisse=!vueEpaisse;
+  document.getElementById('bEpais').classList.toggle('actif',vueEpaisse); rendreScene(); }
+function basculerAiles(){ vueAiles=!vueAiles;
+  document.getElementById('bAiles').classList.toggle('actif',vueAiles); rendreScene(); }
 
 function basculerOrtho(){ ortho=!ortho;
   document.getElementById('bOrtho').classList.toggle('actif',ortho); }
