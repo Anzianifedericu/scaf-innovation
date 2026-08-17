@@ -47,6 +47,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
+.actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
 button:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
 .modes{display:flex;border:1px solid var(--trait);border-radius:6px;overflow:hidden}
 .modes button{border:0;border-radius:0;padding:6px 13px}
@@ -225,6 +226,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mContour" class="actif" onclick="setMode('contour')">Contour</button>
           <button id="mRefend" onclick="setMode('refend')">Refends</button>
           <button id="mOuv" onclick="setMode('ouverture')">Ouvertures</button>
+          <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
         </div>
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
@@ -393,6 +395,11 @@ function longueursUtiles(L, voile){
            .filter(x => x > 0.5);
 }
 let vueEpaisse = true, vueAiles = false, ailesInversees = false;
+
+/* Poignee saisie en mode Deplacer : sommet du contour, point de refend ou
+   ouverture. Le contour est stocke en longueurs et directions, pas en
+   points : deplacer un sommet reconstruit donc les deux murs voisins. */
+let prise = null;
 
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
    deux cotes decales, ce qui donne des angles nets meme sur un rentrant. */
@@ -1748,13 +1755,22 @@ scene.addEventListener('wheel', e=>{
 let glisse=null;
 scene.addEventListener('contextmenu', e=>e.preventDefault());
 scene.addEventListener('mousedown', e=>{
+  // Bouton gauche en mode Deplacer : on saisit une poignee.
+  if(e.button===0 && mode==='deplacer'){
+    const h = poigneeSous(versMetres(e));
+    if(h){ prise = h; e.preventDefault(); scene.style.cursor='grabbing'; }
+    return;
+  }
   if(e.button!==1 && e.button!==2) return;
   e.preventDefault();
   const c = cadre || cadreAuto;
   glisse = { xs:e.clientX, ys:e.clientY, cadre:{...c} };
   scene.style.cursor='grabbing';
 });
-window.addEventListener('mouseup', ()=>{ if(glisse){ glisse=null; scene.style.cursor=''; } });
+window.addEventListener('mouseup', ()=>{
+  if(glisse){ glisse=null; scene.style.cursor=''; }
+  if(prise){ prise=null; scene.style.cursor=''; recalcul(); }
+});
 window.addEventListener('mousemove', e=>{
   if(!glisse) return;
   const r=scene.getBoundingClientRect(), c=glisse.cadre;
@@ -1765,6 +1781,40 @@ window.addEventListener('mousemove', e=>{
 
 scene.addEventListener('mousemove', e=>{
   const p=versMetres(e);
+
+  if(mode==='deplacer'){
+    if(!prise){
+      // survol : on signale ce qui est saisissable
+      const h = poigneeSous(p);
+      scene.style.cursor = h ? 'grab' : '';
+      const nouveau = h ? JSON.stringify(h) : null;
+      if(nouveau !== JSON.stringify(survol)){ survol = h; rendreScene(); }
+      return;
+    }
+    const niv = N();
+    // pas de 5 cm, sauf touche Maj enfoncee
+    const q = e.shiftKey ? p : { x:Math.round(p.x/0.05)*0.05, y:Math.round(p.y/0.05)*0.05 };
+
+    if(prise.type==='sommet'){
+      const pts = sommets().slice(0, niv.ferme ? -1 : undefined);
+      pts[prise.i] = q;
+      // Les murs sont relatifs : la reconstruction repart de l'origine et
+      // le polygone se recale tout seul, meme si l'on bouge le premier point.
+      murisDepuisPoints(niv, pts);
+    } else if(prise.type==='refend'){
+      niv.refends[prise.ri].pts[prise.k] = q;
+    } else if(prise.type==='ouverture'){
+      const o = niv.ouvertures[prise.oi], sp = supportDe(niv, o);
+      if(sp){
+        const L = Math.hypot(sp.b.x-sp.a.x, sp.b.y-sp.a.y);
+        const t = ((q.x-sp.a.x)*(sp.b.x-sp.a.x) + (q.y-sp.a.y)*(sp.b.y-sp.a.y)) / (L*L);
+        o.t = Math.max(o.largeur/(2*L), Math.min(1 - o.largeur/(2*L), t));
+      }
+    }
+    rendreScene();
+    return;
+  }
+
   if(mode==='ouverture'){
     const s=segmentSousCurseur(p);
     const nouveau = s?{sur:s.sur,i:s.i,seg:s.seg}:null;
@@ -1823,8 +1873,38 @@ function validerRefend(){
   refEnCours=null; curseur=null; recalcul();
 }
 
+/* Reecrit les murs du niveau d'apres une liste de sommets. */
+function murisDepuisPoints(niv, p){
+  niv.murs = p.map((a, i)=>{
+    const b = p[(i+1) % p.length];
+    const L = Math.hypot(b.x-a.x, b.y-a.y);
+    return { dx: L ? (b.x-a.x)/L : 1, dy: L ? (b.y-a.y)/L : 0, longueur: L };
+  });
+}
+
+/* Quelle poignee se trouve sous ce point ? */
+function poigneeSous(p){
+  const niv = N(), tol = 0.35;
+  const pts = sommets();
+  const lim = niv.ferme ? pts.length-1 : pts.length;
+  for(let i=0;i<lim;i++)
+    if(Math.hypot(pts[i].x-p.x, pts[i].y-p.y) < tol) return { type:'sommet', i };
+  for(let ri=0; ri<niv.refends.length; ri++)
+    for(let k=0; k<niv.refends[ri].pts.length; k++){
+      const q = niv.refends[ri].pts[k];
+      if(Math.hypot(q.x-p.x, q.y-p.y) < tol) return { type:'refend', ri, k };
+    }
+  for(let oi=0; oi<niv.ouvertures.length; oi++){
+    const s = supportDe(niv, niv.ouvertures[oi]); if(!s) continue;
+    const c = { x:s.a.x+(s.b.x-s.a.x)*niv.ouvertures[oi].t,
+                y:s.a.y+(s.b.y-s.a.y)*niv.ouvertures[oi].t };
+    if(Math.hypot(c.x-p.x, c.y-p.y) < tol) return { type:'ouverture', oi };
+  }
+  return null;
+}
+
 function setMode(m){
-  if((m==='refend'||m==='ouverture')&&!N().ferme){
+  if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
     const vd=document.getElementById('verdict');
     vd.className='verdict ko'; vd.textContent="Refermez d'abord le contour de ce niveau.";
     return;
@@ -1834,6 +1914,8 @@ function setMode(m){
   document.getElementById('mContour').classList.toggle('actif',m==='contour');
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
+  document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
+  prise = null;
   recalcul();
 }
 
@@ -1869,6 +1951,8 @@ function majAide(){
     ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
     : mode==='refend'
     ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.`
+    : mode==='deplacer'
+    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm.`
     : `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.`;
 }
 
