@@ -48,6 +48,7 @@ button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
 .actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
+.actif-terre{background:var(--terre);border-color:var(--terre);color:#fff}
 button:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
 .modes{display:flex;border:1px solid var(--trait);border-radius:6px;overflow:hidden}
 .modes button{border:0;border-radius:0;padding:6px 13px}
@@ -226,6 +227,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mContour" class="actif" onclick="setMode('contour')">Contour</button>
           <button id="mRefend" onclick="setMode('refend')">Refends</button>
           <button id="mOuv" onclick="setMode('ouverture')">Ouvertures</button>
+          <button id="mMuret" onclick="setMode('muret')">Murets</button>
           <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
         </div>
         <div class="barre">
@@ -248,6 +250,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:var(--ciel);height:4px"></span>Ouvertures</span>
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
+        <span><span class="ech" style="background:var(--terre);height:5px"></span>Murets</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
         <span><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
         <span><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
@@ -289,6 +292,14 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span style="font-size:11.5px;color:var(--beton)" id="nbRefends"></span>
       </div>
       <div id="tableRefends"></div>
+    </div>
+
+    <div class="panneau" style="margin-bottom:16px" id="blocMurets" hidden>
+      <div class="panneau-tete">
+        <span class="panneau-titre">Murets et murs ajoutés</span>
+        <span style="font-size:11.5px;color:var(--beton)" id="nbMurets"></span>
+      </div>
+      <div id="tableMurets"></div>
     </div>
 
     <div class="panneau" style="margin-bottom:16px" id="blocOuv" hidden>
@@ -401,6 +412,11 @@ let vueEpaisse = true, vueAiles = false, ailesInversees = false;
    points : deplacer un sommet reconstruit donc les deux murs voisins. */
 let prise = null;
 
+/* Muret en cours de trace. Un muret n'est pas un refend : il ne porte pas
+   d'etage, ne cree pas de jonction en T, et sa hauteur lui est propre, ce
+   qui permet de suivre un terrain en pente. */
+let muretEnCours = null;
+
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
    deux cotes decales, ce qui donne des angles nets meme sur un rentrant. */
 function versInterieur(pts, d, anti){
@@ -427,7 +443,7 @@ const GAMMES=[{k:'standard',l:'Standard'},{k:'xr35',l:'XR35'},{k:'plus',l:'Plus+
 const EPAISSEURS={standard:[102,152,203,254,305], xr35:[152,203], plus:[152,203]};
 
 const nouveauNiveau = (nom,h)=>({nom, hauteur:h, gamme:'standard', epaisseur:152,
-  murs:[], refends:[], ouvertures:[], ferme:false});
+  murs:[], refends:[], murets:[], ouvertures:[], ferme:false});
 let niveaux = [ nouveauNiveau('Vide sanitaire',1.20), nouveauNiveau('RDC',2.70) ];
 let iNiveau = 1;
 let ortho = true, mode = 'contour';
@@ -435,7 +451,15 @@ let curseur = null, refEnCours = null, survol = null;
 let cadre = null, cadreAuto = null;   // cadrage manuel une fois que l'on zoome
 
 const scene = document.getElementById('scene');
-const N = ()=> niveaux[iNiveau];
+const N = ()=>{
+  const n = niveaux[iNiveau];
+  // Un niveau issu de l'exemple ou d'un report peut ne pas porter tous les
+  // tableaux : on les garantit ici plutot que de tester partout ailleurs.
+  if(n && !n.murets)     n.murets = [];
+  if(n && !n.refends)    n.refends = [];
+  if(n && !n.ouvertures) n.ouvertures = [];
+  return n;
+};
 const dessous = ()=> iNiveau>0 ? niveaux[iNiveau-1] : null;
 const dessus  = ()=> iNiveau<niveaux.length-1 ? niveaux[iNiveau+1] : null;
 
@@ -721,6 +745,26 @@ async function calculer(){
   calculEnCours = true;
   document.getElementById('panier').innerHTML = `<p class="vide">Calcul en cours…</p>`;
 
+  // Un muret a sa propre hauteur : il forme donc son propre poste de calcul,
+  // groupe avec les autres murets de meme hauteur pour eviter d'emietter.
+  const postesMurets = [];
+  prets.forEach(n=>{
+    (n.murets||[]).forEach((m,i)=>{
+      const h = m.hauteur || n.hauteur;
+      const segs = [];
+      for(let k=1;k<m.pts.length;k++){
+        const L = Math.hypot(m.pts[k].x-m.pts[k-1].x, m.pts[k].y-m.pts[k-1].y);
+        if(L > 0.01) segs.push({ nom:`Muret ${i+1}`, longueur_m:Number(L.toFixed(3)),
+                                 debut:'about', fin:'about' });
+      }
+      if(!segs.length) return;
+      const cle = `${n.epaisseur}|${h.toFixed(3)}`;
+      let p = postesMurets.find(x=>x.cle === cle);
+      if(!p){ p = { cle, epaisseur:n.epaisseur, hauteur:h, murs:[] }; postesMurets.push(p); }
+      p.murs.push(...segs);
+    });
+  });
+
   // Le moteur prend une epaisseur par appel : on groupe les niveaux qui
   // partagent la meme, et on cumule les reponses.
   const groupes = {};
@@ -728,9 +772,13 @@ async function calculer(){
 
   try{
     const reponses = await Promise.all(Object.entries(groupes).map(async ([ep, liste])=>{
+      const postes = postesMurets.filter(p=>String(p.epaisseur) === String(ep))
+        .map(p=>({ nom:`Murets ${p.hauteur.toFixed(2)} m`, hauteur_m:p.hauteur,
+                   elevation:false, corniche:false, murs:p.murs, refends:[], ouvertures:[] }));
       const r = await fetch(API_ESTIM, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ voile_mm: Number(ep), niveaux: liste.map(niveauPourServeur) }),
+        body: JSON.stringify({ voile_mm: Number(ep),
+                               niveaux: [...liste.map(niveauPourServeur), ...postes] }),
       });
       const d = await r.json();
       if(!r.ok) throw new Error(d.error || 'calcul refusé');
@@ -1368,6 +1416,40 @@ function rendreScene(){
   });
 
   // refends
+  // ---- murets : traces comme les murs, avec leur propre hauteur ----
+  const traceMuret=(m, provisoire)=>{
+    const h = m.hauteur ?? niv.hauteur;
+    for(let i=1;i<m.pts.length;i++){
+      const a=m.pts[i-1], b=m.pts[i];
+      const L=Math.hypot(b.x-a.x,b.y-a.y);
+      if(L<0.01) continue;
+      const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+      const e=(HORS_TOUT[niv.epaisseur] ?? 0.286)/2;
+      const nx=-uy*e, ny=ux*e;
+      if(vueEpaisse && !provisoire){
+        const q=[[a.x+nx,a.y+ny],[b.x+nx,b.y+ny],[b.x-nx,b.y-ny],[a.x-nx,a.y-ny]];
+        g+=`<polygon points="${q.map(([px,py])=>`${px},${-py}`).join(' ')}"
+              fill="#B8DCB8" stroke="#5A9A5A" stroke-width="${tr*0.45}" opacity="${provisoire?0.5:1}"/>`;
+        const kb=((niv.epaisseur ?? 152)/2000)/e;
+        g+=`<polygon points="${[[a.x+nx*kb,a.y+ny*kb],[b.x+nx*kb,b.y+ny*kb],
+                               [b.x-nx*kb,b.y-ny*kb],[a.x-nx*kb,a.y-ny*kb]]
+              .map(([px,py])=>`${px},${-py}`).join(' ')}"
+              fill="#D8D4CA" stroke="#9A9488" stroke-width="${tr*0.35}"/>`;
+      }
+      g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}"
+            stroke="var(--terre)" stroke-width="${tr*(provisoire?1.6:1.1)}"
+            stroke-linecap="round" ${provisoire?'stroke-dasharray="'+(u/90)+' '+(u/130)+'"':''}/>`;
+      // hauteur, quand elle differe de celle du niveau
+      if(!provisoire && m.hauteur && L/u > 0.05){
+        g+=`<text x="${(a.x+b.x)/2 + nx*2.2}" y="${-((a.y+b.y)/2 + ny*2.2)}" font-size="${po*.58}"
+              font-family="IBM Plex Mono,monospace" fill="var(--terre)" text-anchor="middle"
+              dominant-baseline="middle">h ${h.toFixed(2)}</text>`;
+      }
+    }
+  };
+  (niv.murets||[]).forEach(m=>traceMuret(m,false));
+  if(muretEnCours) traceMuret(muretEnCours,true);
+
   const traceRefend=(r,couleur,ri)=>{
     for(let i=1;i<r.pts.length;i++){
       const a=r.pts[i-1], b=r.pts[i], ko=ri!==undefined&&segKO(ri,i);
@@ -1477,6 +1559,7 @@ function rendreScene(){
     let dep=null;
     if(mode==='contour'&&!niv.ferme&&pts.length) dep=pts[pts.length-1];
     if(mode==='refend'&&refEnCours) dep=refEnCours.pts[refEnCours.pts.length-1];
+    if(mode==='muret'&&muretEnCours) dep=muretEnCours.pts[muretEnCours.pts.length-1];
     if(dep){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
@@ -1634,6 +1717,29 @@ function rendrePanneaux(){
           <td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>
           <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
+
+  // murets : chacun peut avoir sa hauteur, ce qui suit un terrain en pente
+  const bm=document.getElementById('blocMurets');
+  const murets=niv.murets||[];
+  bm.hidden=!murets.length;
+  if(murets.length){
+    const lg=m=>{ let t=0; for(let k=1;k<m.pts.length;k++)
+      t+=Math.hypot(m.pts[k].x-m.pts[k-1].x, m.pts[k].y-m.pts[k-1].y); return t; };
+    document.getElementById('nbMurets').textContent=
+      `${murets.reduce((t,m)=>t+lg(m),0).toFixed(2)} m`;
+    document.getElementById('tableMurets').innerHTML=
+      `<table><thead><tr><th></th><th>Longueur</th><th>Hauteur (m)</th><th></th></tr></thead><tbody>`+
+      murets.map((m,i)=>`<tr>
+        <td class="num">${i+1}</td>
+        <td class="lg">${lg(m).toFixed(2)} m</td>
+        <td><input type="number" step="0.01" min="0.1" placeholder="${niv.hauteur.toFixed(2)}"
+              value="${m.hauteur ?? ''}" onchange="majHauteurMuret(${i},this.value)"></td>
+        <td><button class="rm" onclick="supprimerMuret(${i})">✕</button></td></tr>`).join('')+
+      `</tbody></table>
+       <p style="padding:8px 14px 10px;font-size:11px;color:var(--beton);line-height:1.5">
+         Sans hauteur indiquée, le muret prend celle du niveau. Une hauteur propre
+         permet de suivre une pente de terrain.</p>`;
+  }
 
   // refends
   const br=document.getElementById('blocRefends');
@@ -1830,6 +1936,13 @@ scene.addEventListener('mouseleave',()=>{ curseur=null; survol=null; rendreScene
 scene.addEventListener('click', e=>{
   const niv=N(), brut=versMetres(e);
 
+  if(mode==='muret'){
+    const p = contraindre(brut, e.shiftKey, muretEnCours ? muretEnCours.pts[muretEnCours.pts.length-1] : null);
+    if(!muretEnCours) muretEnCours = { pts:[p] };
+    else muretEnCours.pts.push(p);
+    recalcul(); return;
+  }
+
   if(mode==='ouverture'){
     const s=segmentSousCurseur(brut); if(!s) return;
     const reste=s.longueur-largeurOccupee(niv,s);
@@ -1862,10 +1975,14 @@ scene.addEventListener('click', e=>{
   recalcul();
 });
 
-scene.addEventListener('dblclick',()=>{ if(mode==='refend') validerRefend(); });
+scene.addEventListener('dblclick',()=>{
+  if(mode==='refend') validerRefend();
+  if(mode==='muret')  validerMuret();
+});
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') annuler();
   if(e.key==='Enter'&&mode==='refend') validerRefend();
+  if(e.key==='Enter'&&mode==='muret')  validerMuret();
 });
 
 function validerRefend(){
@@ -1903,17 +2020,27 @@ function poigneeSous(p){
   return null;
 }
 
+/* Un muret retenu doit avoir au moins un segment. */
+function validerMuret(){
+  if(muretEnCours && muretEnCours.pts.length > 1){
+    N().murets.push({ pts: muretEnCours.pts, hauteur: null });
+  }
+  muretEnCours = null; curseur = null; recalcul();
+}
+
 function setMode(m){
-  if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
+  if((m==='refend'||m==='ouverture'||m==='deplacer'||m==='muret')&&!N().ferme){
     const vd=document.getElementById('verdict');
     vd.className='verdict ko'; vd.textContent="Refermez d'abord le contour de ce niveau.";
     return;
   }
   if(mode==='refend'&&m!=='refend') validerRefend();
+  if(mode==='muret'&&m!=='muret') validerMuret();
   mode=m; curseur=null; survol=null;
   document.getElementById('mContour').classList.toggle('actif',m==='contour');
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
+  document.getElementById('mMuret').classList.toggle('actif-terre',m==='muret');
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
   prise = null;
   recalcul();
@@ -1953,8 +2080,17 @@ function majAide(){
     ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.`
     : mode==='deplacer'
     ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm.`
+    : mode==='muret'
+    ? `Tracez un muret ou un mur ajouté. <kbd>Entrée</kbd> ou double-clic le termine. Sa hauteur se règle dans le tableau.`
     : `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.`;
 }
+
+function majHauteurMuret(i,v){
+  const h=parseFloat(v);
+  N().murets[i].hauteur = (h>0) ? h : null;
+  recalcul();
+}
+function supprimerMuret(i){ N().murets.splice(i,1); recalcul(); }
 
 function majHauteur(v){ const h=parseFloat(v); if(h>0){ N().hauteur=h; rendrePanneaux(); } }
 function majGamme(g){
@@ -1991,6 +2127,11 @@ function majOuv(i,champ,v){
 }
 
 function annuler(){
+  if(mode==='muret' && muretEnCours){
+    muretEnCours.pts.pop();
+    if(!muretEnCours.pts.length) muretEnCours = null;
+    return recalcul();
+  }
   const niv=N();
   if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
   else if(mode==='refend'){
