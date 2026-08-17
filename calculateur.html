@@ -176,6 +176,14 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .onglet-q.total.actif{border-bottom-color:var(--terre)}
 .contexte-q{padding:9px 14px;font-size:11.5px;color:var(--beton);line-height:1.5;
   border-bottom:1px solid var(--paper-dim);background:#FCFAF5}
+
+/* Encart de composition du mur, comme sur un plan d'architecte. */
+.enveloppe{padding:8px 14px;font-size:11px;color:var(--beton);line-height:1.7;
+  border-top:1px solid var(--paper-dim);background:#FCFAF5}
+.enveloppe b{color:var(--encre);font-size:11.5px}
+.enveloppe .couche{display:block;padding-left:2px}
+.enveloppe .couche i{display:inline-block;width:11px;height:8px;margin-right:6px;
+  border:1px solid;vertical-align:-1px}
 </style>
 </head>
 <body>
@@ -225,6 +233,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
         <span><span class="ech" style="background:var(--encre)"></span>Contour</span>
         <span><span class="ech" style="background:var(--bleu)"></span>Refends</span>
@@ -344,6 +353,7 @@ const LONG_BLOC = 2.438;
 // epaissit, le coin exterieur s'eloigne d'autant dans les deux directions,
 // donc chaque aile s'allonge de la difference. La somme retombe sur la
 // consommation d'angle du catalogue, a un millimetre pres.
+const EPS_PSE = 0.067;   // panneau PSE de chaque face, catalogue Nudura
 const AILE_A1 = 0.803, AILE_A2 = 0.397;
 const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
                      return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
@@ -1145,6 +1155,21 @@ function rendreQuantitatif(){
 
 /* ---------------- rendu du plan ---------------- */
 
+function rendreEnveloppe(){
+  const e = document.getElementById('enveloppe');
+  if(!e) return;
+  const n = N(), vb = n.epaisseur ?? 152;
+  const tot = Math.round((vb + 2*EPS_PSE*1000));
+  e.innerHTML =
+    `<b>Enveloppe</b> — Nudura en béton armé + EPS [${tot.toFixed(2)}]` +
+    `<span class="couche"><i style="background:#B8DCB8;border-color:#5A9A5A"></i>` +
+    `Bloc coffrage isolant Nudura 4 en 1 : ${(EPS_PSE*1000).toFixed(2)} mm</span>` +
+    `<span class="couche"><i style="background:#D8D4CA;border-color:#9A9488"></i>` +
+    `Béton C25/30 : ${vb.toFixed(2)} mm</span>` +
+    `<span class="couche"><i style="background:#B8DCB8;border-color:#5A9A5A"></i>` +
+    `Bloc coffrage isolant Nudura 4 en 1 : ${(EPS_PSE*1000).toFixed(2)} mm</span>`;
+}
+
 function rendreScene(){
   const niv=N(), pts=sommets();
   const tous=[...pts];
@@ -1191,12 +1216,25 @@ function rendreScene(){
   if(vueEpaisse && niv.ferme && pts.length > 3){
     const contour = pts.slice(0, -1);
     const anti = aireSignee(niv) > 0;
-    const dedans = versInterieur(contour, epMur, anti);
-    const ext = contour.map(p=>`${p.x},${-p.y}`).join(' ');
-    const int = dedans.map(p=>`${p.x},${-p.y}`).join(' ');
-    // fill-rule evenodd : seul l'entre-deux se remplit, l'interieur reste clair
-    g+=`<path d="M ${ext} Z M ${int} Z" fill="#DFD6C2" fill-rule="evenodd"
-          stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
+    // Le mur Nudura est un complexe : PSE, beton, PSE. Le representer d'un
+    // seul aplat ferait perdre ce qui fait le produit.
+    const ep = EPS_PSE, vb = (niv.epaisseur ?? 152) / 1000;
+    const bord = p => p.map(q=>`${q.x},${-q.y}`).join(' ');
+    const c0 = contour;                                   // nu exterieur
+    const c1 = versInterieur(contour, ep, anti);          // fin du PSE exterieur
+    const c2 = versInterieur(contour, ep + vb, anti);     // fin du beton
+    const c3 = dedans;                                    // nu interieur
+
+    // fill-rule evenodd : chaque couche est l'anneau entre deux contours
+    g+=`<path d="M ${bord(c0)} Z M ${bord(c1)} Z" fill="#B8DCB8" fill-rule="evenodd"
+          stroke="#5A9A5A" stroke-width="${tr*0.5}"/>`;
+    g+=`<path d="M ${bord(c1)} Z M ${bord(c2)} Z" fill="#D8D4CA" fill-rule="evenodd"
+          stroke="#9A9488" stroke-width="${tr*0.4}"/>`;
+    g+=`<path d="M ${bord(c2)} Z M ${bord(c3)} Z" fill="#B8DCB8" fill-rule="evenodd"
+          stroke="#5A9A5A" stroke-width="${tr*0.5}"/>`;
+    // nus exterieur et interieur, plus marques
+    g+=`<polygon points="${bord(c0)}" fill="none" stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
+    g+=`<polygon points="${bord(c3)}" fill="none" stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
 
     // joints de blocs : un tous les 2,438 m, marques sur l'epaisseur
     for(let i=0;i<contour.length;i++){
@@ -1463,7 +1501,7 @@ function rendrePanneaux(){
   rendreQuantitatif();
 }
 
-function recalcul(){ rendreOnglets(); rendreScene(); rendrePanneaux(); majAide(); majBoutons(); }
+function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); rendrePanneaux(); majAide(); majBoutons(); }
 
 /* ---------------- interactions ---------------- */
 
