@@ -1765,7 +1765,7 @@ function rendrePanneaux(){
   document.getElementById('nbMurs').textContent=niv.murs.length?`${niv.murs.length} mur${niv.murs.length>1?'s':''}`:'';
   document.getElementById('tableMurs').innerHTML = !niv.murs.length
     ? `<p class="vide">Le tableau se remplit à mesure que vous dessinez.</p>`
-    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th>${vuePro()?'<th>Coupe</th>':''}<th>Angle en fin</th><th></th></tr></thead><tbody>`+
+    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th>${vuePro()?'<th>Coupe</th><th>Angle en fin</th>':''}<th></th></tr></thead><tbody>`+
       niv.murs.map((m,i)=>{
         const t=niv.ferme?a.liste[(i+1)%niv.murs.length]:null;
         const lb=t==='s90'?['pt-s','Sortant 90°']:t==='r90'?['pt-r','Rentrant 90°']
@@ -1787,7 +1787,7 @@ function rendrePanneaux(){
                 value="${m.hauteur ?? ''}" onchange="majHauteurMur(${i},this.value)"
                 title="Laisser vide pour suivre la hauteur du niveau"></td>
           ${vuePro() ? `<td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>` : ''}
-          <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td>
+          ${vuePro() ? `<td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td>` : ''}
           <td><button class="rm" onclick="supprimerMur(${i})" title="Fusionner avec le mur suivant">✕</button></td></tr>`;
       }).join('')+`</tbody></table>`;
 
