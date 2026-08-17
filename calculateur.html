@@ -701,6 +701,9 @@ function niveauPourServeur(niv){
     longueur_m: Number(m.longueur.toFixed(3)),
     debut: typeExtremite(a.liste[i]),
     fin:   typeExtremite(a.liste[(i+1) % niv.murs.length]),
+    // Renseignee seulement si elle differe : le moteur retombe alors sur
+    // la hauteur du niveau et le calcul reste celui d'un terrain plat.
+    ...(m.hauteur > 0 ? { hauteur_m: Number(m.hauteur) } : {}),
   }));
 
   const refends = niv.refends.map((r,ri)=>{
@@ -1411,6 +1414,11 @@ function rendreScene(){
            ${vueEpaisse && niv.ferme ? 'opacity=".6"' : ''}/>`;
     const nx=niv.ferme?normaleExterieure(niv,m):{x:-m.dy,y:m.dx};
     const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    if(m.hauteur > 0 && m.longueur/u > 0.06){
+      g+=`<text x="${mx+nx.x*dec*1.5}" y="${-(my+nx.y*dec*1.5)}" font-size="${po*.58}"
+            font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle"
+            dominant-baseline="middle">h ${Number(m.hauteur).toFixed(2)}</text>`;
+    }
     g+=`<line x1="${mx+nx.x*dec*.35}" y1="${-(my+nx.y*dec*.35)}" x2="${mx+nx.x*dec*.72}" y2="${-(my+nx.y*dec*.72)}" stroke="var(--trait)" stroke-width="${tr*.8}"/>`;
     g+=`<text x="${mx+nx.x*dec}" y="${-(my+nx.y*dec)}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--beton)" text-anchor="middle" dominant-baseline="middle">${m.longueur.toFixed(2)}</text>`;
   });
@@ -1696,7 +1704,7 @@ function rendrePanneaux(){
   document.getElementById('nbMurs').textContent=niv.murs.length?`${niv.murs.length} mur${niv.murs.length>1?'s':''}`:'';
   document.getElementById('tableMurs').innerHTML = !niv.murs.length
     ? `<p class="vide">Le tableau se remplit à mesure que vous dessinez.</p>`
-    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Coupe</th><th>Angle en fin</th></tr></thead><tbody>`+
+    : `<table><thead><tr><th></th><th>Longueur (m)</th><th>Hauteur (m)</th><th>Coupe</th><th>Angle en fin</th></tr></thead><tbody>`+
       niv.murs.map((m,i)=>{
         const t=niv.ferme?a.liste[(i+1)%niv.murs.length]:null;
         const lb=t==='s90'?['pt-s','Sortant 90°']:t==='r90'?['pt-r','Rentrant 90°']
@@ -1714,6 +1722,9 @@ function rendrePanneaux(){
                   : b.coupe.toFixed(2);
         return `<tr><td class="num">${i+1}</td>
           <td><input type="number" step="0.001" min="0.01" value="${m.longueur.toFixed(3)}" onchange="majLongueur(${i},this.value)"></td>
+          <td><input type="number" step="0.01" min="0.1" placeholder="${niv.hauteur.toFixed(2)}"
+                value="${m.hauteur ?? ''}" onchange="majHauteurMur(${i},this.value)"
+                title="Laisser vide pour suivre la hauteur du niveau"></td>
           <td class="${cl}" ${util?`title="Sur le module : ${util} m"`:''}>${lib}${b.etat==='cale'?' <small>cale bois</small>':''}</td>
           <td>${lb?`<span class="pastille"><span class="pt ${lb[0]}"></span>${lb[1]}</span>`:'<span style="color:var(--beton)">—</span>'}</td></tr>`;
       }).join('')+`</tbody></table>`;
@@ -2083,6 +2094,14 @@ function majAide(){
     : mode==='muret'
     ? `Tracez un muret ou un mur ajouté. <kbd>Entrée</kbd> ou double-clic le termine. Sa hauteur se règle dans le tableau.`
     : `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.`;
+}
+
+/* Hauteur propre d'un mur : en Corse le terrain est rarement plat et
+   l'arase basse suit la pente. Vide, le mur prend celle du niveau. */
+function majHauteurMur(i,v){
+  const h=parseFloat(v);
+  N().murs[i].hauteur = (h>0) ? h : null;
+  recalcul();
 }
 
 function majHauteurMuret(i,v){
