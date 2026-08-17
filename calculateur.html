@@ -1236,19 +1236,56 @@ function rendreScene(){
     g+=`<polygon points="${bord(c0)}" fill="none" stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
     g+=`<polygon points="${bord(c3)}" fill="none" stroke="var(--encre)" stroke-width="${tr*0.9}"/>`;
 
-    // joints de blocs : un tous les 2,438 m, marques sur l'epaisseur
+    // ---- blocs d'angle, puis blocs droits ----
+    // Sur le chantier l'angle se pose en premier : les blocs droits partent
+    // de l'extremite de son aile, pas du sommet. La trame doit le montrer.
+    const A = ailes(niv.epaisseur);
+    const sgn = anti ? -1 : 1;
+    // angles calcules ici : la variable globale ne l'est que plus bas
+    const angDe = anglesDe(niv).liste || [];
+    const estAngle = t => t==='s90'||t==='r90'||t==='s45'||t==='r45';
+
+    // aile posee au depart et a l'arrivee de chaque mur
+    const aileDep = [], aileFin = [];
     for(let i=0;i<contour.length;i++){
-      const a=contour[i], b=contour[(i+1)%contour.length];
-      const L=Math.hypot(b.x-a.x,b.y-a.y);
-      if(L < LONG_BLOC*0.6) continue;
-      const dx=(b.x-a.x)/L, dy=(b.y-a.y)/L;
-      const sgn = anti ? -1 : 1;
+      const tDep = angDe[i], tFin = angDe[(i+1)%contour.length];
+      // en parcourant le contour, l'aile longue tombe toujours du meme cote
+      aileDep[i] = estAngle(tDep) ? (ailesInversees ? A.a1 : A.a2) : 0;
+      aileFin[i] = estAngle(tFin) ? (ailesInversees ? A.a2 : A.a1) : 0;
+    }
+
+    for(let i=0;i<contour.length;i++){
+      const a0=contour[i], b0=contour[(i+1)%contour.length];
+      const L=Math.hypot(b0.x-a0.x,b0.y-a0.y);
+      if(L < 0.02) continue;
+      const dx=(b0.x-a0.x)/L, dy=(b0.y-a0.y)/L;
       const nx = sgn*dy*epMur, ny = -sgn*dx*epMur;
-      for(let d=LONG_BLOC; d<L-0.05; d+=LONG_BLOC){
-        const x=a.x+dx*d, y=a.y+dy*d;
+      const rect = (d1, d2, fill, op) => {
+        const p1={x:a0.x+dx*d1, y:a0.y+dy*d1}, p2={x:a0.x+dx*d2, y:a0.y+dy*d2};
+        return `<polygon points="${p1.x},${-p1.y} ${p2.x},${-p2.y}
+                  ${p2.x+nx},${-(p2.y+ny)} ${p1.x+nx},${-(p1.y+ny)}"
+                  fill="${fill}" opacity="${op}" stroke="none"/>`;
+      };
+
+      // zones tenues par les blocs d'angle
+      if(aileDep[i] > 0) g += rect(0, Math.min(aileDep[i], L), '#C08A2E', 0.30);
+      if(aileFin[i] > 0) g += rect(Math.max(L-aileFin[i], 0), L, '#C08A2E', 0.30);
+
+      // trame des blocs droits, depuis la fin de l'aile de depart
+      const d0 = Math.min(aileDep[i], L), dMax = Math.max(L - aileFin[i], d0);
+      for(let d=d0+LONG_BLOC; d<dMax-0.02; d+=LONG_BLOC){
+        const x=a0.x+dx*d, y=a0.y+dy*d;
         g+=`<line x1="${x}" y1="${-y}" x2="${x+nx}" y2="${-(y+ny)}"
-              stroke="#B9AE95" stroke-width="${tr*0.55}"/>`;
+              stroke="#9A9488" stroke-width="${tr*0.5}"/>`;
       }
+      // limites des zones d'angle, plus marquees
+      [d0, dMax].forEach(d=>{
+        if(d>0.02 && d<L-0.02){
+          const x=a0.x+dx*d, y=a0.y+dy*d;
+          g+=`<line x1="${x}" y1="${-y}" x2="${x+nx}" y2="${-(y+ny)}"
+                stroke="#C08A2E" stroke-width="${tr*0.9}"/>`;
+        }
+      });
     }
   }
 
@@ -1392,47 +1429,21 @@ function rendreScene(){
     else if(i===0) c='var(--vert)';
     g+=`<circle cx="${p.x}" cy="${-p.y}" r="${ra}" fill="${c}"/>`;
 
-    // Cote long et cote court du bloc d'angle. En serie Plus+ les deux ailes
-    // different, et leur orientation conditionne la reference commandee.
+    // Repere du cote long, discret : la zone coloree porte deja
+    // l'information, une lettre suffit a lever l'ambiguite.
     if(niv.ferme && vueAiles){
       const t = a.liste[i];
       if(t==='s90'||t==='r90'||t==='s45'||t==='r45'){
         const nb = niv.murs.length;
         const av = niv.murs[(i-1+nb)%nb], ap = niv.murs[i];
-        // Aile longue toujours du meme cote en parcourant le contour :
-        // chaque mur recoit ainsi un long a une extremite et un court a
-        // l'autre, ce qui fait croiser les joints d'un rang au suivant.
-        // Le bouton inverse la pose pour lire le rang pair.
         const dArr = { x:-av.dx, y:-av.dy }, dAv = { x:ap.dx, y:ap.dy };
         const dL = ailesInversees ? dAv : dArr;
-        const dC = ailesInversees ? dArr : dAv;
         const A = ailes(niv.epaisseur);
-
-        // Les ailes sont tracees a leur longueur reelle : on voit ou tombe
-        // le premier joint droit, et si une aile mange une ouverture.
-        const trait = (d, lg, coul, nom) => {
-          const x2 = p.x + d.x*lg, y2 = p.y + d.y*lg;
-          const nx = -d.y, ny = d.x;
-          const dep = po*0.75;
-          let t = `<line x1="${p.x+nx*dep}" y1="${-(p.y+ny*dep)}"
-                         x2="${x2+nx*dep}" y2="${-(y2+ny*dep)}"
-                         stroke="${coul}" stroke-width="${tr*1.5}" stroke-linecap="round"/>`;
-          [[p.x,p.y],[x2,y2]].forEach(([qx,qy])=>{
-            t += `<line x1="${qx+nx*dep*0.55}" y1="${-(qy+ny*dep*0.55)}"
-                        x2="${qx+nx*dep*1.45}" y2="${-(qy+ny*dep*1.45)}"
-                        stroke="${coul}" stroke-width="${tr*0.9}"/>`; });
-          // La cote n'a de sens que si le trait est assez long a l'ecran :
-          // en vue d'ensemble elle se superposerait aux voisines.
-          if(lg / u > 0.045){
-            const mx = (p.x+x2)/2 + nx*dep*1.9, my = (p.y+y2)/2 + ny*dep*1.9;
-            t += `<text x="${mx}" y="${-my}" font-size="${po*.55}"
-                    font-family="IBM Plex Mono,monospace" fill="${coul}"
-                    text-anchor="middle" dominant-baseline="middle">${nom} ${lg.toFixed(2)}</text>`;
-          }
-          return t;
-        };
-        g += trait(dL, A.a1, 'var(--terre)', 'A1');
-        g += trait(dC, A.a2, 'var(--beton)', 'A2');
+        const mx = p.x + dL.x*A.a1*0.5, my = p.y + dL.y*A.a1*0.5;
+        const nrm = { x:-dL.y, y:dL.x };
+        g+=`<text x="${mx+nrm.x*po*0.55}" y="${-(my+nrm.y*po*0.55)}" font-size="${po*.6}"
+              font-family="IBM Plex Mono,monospace" fill="#8A6420" font-weight="600"
+              text-anchor="middle" dominant-baseline="middle">A1</text>`;
       }
     }
   });
