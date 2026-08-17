@@ -1223,7 +1223,7 @@ function rendreScene(){
     const c0 = contour;                                   // nu exterieur
     const c1 = versInterieur(contour, ep, anti);          // fin du PSE exterieur
     const c2 = versInterieur(contour, ep + vb, anti);     // fin du beton
-    const c3 = dedans;                                    // nu interieur
+    const c3 = versInterieur(contour, epMur, anti);        // nu interieur
 
     // fill-rule evenodd : chaque couche est l'anneau entre deux contours
     g+=`<path d="M ${bord(c0)} Z M ${bord(c1)} Z" fill="#B8DCB8" fill-rule="evenodd"
