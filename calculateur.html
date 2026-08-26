@@ -934,6 +934,33 @@ function ouvrirDemande(){
   if(n) setTimeout(()=>n.focus(), 350);
 }
 
+/**
+ * Le chiffrage déjà calculé, prêt à accompagner la demande.
+ *
+ * Les fournitures sont cumulées par référence, tous niveaux confondus : c'est
+ * ce qui sera commandé. Rien n'est envoyé si le visiteur n'a pas cliqué
+ * Calculer — une demande sans chiffrage reste une demande valable.
+ */
+function chiffragePourDemande(){
+  if(!resultat || !resultat.length) return {};
+  const parRef = {};
+  let beton = 0;
+  resultat.forEach(({ data })=>{
+    (data.fournitures_totales || []).forEach(f=>{
+      if(!parRef[f.ref]) parRef[f.ref] = { ref: f.ref, libelle: f.libelle || f.nom || '', unite: f.unite || 'u', qte: 0 };
+      parRef[f.ref].qte += f.qte;
+    });
+    beton += (data.recapitulatif && data.recapitulatif.beton_m3) || 0;
+  });
+  const refs = Object.values(parRef);
+  if(!refs.length) return {};
+  return {
+    fournitures: refs,
+    betonM3: Number(beton.toFixed(2)),
+    voileMm: resultat[0] ? resultat[0].epaisseur : null,
+  };
+}
+
 async function envoyerPlan(){
   const prets = niveaux.filter(n=>n.ferme && n.murs.length);
   const msg = document.getElementById('dMsg');
@@ -982,6 +1009,9 @@ async function envoyerPlan(){
         profil: document.getElementById('dProfil').value,
         message: document.getElementById('dMessage').value.trim(),
         niveaux: charge,
+        // Le chiffrage deja calcule, pour ne pas avoir a le refaire au devis.
+        // Absent si le visiteur envoie son plan sans avoir clique Calculer.
+        ...chiffragePourDemande(),
       }),
     });
     const d = await r.json();
