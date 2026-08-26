@@ -1277,13 +1277,15 @@ const FORM_ENDPOINT = null; // remplacé par MAKE_WEBHOOK action:'commandePro'
 const SUPABASE_URL = "https://crbvlowxxmspjnyculzl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyYnZsb3d4eG1zcGpueWN1bHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjU0NTgsImV4cCI6MjEwMDYwMTQ1OH0.5Cyas303BU5XYrI8b3YE3f-_5TIdrt_9027rDi9P4CE";
 
-// Catalogue chargé dynamiquement depuis Supabase (table nudura_pro_products) au démarrage.
+// Catalogue chargé dynamiquement depuis Supabase (vue v_nudura_public) au démarrage.
+// Cette vue n'expose aucun prix d'achat ni coût de revient : la table
+// nudura_pro_products n'est plus lisible avec la clé publique.
 // Fini le prix codé en dur dans le fichier : SCAF (ou Claude) peut modifier prix/produits
 // directement dans Supabase, sans jamais retoucher ni redéployer ce fichier.
 let PRODUCTS = [];
 
 async function chargerProduitsDepuisSupabase(){
-  const url = `${SUPABASE_URL}/rest/v1/nudura_pro_products?select=*&active=eq.true&order=cat.asc,label.asc`;
+  const url = `${SUPABASE_URL}/rest/v1/v_nudura_public?select=*&active=eq.true&order=cat.asc,label.asc`;
   const res = await fetch(url, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
   });
