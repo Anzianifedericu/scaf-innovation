@@ -796,6 +796,25 @@ function anglesDuRefend(r){
 }
 
 // Traduit un niveau trace vers le format attendu par le moteur.
+/**
+ * Longueur affichée dans les champs de saisie.
+ *
+ * toFixed(3) écrivait « 9,500 » dans un champ trop étroit : le dernier zéro
+ * était rogné par le bord et ressemblait à un symbole euro. Un mur de 9,50 m
+ * n'a pas besoin de son millimètre — on ne l'affiche que s'il existe.
+ *
+ * La précision au millimètre est conservée pour le calcul : seule l'écriture
+ * change.
+ */
+function longueurAffichee(v){
+  const n = Number(v) || 0;
+  const arrondi = Math.round(n * 1000) / 1000;
+  // Un millimètre significatif justifie la troisième décimale
+  return Math.abs(arrondi * 100 - Math.round(arrondi * 100)) < 1e-9
+    ? arrondi.toFixed(2)
+    : arrondi.toFixed(3);
+}
+
 function niveauPourServeur(niv){
   const a = anglesDe(niv);
   const murs = niv.murs.map((m,i)=>({
@@ -1935,13 +1954,13 @@ function rendrePanneaux(){
         const b = bilanCoupe(m.longueur, niv.epaisseur);
         const cl = b.etat==='cale' ? 'coupe-ko' : 'coupe-ok';
         const util = b.etat==='cale'
-          ? longueursUtiles(m.longueur, niv.epaisseur).map(x=>x.toFixed(3)).join(' / ') : '';
+          ? longueursUtiles(m.longueur, niv.epaisseur).map(longueurAffichee).join(' / ') : '';
         const lib = b.etat==='court' ? '—'
                   : b.etat==='cale'  ? 'fausse'
                   : b.etat==='exact' ? 'aucune'
                   : b.coupe.toFixed(2);
         return `<tr><td class="num">${i+1}</td>
-          <td><input type="number" step="0.001" min="0.01" value="${m.longueur.toFixed(3)}" onchange="majLongueur(${i},this.value)"></td>
+          <td><input type="number" step="0.001" min="0.01" value="${longueurAffichee(m.longueur)}" onchange="majLongueur(${i},this.value)"></td>
           <td><input type="number" step="0.01" min="0.1" placeholder="${niv.hauteur.toFixed(2)}"
                 value="${m.hauteur ?? ''}" onchange="majHauteurMur(${i},this.value)"
                 title="Laisser vide pour suivre la hauteur du niveau"></td>
