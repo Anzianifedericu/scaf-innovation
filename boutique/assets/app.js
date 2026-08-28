@@ -430,7 +430,7 @@ function initChatbot() {
       if (chatbotHistory.length > 12) chatbotHistory = chatbotHistory.slice(-12);
     } catch (err) {
       document.getElementById("chatbot-typing")?.remove();
-      messages.insertAdjacentHTML("beforeend", `<div class="chatbot-msg bot">Désolé, une erreur est survenue. Vous pouvez nous contacter directement à scafinnovation@gmail.com.</div>`);
+      messages.insertAdjacentHTML("beforeend", `<div class="chatbot-msg bot">Désolé, une erreur est survenue. Vous pouvez nous contacter directement à scafalliance@gmail.com.</div>`);
     }
     messages.scrollTop = messages.scrollHeight;
   });
@@ -573,7 +573,11 @@ async function submitPreorder() {
   btn.disabled = true;
   btn.textContent = "Envoi en cours…";
 
-  const preOrderId = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now());
+  const preOrderId = (crypto.randomUUID && crypto.randomUUID())
+    || "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
   const rows = cart.map((l) => ({
     sku: l.sku,
     email,
@@ -601,7 +605,7 @@ async function submitPreorder() {
   } catch (err) {
     btn.disabled = false;
     btn.textContent = "Envoyer ma pré-demande";
-    alert("Une erreur est survenue. Vous pouvez nous contacter directement à scafinnovation@gmail.com.");
+    alert("Une erreur est survenue. Vous pouvez nous contacter directement à scafalliance@gmail.com.");
   }
 }
 
