@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nos réalisations en Corse — maisons et bâtiments construits par SCAF</title>
-<meta name="description" content="Les chantiers réalisés par SCAF Innovation en Haute-Corse : villas neuves à Vescovato et Borgo, maisons jumelées, extensions. Photos, communes, surfaces et système constructif. Un chantier repris par France 3 Corse.">
+<meta name="description" content="Les chantiers réalisés par SCAF Innovation en Haute-Corse : villas neuves à Vescovato, Oletta et Borgo, maisons jumelées, extensions. Photos, communes, surfaces et système constructif. Un chantier repris par France 3 Corse.">
 <meta name="keywords" content="réalisations SCAF, maison Corse, villa Borgo, constructeur Haute-Corse, chantier Nudura, maison neuve Bastia">
 <meta name="author" content="SCAF Innovation">
 <link rel="canonical" href="https://scaf-innovation.com/realisations-fr">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Nos réalisations en Corse — maisons et bâtiments construits par SCAF">
-<meta property="og:description" content="Les chantiers réalisés par SCAF Innovation en Haute-Corse : villas neuves à Vescovato et Borgo, maisons jumelées, extensions. Photos, communes, surfaces et système constructif. Un chantier repris par France 3 Corse.">
+<meta property="og:description" content="Les chantiers réalisés par SCAF Innovation en Haute-Corse : villas neuves à Vescovato, Oletta et Borgo, maisons jumelées, extensions. Photos, communes, surfaces et système constructif. Un chantier repris par France 3 Corse.">
 <meta property="og:url" content="https://scaf-innovation.com/realisations-fr">
 <meta property="og:image" content="https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -637,6 +637,12 @@
     .appel h2 { color:var(--blanc-mur); margin-bottom:.6rem; }
     .appel p { color:rgba(251,247,236,.85); max-width:46ch; margin:0 auto 1.4rem; }
     .appel .btn { background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
+
+    .galerie { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.6rem; }
+    .galerie figure { margin:0; border-radius:10px; overflow:hidden; background:var(--sable); }
+    .galerie img { width:100%; height:100%; object-fit:cover; display:block; aspect-ratio:4/3; }
+    .galerie figcaption { font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.04em;
+      text-transform:uppercase; color:var(--maquis); padding:.4rem .1rem 0; }
   </style>
 <body id="top">
 <a class="skip-link" href="#contenu">Aller au contenu</a>
@@ -747,6 +753,43 @@
         </div>
       </article>
 
+      <article class="chantier reveal is-visible" id="villa-oletta">
+        <div class="chantier-photo">
+          <img src="/assets/oletta-murs.webp" loading="lazy" width="1057" height="792"
+               alt="Murs Nudura montés d'une villa à Oletta, ouvertures en attente et bras de pompe à béton, face au maquis">
+          <div class="galerie">
+            <figure>
+              <img src="/assets/oletta-pente.webp" loading="lazy" width="1400" height="1050"
+                   alt="Dalle coulée sur un terrain rocheux en pente à Oletta, vide sanitaire visible sous le plancher">
+              <figcaption>Terrain en pente</figcaption>
+            </figure>
+            <figure>
+              <img src="/assets/oletta-plancher.webp" loading="lazy" width="1057" height="792"
+                   alt="Plancher poutrelles et entrevous isolants avec treillis d'armature, ceinturé par les murs Nudura">
+              <figcaption>Plancher isolant</figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="chantier-texte">
+          <span class="eyebrow">Oletta</span>
+          <h2>Villa — Oletta</h2>
+          <p class="lede">Construire sur un terrain rocheux en pente, face à la vallée.</p>
+          <div class="faits">
+          <div class="fait"><span class="fait-label">Commune</span><span class="fait-val">Oletta (2B)</span></div>
+          <div class="fait"><span class="fait-label">Nature</span><span class="fait-val">Construction neuve</span></div>
+          <div class="fait"><span class="fait-label">Terrain</span><span class="fait-val">Rocheux, en pente</span></div>
+          <div class="fait"><span class="fait-label">Planchers</span><span class="fait-val">Poutrelles et entrevous isolants</span></div>
+          </div>
+          <p>Le terrain est en pente et rocheux. Le soubassement rattrape le dénivelé et
+            ménage un vide sanitaire sous le plancher, plutôt que de terrasser davantage.
+            Ce que la roche impose, la construction s'y adapte.</p>
+          <p>Le plancher n'est pas une simple dalle : des poutrelles portent des entrevous
+            isolants, et le tout est ferraillé avant coulage. Le sol est donc isolé lui aussi,
+            dans la continuité des murs. L'enveloppe est complète, sans rupture entre le bas
+            et les côtés.</p>
+        </div>
+      </article>
+
       <article class="chantier reveal is-visible" id="villa-borgo">
         <div class="chantier-photo">
           <img src="https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/i-49ad0c12.webp" alt="Villa en construction à Borgo, murs Nudura isolants avant enduit" loading="lazy" width="800" height="600">
@@ -822,7 +865,7 @@
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   "name": "Réalisations SCAF Innovation en Corse",
-  "description": "Chantiers réalisés en Haute-Corse : villas neuves à Vescovato et Borgo, maisons jumelées, extensions.",
+  "description": "Chantiers réalisés en Haute-Corse : villas neuves à Vescovato, Oletta et Borgo, maisons jumelées, extensions.",
   "url": "https://scaf-innovation.com/realisations-fr",
   "about": {
     "@type": "GeneralContractor",
@@ -858,6 +901,16 @@
       },
       "image": "https://scaf-innovation.com/assets/vescovato-dalle.webp",
       "description": "Coulage de la dalle ceinturée par le soubassement Nudura."
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Villa — Oletta",
+      "contentLocation": {
+        "@type": "Place",
+        "name": "Oletta"
+      },
+      "image": "https://scaf-innovation.com/assets/oletta-murs.webp",
+      "description": "Construction neuve sur terrain rocheux en pente : soubassement, vide sanitaire, planchers à entrevous isolants et murs Nudura."
     },
     {
       "@type": "CreativeWork",
