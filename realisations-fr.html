@@ -643,6 +643,15 @@
     .galerie img { width:100%; height:100%; object-fit:cover; display:block; aspect-ratio:4/3; }
     .galerie figcaption { font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.04em;
       text-transform:uppercase; color:var(--maquis); padding:.4rem .1rem 0; }
+
+    .etapes { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+    @media (min-width:640px){ .etapes { grid-template-columns:repeat(4,1fr); } }
+    .etape { margin:0; }
+    .etape img { width:100%; display:block; aspect-ratio:4/3; object-fit:cover;
+      border-radius:10px; background:var(--sable); }
+    .etape figcaption { font-family:'IBM Plex Mono',monospace; font-size:.66rem; letter-spacing:.05em;
+      text-transform:uppercase; color:var(--maquis); padding:.4rem .1rem 0; line-height:1.4; }
+    .etape b { display:block; color:var(--terracotta); font-weight:600; }
   </style>
 <body id="top">
 <a class="skip-link" href="#contenu">Aller au contenu</a>
@@ -790,6 +799,62 @@
         </div>
       </article>
 
+      <article class="chantier reveal is-visible" id="villa-borgo-2024">
+        <div class="chantier-photo">
+          <img src="/assets/borgo-toiture.webp" loading="lazy" width="1400" height="647"
+               alt="Villa à Borgo couverte en tuiles, murs Nudura montés, ouvertures en attente de menuiseries">
+        </div>
+        <div class="chantier-texte">
+          <span class="eyebrow">Borgo</span>
+          <h2>Du ferraillage au toit posé, en quatre mois</h2>
+          <p class="lede">Le même chantier, photographié de mai à septembre 2024.</p>
+          <div class="faits">
+          <div class="fait"><span class="fait-label">Commune</span><span class="fait-val">Borgo (2B)</span></div>
+          <div class="fait"><span class="fait-label">Nature</span><span class="fait-val">Villa de plain-pied avec garage</span></div>
+          <div class="fait"><span class="fait-label">Durée</span><span class="fait-val">Mai à septembre 2024</span></div>
+          <div class="fait"><span class="fait-label">Couverture</span><span class="fait-val">Tuiles Coelho da Silva</span></div>
+          </div>
+          <p>En mai, les semelles sont ferraillées et les blocs attendent sur le terrain.
+            En juin, le soubassement ceinture déjà la maison et le plancher est prêt à couler.
+            En septembre, la toiture est posée et la maison n'attend plus que ses menuiseries.</p>
+          <p>Un particulier qui fait construire veut savoir combien de temps il attendra.
+            Voilà la réponse, en photos datées plutôt qu'en promesses.</p>
+        </div>
+      </article>
+
+      <article class="chantier reveal is-visible" id="borgo-etapes">
+        <div class="chantier-texte" style="grid-column:1/-1;">
+          <span class="eyebrow">Borgo — la chronologie</span>
+          <h2>Quatre mois, quatre photos</h2>
+          <div class="etapes">
+            <figure class="etape">
+              <img src="/assets/borgo-fondations.webp" loading="lazy" width="1100" height="826"
+                   alt="Semelles de fondation ferraillées à Borgo, blocs Nudura livrés et stockés sur le terrain">
+              <figcaption><b>22 mai</b>Fondations ferraillées, blocs livrés</figcaption>
+            </figure>
+            <figure class="etape">
+              <img src="/assets/borgo-plancher.webp" loading="lazy" width="1100" height="826"
+                   alt="Soubassement Nudura monté à Borgo, hourdis isolants en place avant coulage du plancher">
+              <figcaption><b>21 juin</b>Soubassement et plancher</figcaption>
+            </figure>
+            <figure class="etape">
+              <img src="/assets/borgo-toiture.webp" loading="lazy" width="1400" height="647"
+                   alt="Villa à Borgo couverte en tuiles, façade en blocs Nudura">
+              <figcaption><b>23 septembre</b>Toiture posée</figcaption>
+            </figure>
+            <figure class="etape">
+              <img src="/assets/borgo-pignon.webp" loading="lazy" width="1400" height="647"
+                   alt="Pignon de la villa de Borgo avec débord de toit et corniche réalisés en blocs Nudura">
+              <figcaption><b>23 septembre</b>Débord de toit et corniche</figcaption>
+            </figure>
+          </div>
+          <p style="margin-top:1.2rem;">Sur la dernière photo, le débord de toit et la corniche
+            sont eux aussi montés en blocs isolants, dans la continuité du mur. Rien ne vient
+            interrompre l'enveloppe au niveau de la toiture, là où beaucoup de constructions
+            perdent de la chaleur.</p>
+        </div>
+      </article>
+
       <article class="chantier reveal is-visible" id="villa-borgo">
         <div class="chantier-photo">
           <img src="https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/i-49ad0c12.webp" alt="Villa en construction à Borgo, murs Nudura isolants avant enduit" loading="lazy" width="800" height="600">
@@ -911,6 +976,18 @@
       },
       "image": "https://scaf-innovation.com/assets/oletta-murs.webp",
       "description": "Construction neuve sur terrain rocheux en pente : soubassement, vide sanitaire, planchers à entrevous isolants et murs Nudura."
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Villa — Borgo, du ferraillage au toit",
+      "contentLocation": {
+        "@type": "Place",
+        "name": "Borgo"
+      },
+      "image": "https://scaf-innovation.com/assets/borgo-toiture.webp",
+      "dateCreated": "2024-05-22",
+      "datePublished": "2024-09-23",
+      "description": "Villa de plain-pied avec garage : fondations en mai 2024, toiture posée en septembre 2024."
     },
     {
       "@type": "CreativeWork",
