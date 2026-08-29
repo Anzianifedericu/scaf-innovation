@@ -638,6 +638,9 @@
       padding:1.8rem 1.5rem; text-align:center; margin-top:1.6rem; }
     .resultat .montant { font-family:'Fraunces',Georgia,serif; font-size:2.6rem; line-height:1.05;
       display:block; margin:.3rem 0 .1rem; }
+    .resultat .ht { font-family:'IBM Plex Mono',monospace; font-size:.8rem;
+      letter-spacing:.1em; color:rgba(251,247,236,.7); }
+    .resultat .ttc { font-size:.95rem; color:rgba(251,247,236,.9); margin:.5rem 0 0; }
     .resultat .apartir { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.08em;
       text-transform:uppercase; color:rgba(251,247,236,.75); }
     .resultat .detail { color:rgba(251,247,236,.85); font-size:.9rem; margin:.7rem auto 0; max-width:44ch; }
@@ -744,6 +747,8 @@
       <div class="resultat">
         <span class="apartir">Gros œuvre hors d'eau, à partir de</span>
         <span class="montant" id="montant">90 000 €</span>
+        <span class="ht">HT</span>
+        <p class="ttc" id="ttc">soit 99 000 € TTC, TVA 10 % applicable en Corse</p>
         <p class="detail" id="detail">Soit 750 € par m² de plancher, pour 120 m² de plain-pied.</p>
         <a class="btn" href="demande-etude-nudura.html" id="cta">Affiner par une étude gratuite</a>
       </div>
@@ -788,8 +793,9 @@
       </div>
 
       <p style="margin-top:2rem; font-size:.88rem; color:var(--maquis);">
-        Montants exprimés hors taxes. Le taux de TVA applicable dépend de la nature
-        du projet et vous sera précisé dans le devis.</p>
+        Les travaux immobiliers réalisés en Corse relèvent du taux de TVA de 10 %,
+        contre 20 % sur le continent (article 297 du Code général des impôts).
+        Le taux définitif est confirmé au devis selon la nature du projet.</p>
     </div>
   </section>
 </main>
@@ -819,6 +825,8 @@
     // arrondi au millier : afficher 90 375 € donnerait une fausse precision
     var total = Math.round(s * PRIX / 1000) * 1000;
     montant.textContent = fmt(total);
+    document.getElementById('ttc').textContent =
+      'soit ' + fmt(Math.round(total * 1.10 / 1000) * 1000) + ' TTC, TVA 10 % applicable en Corse';
     detail.textContent = 'Soit ' + PRIX + ' € par m² de plancher, pour ' + s + ' m² '
       + (niveaux === 1 ? 'de plain-pied.' : 'répartis sur deux niveaux ou plus.');
     var p = new URLSearchParams({ surface: s, niveaux: niveaux });
