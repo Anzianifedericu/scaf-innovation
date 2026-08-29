@@ -652,6 +652,21 @@
     .etape figcaption { font-family:'IBM Plex Mono',monospace; font-size:.66rem; letter-spacing:.05em;
       text-transform:uppercase; color:var(--maquis); padding:.4rem .1rem 0; line-height:1.4; }
     .etape b { display:block; color:var(--terracotta); font-weight:600; }
+
+    .raccourcis { position:sticky; top:0; z-index:40; margin:0 -1rem 2rem;
+      padding:.7rem 1rem; background:rgba(244,238,225,.94);
+      backdrop-filter:blur(8px); border-bottom:1px solid var(--ligne); }
+    .raccourcis-piste { display:flex; gap:.45rem; overflow-x:auto; scrollbar-width:none;
+      -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+    .raccourcis-piste::-webkit-scrollbar { display:none; }
+    .raccourcis a { flex:0 0 auto; scroll-snap-align:start; text-decoration:none;
+      padding:.5rem .9rem; border-radius:999px; border:1px solid var(--ligne);
+      background:#fff; color:var(--nuit); font-size:.86rem; white-space:nowrap;
+      transition:background .15s, color .15s, border-color .15s; }
+    .raccourcis a:hover, .raccourcis a:focus-visible {
+      background:var(--maquis); border-color:var(--maquis); color:var(--blanc-mur); }
+    .raccourcis a.tout { background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
+    .chantier { scroll-margin-top:5rem; }
   </style>
 <body id="top">
 <a class="skip-link" href="#contenu">Aller au contenu</a>
@@ -712,6 +727,18 @@
           Pour chacun : la commune, la nature du projet, et ce que le système constructif
           y a apporté.</p>
       </div>
+
+      <nav class="raccourcis" aria-label="Aller à un chantier">
+        <div class="raccourcis-piste">
+          <a href="prix-construction-maison-corse.html" class="tout">Estimer mon projet</a>
+          <a href="#villa-vescovato">Vescovato 2013</a>
+          <a href="#villa-oletta">Oletta — terrain en pente</a>
+          <a href="#villa-borgo-2024">Borgo — 3 semaines</a>
+          <a href="#villa-borgo-l">Borgo — villa en L</a>
+          <a href="#villa-borgo">Borgo — plain-pied</a>
+          <a href="#cave-tallone">Tallone — cave à vin</a>
+        </div>
+      </nav>
 
       <div class="chantiers">
 
