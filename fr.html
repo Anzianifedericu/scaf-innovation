@@ -441,6 +441,18 @@
   src: url("https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/f-d05044a0.woff2") format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+  .raccourcis { position:sticky; top:0; z-index:60; padding:.6rem 0;
+    background:rgba(244,238,225,.94); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--ligne); }
+  .raccourcis-piste { display:flex; gap:.45rem; overflow-x:auto; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch; padding:0 1rem; }
+  .raccourcis-piste::-webkit-scrollbar { display:none; }
+  .raccourcis a { flex:0 0 auto; text-decoration:none; padding:.5rem .9rem;
+    border-radius:999px; border:1px solid var(--ligne); background:#fff;
+    color:var(--nuit); font-size:.86rem; white-space:nowrap; }
+  .raccourcis a.fort { background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
+  section[id] { scroll-margin-top:4.5rem; }
 </style>
 
 <!-- Données structurées pour les moteurs de recherche -->
@@ -698,6 +710,19 @@
     <a href="demande-etude-nudura.html" class="btn">Devis</a>
   </div>
 </header>
+<nav class="raccourcis" aria-label="Accès rapide">
+  <div class="raccourcis-piste">
+    <a href="prix-construction-maison-corse.html" class="fort">Estimer mon projet</a>
+    <a href="realisations-fr.html">Réalisations</a>
+    <a href="#pourquoi">Pourquoi Nudura</a>
+    <a href="#produits">Nos produits</a>
+    <a href="#comparatif">Comparatif</a>
+    <a href="#chantier">Le chantier</a>
+    <a href="#scaf">Pourquoi SCAF</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
+
 
 <main id="top">
 
