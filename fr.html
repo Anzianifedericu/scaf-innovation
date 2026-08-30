@@ -451,6 +451,23 @@
   .pied-liens a { display:block; text-decoration:none; color:var(--nuit); font-size:.9rem;
     margin-bottom:.4rem; }
   .pied-liens a:hover { color:var(--terracotta); }
+
+  /* Le pied de page est sombre : les liens doivent l etre en clair, sinon
+     ils disparaissent — ce qui etait le cas sur telephone comme sur ecran. */
+  .pied-liens a { color:#E6DFD1 !important; }
+  .pied-liens a:hover { color:var(--terracotta) !important; }
+  .pied-liens h4 { color:var(--terracotta); }
+  .pied-partage { padding:1.2rem 0 .2rem; border-top:1px solid rgba(230,223,209,.15);
+    margin-top:1.2rem; }
+  .pied-partage > span { display:block; font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--terracotta); margin-bottom:.7rem; }
+  .partage-liens { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .partage-liens a, .partage-liens button { display:inline-block; padding:.45rem .85rem;
+    border-radius:999px; border:1px solid rgba(230,223,209,.25); background:none;
+    color:#E6DFD1; font:inherit; font-size:.82rem; text-decoration:none; cursor:pointer; }
+  .partage-liens a:hover, .partage-liens button:hover {
+    background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
 </style>
 
 <!-- Données structurées pour les moteurs de recherche -->
@@ -997,6 +1014,19 @@
         <a href="https://g.page/r/Ccs1Bq_mgHTkEBE/review" target="_blank" rel="noopener">Laisser un avis</a>
       </div>
     </div>
+
+      <div class="pied-partage">
+        <span>Partager SCAF autour de vous</span>
+        <div class="partage-liens">
+          <a href="https://wa.me/?text=__TXT__%20__URL__" target="_blank" rel="noopener">WhatsApp</a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u=__URL__" target="_blank" rel="noopener">Facebook</a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=__URL__" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://x.com/intent/tweet?text=__TXT__&amp;url=__URL__" target="_blank" rel="noopener">X</a>
+          <a href="https://t.me/share/url?url=__URL__&amp;text=__TXT__" target="_blank" rel="noopener">Telegram</a>
+          <a href="mailto:?subject=__TXT__&amp;body=__URL__">E-mail</a>
+          <button type="button" onclick="copierLien(this)">Copier le lien</button>
+        </div>
+      </div>
     <div class="footer-row">
       <span>SCAF Innovation — SIRET 791 805 906 00058 — 775 Avenue de Valrose, 20290 Borgo, Haute-Corse</span>
       <span>06 46 44 91 86 · © 2026 SCAF Innovation</span>
@@ -1036,5 +1066,26 @@
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
+</script>
+
+<script>
+  // Le partage doit fonctionner depuis n'importe quelle page : on lit
+  // l'adresse courante plutot que de la figer.
+  (function(){
+    var url = encodeURIComponent(location.origin + location.pathname);
+    var txt = encodeURIComponent(document.title);
+    document.querySelectorAll('.partage-liens a[href]').forEach(function(a){
+      a.href = a.getAttribute('href').replace(/__URL__/g, url).replace(/__TXT__/g, txt);
+    });
+  })();
+  function copierLien(btn){
+    var u = location.origin + location.pathname;
+    // Sur telephone, le partage natif est plus naturel qu'une copie.
+    if (navigator.share) { navigator.share({ title: document.title, url: u }); return; }
+    navigator.clipboard.writeText(u).then(function(){
+      var t = btn.textContent; btn.textContent = 'Lien copié';
+      setTimeout(function(){ btn.textContent = t; }, 1800);
+    });
+  }
 </script>
 </body></html>
