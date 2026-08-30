@@ -74,6 +74,20 @@
 
   <div class="wrap">
     <div id="pro-bar" style="background:#f4f6f8;border:1px solid #e4e9ee;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a"></div>
+    <div id="bandeau-revendeur" hidden
+         style="background:#3f6b4a;color:#fff;border-radius:10px;padding:10px 14px;
+                margin-bottom:14px;font-size:13.5px;line-height:1.5"></div>
+    <div id="acces-revendeur" hidden
+         style="background:#fff;border:1px solid #e4e9ee;border-radius:10px;
+                padding:12px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a">
+      <strong>Vous ouvrez un commerce ?</strong>
+      Voyez ce catalogue en tarif revendeur : votre prix d'achat, le prix de revente
+      conseillé et votre marge, référence par référence.
+      <button type="button" onclick="basculerModeRevendeur(true)"
+              style="margin-left:8px;padding:7px 14px;border:0;border-radius:8px;
+                     background:#3f6b4a;color:#fff;font-weight:600;cursor:pointer">
+        Voir en tarif revendeur</button>
+    </div>
     <div class="filter-row" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
       <input type="search" id="search-box" class="filter-select" placeholder="Rechercher un produit, une référence…" style="flex:1;min-width:220px;cursor:text" autocomplete="off">
       <select id="dept-select" class="filter-select"></select>
@@ -328,6 +342,16 @@
 
   (async () => {
     await initPro();
+    // La vue revendeur n'est proposee qu'aux comptes dont le tarif est arbitre :
+    // mieux vaut ne rien montrer qu'un prix qui ne serait pas tenu.
+    if (typeof proConnecte === 'function' && proConnecte()) {
+      const r = await chargerTarifRevendeur();
+      if (r && r.status === 'ok') {
+        const acc = document.getElementById('acces-revendeur');
+        if (acc) acc.hidden = modeRevendeur;
+        majBandeauRevendeur();
+      }
+    }
     majHero();
     renderDeptStrip();
     renderCategoryStrip();
