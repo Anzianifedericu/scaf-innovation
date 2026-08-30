@@ -438,6 +438,22 @@
   src: url("https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/f-d05044a0.woff2") format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+  .formulaire-projet { background:#fff; border:1px solid var(--ligne); border-radius:16px;
+    padding:1.6rem 1.3rem; margin-top:-.6rem; }
+  .fp-grille { display:grid; grid-template-columns:1fr; gap:.9rem; margin-bottom:1.2rem; }
+  @media (min-width:640px){ .fp-grille { grid-template-columns:1fr 1fr; }
+    .fp-large { grid-column:1 / -1; } }
+  .formulaire-projet label { display:block; font-size:.82rem; color:var(--maquis); }
+  .formulaire-projet input, .formulaire-projet select, .formulaire-projet textarea {
+    display:block; width:100%; margin-top:.3rem; padding:.6rem .7rem;
+    border:1px solid var(--ligne); border-radius:8px; font:inherit;
+    font-size:.94rem; color:var(--nuit); background:var(--sable); }
+  .formulaire-projet textarea { resize:vertical; }
+  .formulaire-projet .req { color:var(--terracotta); margin-left:.15rem; }
+  .fp-note { font-size:.8rem; color:var(--maquis); margin:.7rem 0 0; }
+  .fp-note.ok  { color:#2f6b46; font-weight:600; }
+  .fp-note.err { color:#a33; font-weight:600; }
 </style>
 
 <!-- Données structurées pour les moteurs de recherche -->
@@ -831,15 +847,77 @@
           Ceux affichés ici servent à estimer votre marge, pas à vous l'imposer.</p>
       </div>
 
-      <div class="appel2">
+      <div class="appel2" id="projet">
         <h2>Parlons de votre projet</h2>
-        <p>Dites-nous où vous ouvrez et ce que vous avez en tête.
-          Nous vous répondons avec un assortiment chiffré, sans engagement.</p>
-        <a class="btn" href="catalogue-entretien-corse.html">Voir le catalogue</a>
-        <a class="btn btn-ghost" href="demande-etude-nudura.html?sujet=commerce"
-           style="margin-left:.5rem;">Demander un assortiment</a>
-        <span class="tel">ou directement au 06 46 44 91 86</span>
+        <p>Pas encore de SIRET ? Ce n’est pas un obstacle. Beaucoup nous
+          contactent avant de créer leur société, justement pour savoir si
+          ça vaut le coup. Dites-nous où vous en êtes.</p>
       </div>
+
+      <form class="formulaire-projet" id="fProjet" novalidate>
+        <div class="fp-grille">
+          <label>Votre nom<span class="req">*</span>
+            <input name="nom" required autocomplete="name"></label>
+          <label>Adresse e-mail<span class="req">*</span>
+            <input name="email" type="email" required autocomplete="email"></label>
+          <label>Téléphone
+            <input name="telephone" type="tel" autocomplete="tel"></label>
+          <label>Commune
+            <input name="commune" autocomplete="address-level2"></label>
+
+          <label>Quel type de commerce
+            <select name="type_commerce">
+              <option value="">—</option>
+              <option>Supérette, épicerie</option>
+              <option>Bazar, quincaillerie</option>
+              <option>Camping, village vacances</option>
+              <option>Gîtes, location saisonnière</option>
+              <option>Société de nettoyage</option>
+              <option>Autre</option>
+            </select></label>
+          <label>Surface du rayon (m²)
+            <input name="surface_m2" type="number" min="0" step="1" inputmode="numeric"></label>
+
+          <label>Où en êtes-vous
+            <select name="situation">
+              <option value="">—</option>
+              <option value="immatricule">Déjà immatriculé, j’ai mon SIRET</option>
+              <option value="en_cours">Immatriculation en cours</option>
+              <option value="pas_commence">Je n’ai pas encore commencé</option>
+            </select></label>
+          <label>Le local
+            <select name="local_trouve">
+              <option value="">—</option>
+              <option value="oui">Trouvé</option>
+              <option value="en_recherche">En recherche</option>
+              <option value="non">Pas encore</option>
+            </select></label>
+
+          <label>Pour quand
+            <select name="echeance">
+              <option value="">—</option>
+              <option value="immediat">Tout de suite</option>
+              <option value="3_mois">Dans les 3 mois</option>
+              <option value="6_mois">Dans les 6 mois</option>
+              <option value="plus_tard">Plus tard</option>
+              <option value="je_me_renseigne">Je me renseigne</option>
+            </select></label>
+          <label>Budget envisagé pour le rayon (€)
+            <input name="budget_stock" type="number" min="0" step="100" inputmode="numeric"></label>
+
+          <label class="fp-large">Votre SIRET, si vous l’avez déjà
+            <input name="siret" inputmode="numeric" placeholder="14 chiffres"></label>
+
+          <label class="fp-large">Racontez-nous votre projet
+            <textarea name="description" rows="4"
+              placeholder="Ce que vous voulez vendre, ce qui existe autour de vous, ce qui vous fait hésiter…"></textarea></label>
+        </div>
+
+        <button type="submit" class="btn" id="bProjet">Envoyer mon projet</button>
+        <p class="fp-note" id="fpNote">Nous vous répondons sous quelques jours,
+          avec un assortiment chiffré adapté à votre surface.</p>
+        <span class="tel">ou directement au 06 46 44 91 86</span>
+      </form>
 
     </div>
   </section>
@@ -947,4 +1025,45 @@
     ]
   }
 }</script>
+
+<script>
+(function(){
+  var API = 'https://crbvlowxxmspjnyculzl.supabase.co/rest/v1/rpc/rpc_projet_commerce_deposer';
+  var CLE = 'sb_publishable_Yy93MFm1TIrNPN3_hvCGkg_h5vvCSOp';
+  var f = document.getElementById('fProjet');
+  if (!f) return;
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var note = document.getElementById('fpNote');
+    var bouton = document.getElementById('bProjet');
+    var d = {};
+    new FormData(f).forEach(function(v, k){ if (String(v).trim()) d[k] = String(v).trim(); });
+    if (!d.nom || !d.email) {
+      note.className = 'fp-note err';
+      note.textContent = 'Votre nom et votre adresse e-mail sont nécessaires pour vous répondre.';
+      return;
+    }
+    bouton.disabled = true; bouton.textContent = 'Envoi…';
+    fetch(API, { method:'POST',
+      headers:{ apikey: CLE, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_dossier: d }) })
+      .then(function(r){ return r.json(); })
+      .then(function(r){
+        if (r && r.status === 'ok') {
+          f.querySelector('.fp-grille').style.display = 'none';
+          bouton.style.display = 'none';
+          note.className = 'fp-note ok';
+          note.textContent = 'Votre projet nous est bien parvenu. Nous revenons vers vous rapidement.';
+        } else { throw new Error((r && r.reponse) || 'echec'); }
+      })
+      .catch(function(err){
+        bouton.disabled = false; bouton.textContent = 'Envoyer mon projet';
+        note.className = 'fp-note err';
+        note.textContent = (err && err.message !== 'echec')
+          ? err.message
+          : 'L’envoi n’a pas abouti. Appelez-nous au 06 46 44 91 86.';
+      });
+  });
+})();
+</script>
 </body></html>
