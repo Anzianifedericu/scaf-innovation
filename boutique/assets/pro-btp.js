@@ -19,6 +19,7 @@ let btpData    = null;   // reponse brute du catalogue BTP
 let revPrix    = null;   // sku -> { public_ht, prix_revendeur, marge_ht }
 let revRemise  = null;   // remise revendeur consentie, en fraction
 let modeRevendeur = localStorage.getItem('scaf_mode_revendeur') === '1';
+let monMetier = null;    // { metier, metier_libelle, prescripteur, gammes, tous_metiers }
 
 async function proApi(payload) {
   const r = await fetch(PRO_API, {
@@ -95,6 +96,36 @@ function priceDisplay(price_eur, sku) {
   return `<span class="card-price">${eurP(price_eur)}</span>`;
 }
 function isPro() { return proConnecte(); }
+
+/* Le metier du compte et les gammes qui le concernent.
+   Un etancheur et un maçon n'ont pas le meme magasin : plutot que de
+   montrer les vingt-et-une gammes a tout le monde, on n'affiche que celles
+   qui correspondent au metier, deduit du code NAF verifie a l'inscription.
+   Un compte sans metier identifie voit tout — on n'ampute pas un catalogue
+   sur une information qu'on n'a pas. */
+async function chargerMonMetier() {
+  if (!proSession) return null;
+  const r = await proApi({ action: 'mes-gammes' });
+  if (r && r.status === 'ok') { monMetier = r; return r; }
+  if (r && r.status === 'session_invalide') {
+    localStorage.removeItem(PRO_SESSION); proSession = null;
+  }
+  return null;
+}
+
+/* La deduction se trompe parfois : un BTP general qui fait surtout de la
+   couverture. Le pro corrige lui-meme, une fois. */
+async function definirMonMetier(code) {
+  const r = await proApi({ action: 'definir-metier', metier: code });
+  if (r && r.status === 'ok') { await chargerMonMetier(); location.reload(); }
+  return r;
+}
+
+/* Le compte voit-il cette gamme ? */
+function gammeVisible(code) {
+  if (!monMetier || !monMetier.gammes) return true;
+  return monMetier.gammes.some(g => g.code === code);
+}
 
 /* Tarif revendeur : ce qu'il paie, ce qu'il revend, ce qu'il gagne.
    Comme pour le tarif pro, tout est calcule au serveur : le navigateur ne
