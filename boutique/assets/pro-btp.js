@@ -16,6 +16,9 @@ let proSession = localStorage.getItem(PRO_SESSION) || null;
 let proInfo    = null;   // { nom, categorie }
 let menagePrix = {};     // sku -> prix pro HT
 let btpData    = null;   // reponse brute du catalogue BTP
+let revPrix    = null;   // sku -> { public_ht, prix_revendeur, marge_ht }
+let revRemise  = null;   // remise revendeur consentie, en fraction
+let modeRevendeur = localStorage.getItem('scaf_mode_revendeur') === '1';
 
 async function proApi(payload) {
   const r = await fetch(PRO_API, {
@@ -67,6 +70,15 @@ async function chargerTarifMenage() {
 
 /* Surcharge de app.js : le prix pro vient du serveur, plus d'un calcul local */
 function priceDisplay(price_eur, sku) {
+  // En vue revendeur, ce qui compte n'est pas le prix d'achat seul mais
+  // l'ecart avec le prix de revente : c'est lui qui decide d'une commande.
+  if (modeRevendeur && sku && revPrix && revPrix[sku]) {
+    const r = revPrix[sku];
+    return `<span class="card-price">${eurP(r.prix_revendeur)} `
+         + `<span style="font-size:11px;color:#495765;font-weight:400">HT revendeur</span></span>`
+         + `<span style="display:block;font-size:11px;color:#6b7a88;margin-top:2px">`
+         + `revente conseillée ${eurP(r.public_ht)} · marge ${eurP(r.marge_ht)}</span>`;
+  }
   const pro = sku && menagePrix[sku] != null ? menagePrix[sku] : null;
   if (pro != null) {
     return `<span class="card-price">${eurP(pro)} `
@@ -75,6 +87,45 @@ function priceDisplay(price_eur, sku) {
   return `<span class="card-price">${eurP(price_eur)}</span>`;
 }
 function isPro() { return proConnecte(); }
+
+/* Tarif revendeur : ce qu'il paie, ce qu'il revend, ce qu'il gagne.
+   Comme pour le tarif pro, tout est calcule au serveur : le navigateur ne
+   recoit que des montants, jamais la remise a appliquer. */
+async function chargerTarifRevendeur() {
+  if (!proSession) return null;
+  const r = await proApi({ action: 'revendeur' });
+  if (r && r.status === 'ok') {
+    revPrix = {};
+    (r.produits || []).forEach(p => { revPrix[p.sku] = p; });
+    revRemise = r.remise_pct;
+    return r;
+  }
+  if (r && r.status === 'session_invalide') {
+    localStorage.removeItem(PRO_SESSION); proSession = null;
+  }
+  revPrix = null;
+  return r;
+}
+
+/* Bascule entre l'achat pour soi et l'achat pour revendre. */
+async function basculerModeRevendeur(actif) {
+  modeRevendeur = !!actif;
+  localStorage.setItem('scaf_mode_revendeur', modeRevendeur ? '1' : '0');
+  if (modeRevendeur && !revPrix) await chargerTarifRevendeur();
+  if (typeof render === 'function') render();
+  majBandeauRevendeur();
+}
+
+function majBandeauRevendeur() {
+  const el = document.getElementById('bandeau-revendeur');
+  if (!el) return;
+  el.hidden = !(modeRevendeur && revRemise != null);
+  if (!el.hidden) {
+    el.innerHTML = 'Vue revendeur — remise de '
+      + Math.round(revRemise * 100) + ' % sur le prix public conseillé. '
+      + '<button type="button" onclick="basculerModeRevendeur(false)">Revenir à la vue normale</button>';
+  }
+}
 
 /* ---------------- Catalogue BTP ---------------- */
 
