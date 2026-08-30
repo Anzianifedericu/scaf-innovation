@@ -611,6 +611,13 @@
   .compare td.no{color:#A89F8E;}
   @media (max-width:760px){ .grid-real{grid-template-columns:1fr;} .compare{font-size:0.85rem;} .compare th, .compare td{padding:10px;} }
 </style>
+
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#C1693E">
+<link rel="apple-touch-icon" href="/assets/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SCAF">
 </head>
   <style>
     .estim { max-width:720px; margin:0 auto; }
@@ -896,4 +903,12 @@
     ]
   }
 }</script>
+
+<script>
+// Installation sur l'ecran d'accueil et repli hors reseau. L'echec est
+// silencieux : en developpement le protocole n'est pas toujours https.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+</script>
 </body></html>
