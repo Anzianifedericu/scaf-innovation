@@ -626,6 +626,20 @@ function inStock(p) {
 }
 
 function stockBlock(p) {
+  // Sans compte professionnel, il n'y a ni prix ni commande possible : on
+  // propose la seule action qui ait un sens, ouvrir un acces. La pre-demande
+  // reste ouverte a tous, elle n'expose aucun montant.
+  if (typeof proConnecte === 'function' && !proConnecte()) {
+    if (inStock(p)) {
+      return `<button class="btn-mini" onclick="event.preventDefault();event.stopPropagation();`
+           + `ouvrirConnexionPro()">Accès professionnel</button>`;
+    }
+    return `
+    <div class="stock-out-actions" onclick="event.preventDefault();event.stopPropagation()">
+      <span class="badge-out-of-stock">Actuellement pas en stock</span>
+      <button class="btn-mini" onclick='addToPreorderCartFromCard(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Ajouter à ma pré-demande</button>
+    </div>`;
+  }
   if (inStock(p)) {
     return `<button class="card-add" data-sku="${p.sku}" aria-label="Ajouter au panier">+</button>`;
   }
