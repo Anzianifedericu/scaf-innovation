@@ -26,3 +26,17 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Le manifeste doit porter son propre type MIME, sinon certains telephones
+# refusent de proposer l'installation sur l'ecran d'accueil.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json; charset=utf-8"
+
+# Le service worker commande la mise a jour du site installe : il ne doit
+# jamais etre servi depuis un cache.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
