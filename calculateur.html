@@ -246,6 +246,9 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 #impression .contact-plaquette p{font-size:11.5px;line-height:1.6;color:var(--beton);margin:0 0 8px}
 #impression .coord{padding:10px 12px;background:var(--paper-dim);border-radius:6px}
 #impression .coord b{color:var(--encre)}
+
+    .stat-note { display:block; font-size:.68rem; font-weight:400; opacity:.65;
+      margin-top:.15rem; line-height:1.35; letter-spacing:0; text-transform:none; }
 </style>
 </head>
 <body>
@@ -1907,6 +1910,36 @@ function rendreOnglets(){
   document.getElementById('onglets').innerHTML=h;
 }
 
+
+/* --- Metre instantane, calcule dans le navigateur ------------------------
+   Le chiffrage qui fait foi reste celui du serveur (bouton Calculer). Ce
+   bloc ne sert qu'a donner au poseur les ordres de grandeur pendant qu'il
+   dessine, sans attendre un aller-retour reseau. Constantes issues du
+   manuel Nudura : assise 457,2 mm, bloc standard 1,114 m2, correcteur de
+   hauteur 76,2 mm, standard coupe 152,4 mm. */
+const ASSISE = 0.4572, CORRECTEUR = 0.0762, COUPE_STD = 0.1524;
+const BLOC_M2 = 1.114, ANGLE_CONSOMME = 1.20;
+/* m3 de beton par m2 de mur, selon l'epaisseur du voile (manuel, p.34) */
+const BETON_PAR_M2 = { 108:0.107, 152:0.156, 203:0.214, 254:0.263, 305:0.313 };
+
+function hauteursUtiles(maxAssises){
+  const out = [];
+  for(let a=1; a<=maxAssises; a++)
+    for(const c of [0, CORRECTEUR, COUPE_STD, CORRECTEUR+COUPE_STD])
+      out.push({ h:+(a*ASSISE+c).toFixed(4), assises:a, complement:c });
+  return out.sort((x,y)=>x.h-y.h);
+}
+
+/* Renvoie la hauteur utile exacte, ou les deux valeurs encadrantes. */
+function verifierHauteur(hauteur, tolerance=0.025){
+  const t = hauteursUtiles(10);
+  const exact = t.find(v=>Math.abs(v.h-hauteur) <= tolerance);
+  if(exact) return { ok:true, ...exact };
+  let bas=null, haut=null;
+  for(const v of t){ if(v.h < hauteur) bas = v; else { haut = v; break; } }
+  return { ok:false, bas, haut };
+}
+
 const lig=(l,q,d)=>`<div class="ligne-ref"><span>${l}${d?`<div class="desc">${d}</div>`:''}</span><span class="qte">${q}</span></div>`;
 
 function rendrePanneaux(){
@@ -1928,8 +1961,43 @@ function rendrePanneaux(){
     L.push(['Ouvertures',niv.ouvertures.length,'']);
     L.push(['Surface percée',s.toFixed(2),'m²']);
   }
-  document.getElementById('stats').innerHTML=L.map(([l,v,u])=>
-    `<div class="stat"><span class="stat-lib">${l}</span><span class="stat-val">${v}<span class="u">${u}</span></span></div>`).join('');
+  // --- controle de la hauteur saisie -----------------------------------
+  // Une hauteur hors table impose une coupe sur chantier : mieux vaut le
+  // dire pendant la saisie qu'au moment de la commande.
+  const vh = verifierHauteur(niv.hauteur);
+  if(vh.ok){
+    const comp = vh.complement < 0.001 ? 'assises nues'
+      : vh.complement < 0.08 ? `${vh.assises} assises + correcteur`
+      : vh.complement < 0.16 ? `${vh.assises} assises + standard coupe`
+      : `${vh.assises} assises + correcteur + standard coupe`;
+    L.push(['Hauteur utile', `${vh.assises} assise${vh.assises>1?'s':''}`, '',
+            comp]);
+  }else{
+    const p = v => v ? v.h.toFixed(3).replace('.',',')+' m' : '—';
+    L.push(['Hauteur', 'fausse coupe', '',
+            `descendre a ${p(vh.bas)} ou monter a ${p(vh.haut)}`]);
+  }
+
+  // --- metre instantane -------------------------------------------------
+  if(niv.ferme){
+    const perc  = niv.ouvertures.reduce((t,o)=>t+o.largeur*o.hauteur,0);
+    const brute = perimetre()*niv.hauteur + totalRefends()*niv.hauteur;
+    const nette = Math.max(0, brute - perc);
+    const ratio = BETON_PAR_M2[Number(niv.epaisseur)] ?? 0.156;
+    const nbAngles = (a.s90+a.r90+a.s45+a.r45);
+    const surfAngles = nbAngles * ANGLE_CONSOMME * niv.hauteur;
+    L.push(['Surface de mur', nette.toFixed(2), 'm²',
+            perc ? `${brute.toFixed(2)} m² brut, ${perc.toFixed(2)} m² percés` : 'hors ouvertures']);
+    L.push(['Béton estimé', (nette*ratio).toFixed(2), 'm³',
+            `${ratio} m³/m² pour un voile de ${niv.epaisseur} mm`]);
+    L.push(['Blocs droits', Math.ceil(Math.max(0,nette-surfAngles)/BLOC_M2), '',
+            `${BLOC_M2} m² par bloc`]);
+    if(nbAngles) L.push(['Blocs d\'angle', nbAngles, '', `${ANGLE_CONSOMME} m consommés par angle`]);
+    L.push(['Jeux d\'étais', Math.ceil(perimetre()/1.40), '', 'un tous les 1,40 m']);
+  }
+
+  document.getElementById('stats').innerHTML=L.map(([l,v,u,d])=>
+    `<div class="stat"><span class="stat-lib">${l}${d?`<span class="stat-note">${d}</span>`:''}</span><span class="stat-val">${v}<span class="u">${u||''}</span></span></div>`).join('');
 
   // verdict
   const vd=document.getElementById('verdict'), orph=sansPorteur();
