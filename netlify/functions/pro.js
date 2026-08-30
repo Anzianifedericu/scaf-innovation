@@ -74,6 +74,17 @@ exports.handler = async (event) => {
         if (!session) return reply(401, { status: 'session_invalide' });
         return reply(200, await rpc('rpc_pro_catalogue_menage', { p_session: session }));
 
+      /* --- Metier du compte et gammes qui le concernent --- */
+      case 'mes-gammes':
+        if (!session) return reply(401, { status: 'session_invalide' });
+        return reply(200, await rpc('rpc_pro_mes_gammes', { p_session: session }));
+
+      /* --- Le pro corrige son metier ---------------------- */
+      case 'definir-metier':
+        if (!session) return reply(401, { status: 'session_invalide' });
+        return reply(200, await rpc('rpc_pro_definir_metier',
+          { p_session: session, p_metier: body.metier }));
+
       /* --- Tarif revendeur : ce qu'il paie, revend et gagne - */
       case 'revendeur':
         if (!session) return reply(401, { status: 'session_invalide' });
