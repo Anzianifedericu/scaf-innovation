@@ -216,17 +216,15 @@
     .section{padding:60px 0;}
   }
 
-  .raccourcis { position:sticky; top:0; z-index:60; padding:.6rem 0;
-    background:rgba(244,238,225,.94); backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--ligne); }
-  .raccourcis-piste { display:flex; gap:.45rem; overflow-x:auto; scrollbar-width:none;
-    -webkit-overflow-scrolling:touch; padding:0 1rem; }
-  .raccourcis-piste::-webkit-scrollbar { display:none; }
-  .raccourcis a { flex:0 0 auto; text-decoration:none; padding:.5rem .9rem;
-    border-radius:999px; border:1px solid var(--ligne); background:#fff;
-    color:var(--nuit); font-size:.86rem; white-space:nowrap; }
-  .raccourcis a.fort { background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
-  section[id] { scroll-margin-top:4.5rem; }
+  
+  .pied-liens { display:grid; grid-template-columns:1fr 1fr; gap:1.6rem 1.2rem;
+    padding:2rem 0 1.6rem; border-bottom:1px solid var(--ligne); }
+  @media (min-width:760px){ .pied-liens { grid-template-columns:repeat(4,1fr); } }
+  .pied-liens h4 { font-family:'IBM Plex Mono',monospace; font-size:.7rem; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--terracotta); margin:0 0 .6rem; }
+  .pied-liens a { display:block; text-decoration:none; color:var(--nuit); font-size:.9rem;
+    margin-bottom:.4rem; }
+  .pied-liens a:hover { color:var(--terracotta); }
 </style>
 
 <link rel="manifest" href="/manifest.webmanifest">
@@ -244,15 +242,10 @@
   <nav>
     <a href="#top" class="logo">SCAF <span>Innovation</span></a>
     <ul class="nav-links">
-      <li><a href="#pourquoi">Perchè Nudura</a></li>
-      <li><a href='/produits'>Prudutti</a></li>
-      <li><a href="#projets">I vostri prugetti</a></li>
-      <li><a href="#chantier">U cantieru</a></li>
       <li><a href="realisations-fr.html">Rializazione</a></li>
       <li><a href="prix-construction-maison-corse.html">Prezzi</a></li>
+      <li><a href="#chantier">U cantieru</a></li>
       <li><a href="#scaf">Perchè SCAF</a></li>
-      <li><a href="/tracer.html">Disegnà u me pianu</a></li>
-      <li><a href="/boutique/">Butega</a></li>
     </ul>
     <div class="nav-right">
       <div class="lang-switch">
@@ -270,32 +263,18 @@
     </div>
   </nav>
   <div class="mobile-panel" id="mobile-panel">
-    <div class="lang-switch" style="margin-bottom:10px;">
+      <div class="lang-switch" style="margin-bottom:10px;">
       <a aria-current='page' class='active' href='/' hreflang='co' lang='co'>CO</a>
       <a href='/fr' hreflang='fr' lang='fr'>FR</a>
     </div>
-    <a href="#pourquoi">Perchè Nudura</a>
-    <a href='/produits'>Prudutti</a>
-    <a href="#projets">I vostri prugetti</a>
-    <a href="#chantier">U cantieru</a>
-    <a href="#scaf">Perchè SCAF</a>
-    <a href="/boutique/">Butega</a>
-    <a href="https://espace.scaf-innovation.com">Espace Prupriu</a>
-    <a href="#contact" class="btn">Studiu gratuitu</a>
-  </div>
-</header>
-<nav class="raccourcis" aria-label="Accessu rapidu">
-  <div class="raccourcis-piste">
-    <a href="prix-construction-maison-corse.html" class="fort">Stimà u me prugettu</a>
-    <a href="ouvrir-un-commerce-corse.html">Apre una butega</a>
-    <a href="realisations-fr.html">Rializazione</a>
-    <a href="#pourquoi">Perchè Nudura</a>
-    <a href="#produits">Prudutti</a>
-    <a href="#chantier">U cantieru</a>
-    <a href="#scaf">Perchè SCAF</a>
-    <a href="#contact">Cuntattu</a>
-  </div>
-</nav>
+      <a href="realisations-fr.html">Rializazione</a>
+      <a href="prix-construction-maison-corse.html">Prezzi</a>
+      <a href="#chantier">U cantieru</a>
+      <a href="#scaf">Perchè SCAF</a>
+      <a href="https://espace.scaf-innovation.com">Spaziu Pro</a>
+      <a href="demande-etude-nudura.html" class="btn">Preventivu</a>
+    </div>
+  </header>
 
 
 <main id="top">
@@ -453,9 +432,36 @@
 </main>
 
 <footer>
-  <div class="wrap footer-row">
-    <span>SCAF Innovation — SIRET 791 805 906 00058 — 20290 Borgo, Haute-Corse</span>
-    <span>© 2026 SCAF Innovation — Tutti i diritti riservati</span>
+  <div class="wrap">
+    <div class="pied-liens">
+      <div>
+        <h4>Custruisce</h4>
+        <a href="realisations-fr.html">Rializazione</a>
+        <a href="prix-construction-maison-corse.html">Stimà u me prugettu</a>
+        <a href="demande-etude-nudura.html">Dumandà un studiu</a>
+      </div>
+      <div>
+        <h4>Prufessiunali</h4>
+        <a href="produits-fr.html">I nostri prudutti</a>
+        <a href="/tracer.html">Disegnà u me pianu</a>
+        <a href="connexion-pro.html">Spaziu Pro</a>
+      </div>
+      <div>
+        <h4>Cummercianti</h4>
+        <a href="/boutique/">Butega SCAF</a>
+        <a href="ouvrir-un-commerce-corse.html">Apre una butega</a>
+      </div>
+      <div>
+        <h4>Seguitecci</h4>
+        <a href="https://www.facebook.com/Scafinnovation" target="_blank" rel="noopener">Facebook</a>
+        <a href="https://www.instagram.com/scafinnovation" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://g.page/r/Ccs1Bq_mgHTkEBE/review" target="_blank" rel="noopener">Lascià un parè</a>
+      </div>
+    </div>
+    <div class="footer-row">
+      <span>SCAF Innovation — SIRET 791 805 906 00058 — 775 Avenue de Valrose, 20290 Borgo, Corsica suprana</span>
+      <span>06 46 44 91 86 · © 2026 SCAF Innovation</span>
+    </div>
   </div>
 </footer>
 
