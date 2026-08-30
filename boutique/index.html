@@ -364,14 +364,39 @@
         const el = document.getElementById('mon-metier');
         const opts = (mm.tous_metiers || []).map(m =>
           `<option value="${m.code}"${m.code === mm.metier ? ' selected' : ''}>${m.libelle}</option>`).join('');
-        el.innerHTML = (mm.metier
-            ? `Votre métier : <strong>${mm.metier_libelle}</strong>. `
-              + `Les gammes affichées sont celles qui vous concernent. `
-            : `Votre métier n'est pas encore renseigné, vous voyez donc tout le catalogue. `)
-          + `<label style="margin-left:6px">Changer :
-               <select onchange="definirMonMetier(this.value)"
-                       style="padding:4px 8px;border:1px solid #e4e9ee;border-radius:6px">
-                 <option value="">—</option>${opts}</select></label>`;
+
+        if (!mm.confirme) {
+          // Tant que le pro n'a pas tranche, on ne filtre rien : on lui
+          // montre tout et on lui demande. Un metier devine a partir d'un
+          // code NAF reste une supposition — c'est lui qui sait.
+          el.style.background = '#fff8ec';
+          el.style.borderColor = '#e0c9a0';
+          el.innerHTML =
+            '<strong>Quel est votre métier ?</strong> '
+            + 'Nous n’afficherons que les gammes qui vous concernent, et vous '
+            + 'pourrez en changer à tout moment.'
+            + (mm.metier ? ` D’après votre code d’activité, vous seriez « ${mm.metier_libelle} ».` : '')
+            + `<div style="margin-top:8px">
+                 <select id="choix-metier"
+                         style="padding:7px 10px;border:1px solid #e4e9ee;border-radius:8px;min-width:220px">
+                   <option value="">Choisissez votre métier…</option>${opts}
+                 </select>
+                 <button type="button"
+                   onclick="const v=document.getElementById('choix-metier').value; if(v) definirMonMetier(v)"
+                   style="margin-left:6px;padding:7px 14px;border:0;border-radius:8px;
+                          background:#3f6b4a;color:#fff;font-weight:600;cursor:pointer">Valider</button>
+               </div>`;
+        } else {
+          el.innerHTML =
+            `Votre métier : <strong>${mm.metier_libelle}</strong>. `
+            + (mm.voit_tout
+                ? 'Vous touchez à tout, vous voyez donc l’ensemble du catalogue. '
+                : 'Les gammes affichées sont celles qui vous concernent. ')
+            + `<label style="margin-left:6px">Changer :
+                 <select onchange="if(this.value) definirMonMetier(this.value)"
+                         style="padding:4px 8px;border:1px solid #e4e9ee;border-radius:6px">
+                   ${opts}</select></label>`;
+        }
         el.hidden = false;
         renderDeptStrip();
 
