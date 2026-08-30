@@ -70,6 +70,14 @@ async function chargerTarifMenage() {
 
 /* Surcharge de app.js : le prix pro vient du serveur, plus d'un calcul local */
 function priceDisplay(price_eur, sku) {
+  // Les prix Parex ne sont pas publics : la boutique s'adresse aux
+  // professionnels et aux commercants qui revendent, pas au passant. Un
+  // visiteur non connecte ne recoit donc aucun montant — ni affiche, ni
+  // present dans le HTML servi.
+  if (!proConnecte()) {
+    return '<span class="card-price" style="font-size:13px;font-weight:500;color:#6b7a88">'
+         + 'Prix réservés aux professionnels</span>';
+  }
   // En vue revendeur, ce qui compte n'est pas le prix d'achat seul mais
   // l'ecart avec le prix de revente : c'est lui qui decide d'une commande.
   if (modeRevendeur && sku && revPrix && revPrix[sku]) {
