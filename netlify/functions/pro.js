@@ -74,6 +74,11 @@ exports.handler = async (event) => {
         if (!session) return reply(401, { status: 'session_invalide' });
         return reply(200, await rpc('rpc_pro_catalogue_menage', { p_session: session }));
 
+      /* --- Tarif revendeur : ce qu'il paie, revend et gagne - */
+      case 'revendeur':
+        if (!session) return reply(401, { status: 'session_invalide' });
+        return reply(200, await rpc('rpc_pro_catalogue_revendeur', { p_session: session }));
+
       /* --- Catalogue BTP : Nudura + TEXSA ----------------- */
       case 'btp':
         if (!session) return reply(401, { status: 'session_invalide' });
