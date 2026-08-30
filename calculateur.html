@@ -250,6 +250,13 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
     .stat-note { display:block; font-size:.68rem; font-weight:400; opacity:.65;
       margin-top:.15rem; line-height:1.35; letter-spacing:0; text-transform:none; }
 </style>
+
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#C1693E">
+<link rel="apple-touch-icon" href="/assets/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SCAF">
 </head>
 <body>
 <div class="wrap">
@@ -2552,6 +2559,14 @@ determinerMode().then(()=>{
   if(!vuePro()) document.getElementById('blocDemande').hidden = false;
   recalcul();
 });
+</script>
+
+<script>
+// Installation sur l'ecran d'accueil et repli hors reseau. L'echec est
+// silencieux : en developpement le protocole n'est pas toujours https.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
 </script>
 </body>
 </html>
