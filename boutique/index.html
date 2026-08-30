@@ -74,6 +74,9 @@
 
   <div class="wrap">
     <div id="pro-bar" style="background:#f4f6f8;border:1px solid #e4e9ee;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a"></div>
+    <div id="mon-metier" hidden
+         style="background:#fff;border:1px solid #e4e9ee;border-radius:10px;
+                padding:10px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a"></div>
     <div id="bandeau-revendeur" hidden
          style="background:#3f6b4a;color:#fff;border-radius:10px;padding:10px 14px;
                 margin-bottom:14px;font-size:13.5px;line-height:1.5"></div>
@@ -129,7 +132,17 @@
 
   function renderDeptStrip() {
     const sel = document.getElementById("dept-select");
-    sel.innerHTML = Object.keys(DEPARTMENTS)
+    // Chaque rayon professionnel correspond a une gamme du catalogue. On ne
+    // propose que ceux qui concernent le metier du compte : un couvreur n'a
+    // rien a faire dans le rayon Nudura, un maçon rien dans l'etancheite.
+    const GAMME_DU_RAYON = { nudura: "nudura", etancheite: "texsa" };
+    const rayons = Object.keys(DEPARTMENTS).filter((d) => {
+      const g = GAMME_DU_RAYON[d];
+      if (!g) return true;                       // le rayon Menage reste ouvert
+      if (typeof gammeVisible !== "function") return true;
+      return gammeVisible(g);
+    });
+    sel.innerHTML = rayons
       .map((d) => `<option value="${d}" ${activeDepartment === d ? "selected" : ""}>${deptLabel(d)}</option>`)
       .join("");
     sel.addEventListener("change", () => {
@@ -345,6 +358,42 @@
     // La vue revendeur n'est proposee qu'aux comptes dont le tarif est arbitre :
     // mieux vaut ne rien montrer qu'un prix qui ne serait pas tenu.
     if (typeof proConnecte === 'function' && proConnecte()) {
+      // Le metier commande ce que le compte voit : on le charge avant tout.
+      const mm = await chargerMonMetier();
+      if (mm) {
+        const el = document.getElementById('mon-metier');
+        const opts = (mm.tous_metiers || []).map(m =>
+          `<option value="${m.code}"${m.code === mm.metier ? ' selected' : ''}>${m.libelle}</option>`).join('');
+        el.innerHTML = (mm.metier
+            ? `Votre métier : <strong>${mm.metier_libelle}</strong>. `
+              + `Les gammes affichées sont celles qui vous concernent. `
+            : `Votre métier n'est pas encore renseigné, vous voyez donc tout le catalogue. `)
+          + `<label style="margin-left:6px">Changer :
+               <select onchange="definirMonMetier(this.value)"
+                       style="padding:4px 8px;border:1px solid #e4e9ee;border-radius:6px">
+                 <option value="">—</option>${opts}</select></label>`;
+        el.hidden = false;
+        renderDeptStrip();
+
+        // Un architecte, un constructeur ou un promoteur ne pose pas : il
+        // prescrit. Ce qu'il lui faut d'abord, ce sont les pieces qui lui
+        // permettent de decider et d'ecrire son CCTP, pas un prix au bloc.
+        if (mm.prescripteur) {
+          const p = document.createElement('div');
+          p.style.cssText = 'background:#f4f6f8;border:1px solid #e4e9ee;border-radius:10px;'
+            + 'padding:12px 14px;margin-bottom:14px;font-size:13.5px;color:#3f4d5a';
+          p.innerHTML =
+            '<strong>Vous prescrivez plutôt que vous ne posez.</strong> '
+            + 'Avis techniques, détails de mise en œuvre, descriptifs et métrés '
+            + 'sont à votre disposition — dites-nous votre projet, nous vous '
+            + 'envoyons le dossier technique correspondant.'
+            + '<a href="/demande-etude-nudura.html?profil=' + mm.metier + '" '
+            + 'style="display:inline-block;margin-left:8px;padding:7px 14px;border-radius:8px;'
+            + 'background:#3f6b4a;color:#fff;font-weight:600;text-decoration:none">'
+            + 'Demander le dossier technique</a>';
+          el.parentNode.insertBefore(p, el.nextSibling);
+        }
+      }
       const r = await chargerTarifRevendeur();
       if (r && r.status === 'ok') {
         const acc = document.getElementById('acces-revendeur');
