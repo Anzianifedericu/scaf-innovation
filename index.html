@@ -228,6 +228,13 @@
   .raccourcis a.fort { background:var(--terracotta); border-color:var(--terracotta); color:#fff; }
   section[id] { scroll-margin-top:4.5rem; }
 </style>
+
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#C1693E">
+<link rel="apple-touch-icon" href="/assets/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SCAF">
 </head>
 <body>
 
@@ -476,5 +483,13 @@
 
 
 
+
+<script>
+// Installation sur l'ecran d'accueil et repli hors reseau. L'echec est
+// silencieux : en developpement le protocole n'est pas toujours https.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+</script>
 </body></html>
 <!-- deploiement relance apres rechargement des credits -->
