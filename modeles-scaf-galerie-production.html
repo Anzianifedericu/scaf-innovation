@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Galerie des modèles de construction SCAF Alliance avec technologie Nudura ICF. Du studio à la villa, découvrez les maisons construites avec blocs Nudura pour performance énergétique optimale.">
+  <meta name="keywords" content="Nudura, ICF, construction, maison, énergie, performance thermique, SCAF, Corse">
+  <meta property="og:title" content="Galerie Maisons SCAF Alliance — Nudura">
+  <meta property="og:description" content="Découvrez 11 modèles de construction avec blocs Nudura : performance énergétique, économies garanties, design moderne.">
+  <meta property="og:type" content="website">
+  <title>Maisons SCAF Alliance — Galerie Nudura</title>
+  <style>
+    :root {
+      --color-bg: #fafaf8;
+      --color-text: #1a1a1a;
+      --color-text-light: #666;
+      --color-border: #e0e0e0;
+      --color-accent: #0066cc;
+      --color-accent-light: #f0f5ff;
+      --color-nudura: #2d5016;
+      --color-nudura-light: #4a7a2a;
+      --color-concrete: #9a9a9a;
+      --color-stone: #b8a890;
+      --color-wood: #a0714f;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --color-bg: #1a1a1a;
+        --color-text: #f5f5f5;
+        --color-text-light: #aaa;
+        --color-border: #333;
+        --color-accent-light: #001a4d;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 3rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      color: var(--color-text-light);
+      margin-bottom: 0.5rem;
+    }
+
+    .header .tagline {
+      font-size: 0.95rem;
+      color: var(--color-nudura);
+      font-weight: 600;
+    }
+
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 2.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .model-card {
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+
+    :root[data-theme="dark"] .model-card,
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .model-card {
+        background: #242424;
+      }
+    }
+
+    .model-card:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      transform: translateY(-4px);
+    }
+
+    .model-visual {
+      width: 100%;
+      height: 320px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #e8f4ff 0%, #d4e8f8 100%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .model-visual svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .performance-badges {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .badge {
+      background: var(--color-nudura);
+      color: white;
+      font-size: 0.7rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .badge.performance {
+      background: #d94d00;
+    }
+
+    .badge.thermal {
+      background: #0066cc;
+    }
+
+    .model-content {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .model-header {
+      margin-bottom: 1rem;
+    }
+
+    .model-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 0.25rem;
+    }
+
+    .model-type {
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .model-specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .spec {
+      text-align: center;
+    }
+
+    .spec-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--color-nudura);
+    }
+
+    .spec-label {
+      font-size: 0.75rem;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+    }
+
+    .model-description {
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .nudura-detail {
+      background: var(--color-accent-light);
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      border-left: 3px solid var(--color-nudura);
+    }
+
+    :root[data-theme="dark"] .nudura-detail,
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .nudura-detail {
+        background: rgba(45, 80, 22, 0.15);
+      }
+    }
+
+    .model-price {
+      margin-bottom: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .price-label {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .price-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--color-nudura);
+      margin-bottom: 0.25rem;
+    }
+
+    .price-note {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+    }
+
+    .model-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: auto;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: var(--color-nudura);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--color-nudura-light);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(45, 80, 22, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--color-accent-light);
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-accent);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .note {
+      background: var(--color-accent-light);
+      border: 1px solid var(--color-border);
+      border-left: 4px solid var(--color-nudura);
+      border-radius: 8px;
+      padding: 2rem;
+      color: var(--color-text);
+      line-height: 1.8;
+      margin-top: 3rem;
+    }
+
+    :root[data-theme="dark"] .note,
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .note {
+        background: rgba(45, 80, 22, 0.1);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .models-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Maisons SCAF Alliance</h1>
+      <p>Modèles de construction en Nudura ICF</p>
+      <div class="tagline">Blocs Nudura | Performance thermique | Économies garanties | Design moderne</div>
+    </div>
+
+    <div class="models-grid">
+      <!-- MODÈLE 1: Studio -->
+      <div class="model-card">
+        <div class="model-visual">
+          <div class="performance-badges">
+            <div class="badge">Nudura 102mm</div>
+            <div class="badge performance">Compact</div>
+          </div>
+          <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="150" fill="#e8f4ff"/>
+            <rect y="150" width="400" height="170" fill="#9aad7a"/>
+            <rect x="90" y="120" width="220" height="170" fill="#c9a882"/>
+            <g opacity="0.35">
+              <rect x="90" y="120" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="134" y="120" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="178" y="120" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="222" y="120" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="266" y="120" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="90" y="180" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="134" y="180" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="178" y="180" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="222" y="180" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="266" y="180" width="44" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+            </g>
+            <rect x="120" y="140" width="80" height="50" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <rect x="200" y="140" width="80" height="50" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <rect x="155" y="245" width="25" height="45" fill="#8b5a3c" stroke="#333" stroke-width="1.5"/>
+            <polygon points="90,120 200,40 310,120" fill="#8b4513" opacity="0.8"/>
+            <polygon points="95,120 200,50 305,120" fill="#a0714f"/>
+            <rect x="60" y="280" width="280" height="18" fill="#b8a890" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="model-content">
+          <div class="model-header">
+            <div class="model-name">Studio Compact</div>
+            <div class="model-type">45 m² | Investisseur</div>
+          </div>
+          <div class="model-specs">
+            <div class="spec">
+              <div class="spec-value">45</div>
+              <div class="spec-label">m² plancher</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">102mm</div>
+              <div class="spec-label">Nudura</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">3.8</div>
+              <div class="spec-label">R thermique</div>
+            </div>
+          </div>
+          <div class="model-description">
+            Studio moderne 1 chambre avec séjour-cuisine ouvert, salle d'eau. Solution parfaite pour investissement locatif Corse.
+          </div>
+          <div class="nudura-detail">
+            <strong>Avantage :</strong> Bloc + béton armé + isolant = R 3.8 m²K/W. Murs fins = +15% surface vs CMU.
+          </div>
+          <div class="model-price">
+            <div class="price-label">Gros œuvre hors d'eau</div>
+            <div class="price-value">33 750 €</div>
+            <div class="price-note">HT — 37 125 € TTC (TVA 10%)</div>
+          </div>
+          <div class="model-actions">
+            <button class="btn btn-primary" data-model="Studio Compact" data-surface="45" data-nudura="102mm">Estimer en détail</button>
+            <button class="btn btn-secondary" data-model="Studio Compact" data-surface="45">Devis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODÈLE 2: T2 -->
+      <div class="model-card">
+        <div class="model-visual">
+          <div class="performance-badges">
+            <div class="badge">Nudura 102mm</div>
+            <div class="badge performance">-30% charges</div>
+          </div>
+          <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="150" fill="#e8f4ff"/>
+            <rect y="150" width="400" height="170" fill="#9aad7a"/>
+            <rect x="70" y="110" width="260" height="190" fill="#c9a882"/>
+            <g opacity="0.35">
+              <rect x="70" y="110" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="122" y="110" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="174" y="110" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="226" y="110" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="278" y="110" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="70" y="175" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="122" y="175" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="174" y="175" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="226" y="175" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="278" y="175" width="52" height="65" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+            </g>
+            <rect x="90" y="130" width="55" height="50" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <rect x="170" y="130" width="55" height="50" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <rect x="250" y="130" width="55" height="50" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <rect x="110" y="240" width="30" height="60" fill="#8b5a3c" stroke="#333" stroke-width="1.5"/>
+            <polygon points="70,110 200,40 330,110" fill="#8b4513" opacity="0.8"/>
+            <polygon points="75,110 200,50 325,110" fill="#a0714f"/>
+            <rect x="40" y="275" width="320" height="20" fill="#b8a890" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="model-content">
+          <div class="model-header">
+            <div class="model-name">T2 Malin</div>
+            <div class="model-type">65 m² | Jeune couple</div>
+          </div>
+          <div class="model-specs">
+            <div class="spec">
+              <div class="spec-value">65</div>
+              <div class="spec-label">m² plancher</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">102mm</div>
+              <div class="spec-label">Nudura</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">-30%</div>
+              <div class="spec-label">Charges annuelles</div>
+            </div>
+          </div>
+          <div class="model-description">
+            Plain-pied 2 chambres, séjour-cuisine ouvert, grandes baies vitrées. Nudura 102mm assure confort thermique toute l'année.
+          </div>
+          <div class="nudura-detail">
+            <strong>Performance :</strong> Bloc + béton armé + isolant = R 3.8 m²K/W. Moins de chauffage/clim = factures réduites.
+          </div>
+          <div class="model-price">
+            <div class="price-label">Gros œuvre hors d'eau</div>
+            <div class="price-value">48 750 €</div>
+            <div class="price-note">HT — 53 625 € TTC (TVA 10%)</div>
+          </div>
+          <div class="model-actions">
+            <button class="btn btn-primary" data-model="T2 Malin" data-surface="65" data-nudura="102mm">Estimer en détail</button>
+            <button class="btn btn-secondary" data-model="T2 Malin" data-surface="65">Devis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODÈLE 3: T3 -->
+      <div class="model-card">
+        <div class="model-visual">
+          <div class="performance-badges">
+            <div class="badge">Nudura 152mm</div>
+            <div class="badge performance">+Étanche à l'air</div>
+          </div>
+          <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="150" fill="#e8f4ff"/>
+            <rect y="150" width="400" height="170" fill="#9aad7a"/>
+            <rect x="60" y="100" width="280" height="210" fill="#c9a882"/>
+            <rect x="60" y="170" width="70" height="140" fill="#a8a8a8" stroke="#333" stroke-width="2"/>
+            <rect x="70" y="185" width="50" height="50" fill="#8b4513"/>
+            <g opacity="0.3">
+              <rect x="60" y="100" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="116" y="100" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="172" y="100" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="228" y="100" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="284" y="100" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="60" y="170" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="116" y="170" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="172" y="170" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="228" y="170" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="284" y="170" width="56" height="70" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+            </g>
+            <rect x="140" y="120" width="120" height="60" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <polygon points="60,100 200,30 340,100" fill="#8b4513" opacity="0.8"/>
+            <polygon points="65,100 200,40 335,100" fill="#a0714f"/>
+            <rect x="30" y="285" width="340" height="20" fill="#b8a890" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="model-content">
+          <div class="model-header">
+            <div class="model-name">T3 Plain-pied</div>
+            <div class="model-type">100 m² | Référence SCAF</div>
+          </div>
+          <div class="model-specs">
+            <div class="spec">
+              <div class="spec-value">100</div>
+              <div class="spec-label">m² plancher</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">152mm</div>
+              <div class="spec-label">Nudura</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">4.2</div>
+              <div class="spec-label">R thermique</div>
+            </div>
+          </div>
+          <div class="model-description">
+            Référence SCAF : 3 chambres, séjour-cuisine spacieux, garage intégré. Blocs Nudura 152mm (67mm EPS + 150mm béton + 67mm EPS) = ultra-isolant.
+          </div>
+          <div class="nudura-detail">
+            <strong>Avantage 152mm :</strong> Épaisseur optimale. Murs fins = +20% surface habitable vs CMU. Étanchéité à l'air certifiée.
+          </div>
+          <div class="model-price">
+            <div class="price-label">Gros œuvre hors d'eau</div>
+            <div class="price-value">75 000 €</div>
+            <div class="price-note">HT — 82 500 € TTC (TVA 10%)</div>
+          </div>
+          <div class="model-actions">
+            <button class="btn btn-primary" data-model="T3 Plain-pied" data-surface="100" data-nudura="152mm">Estimer en détail</button>
+            <button class="btn btn-secondary" data-model="T3 Plain-pied" data-surface="100">Devis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODÈLE 4: T4 -->
+      <div class="model-card">
+        <div class="model-visual">
+          <div class="performance-badges">
+            <div class="badge">Nudura 152mm</div>
+            <div class="badge thermal">Norme RT2012</div>
+          </div>
+          <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="150" fill="#e8f4ff"/>
+            <rect y="150" width="400" height="170" fill="#9aad7a"/>
+            <rect x="50" y="95" width="300" height="220" fill="#c9a882"/>
+            <rect x="50" y="175" width="75" height="140" fill="#a8a8a8" stroke="#333" stroke-width="2"/>
+            <g opacity="0.3">
+              <rect x="50" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="100" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="150" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="200" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="250" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="300" y="95" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="50" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="100" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="150" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="200" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="250" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+              <rect x="300" y="168" width="50" height="73" fill="#2d5016" stroke="#1a3d0a" stroke-width="1"/>
+            </g>
+            <rect x="130" y="115" width="130" height="65" fill="#a8d8ff" stroke="#333" stroke-width="2"/>
+            <polygon points="50,95 200,20 350,95" fill="#8b4513" opacity="0.8"/>
+            <polygon points="55,95 200,30 345,95" fill="#a0714f"/>
+            <rect x="20" y="300" width="360" height="15" fill="#b8a890" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="model-content">
+          <div class="model-header">
+            <div class="model-name">T4 Familiale</div>
+            <div class="model-type">130 m² | Famille</div>
+          </div>
+          <div class="model-specs">
+            <div class="spec">
+              <div class="spec-value">130</div>
+              <div class="spec-label">m² plancher</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">152mm</div>
+              <div class="spec-label">Nudura</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">4.1</div>
+              <div class="spec-label">R thermique</div>
+            </div>
+          </div>
+          <div class="model-description">
+            Plain-pied spacieux : 4 chambres, séjour-cuisine ouverte, garage, terrasse. Nudura 152mm délivre confort optimal en Corse.
+          </div>
+          <div class="nudura-detail">
+            <strong>Conforme RT2012/RE2020 :</strong> Murs fins permettent +20% d'espace par rapport CMU. Consommation énergétique réduite.
+          </div>
+          <div class="model-price">
+            <div class="price-label">Gros œuvre hors d'eau</div>
+            <div class="price-value">97 500 €</div>
+            <div class="price-note">HT — 107 250 € TTC (TVA 10%)</div>
+          </div>
+          <div class="model-actions">
+            <button class="btn btn-primary" data-model="T4 Familiale" data-surface="130" data-nudura="152mm">Estimer en détail</button>
+            <button class="btn btn-secondary" data-model="T4 Familiale" data-surface="130">Devis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODÈLE 5: R+1 -->
+      <div class="model-card">
+        <div class="model-visual">
+          <div class="performance-badges">
+            <div class="badge">Nudura 152mm</div>
+            <div class="badge thermal">R+1</div>
+          </div>
+          <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="150" fill="#e8f4ff"/>
+            <rect y="150" width="400" height="170" fill="#9aad7a"/>
+            <rect x="50" y="60" width="300" height="155" fill="#c9a882" opacity="0.9"/>
+            <rect x="50" y="215" width="300" height="95" fill="#c9a882"/>
+            <g opacity="0.25">
+              <rect x="50" y="60" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="100" y="60" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="150" y="60" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="200" y="60" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="250" y="60" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="50" y="215" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="100" y="215" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="150" y="215" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="200" y="215" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+              <rect x="250" y="215" width="50" height="60" fill="#2d5016" stroke="#1a3d0a" stroke-width="0.5"/>
+            </g>
+            <rect x="100" y="80" width="70" height="45" fill="#a8d8ff" stroke="#333" stroke-width="1.5"/>
+            <rect x="220" y="80" width="70" height="45" fill="#a8d8ff" stroke="#333" stroke-width="1.5"/>
+            <rect x="100" y="235" width="70" height="45" fill="#a8d8ff" stroke="#333" stroke-width="1.5"/>
+            <rect x="220" y="235" width="70" height="45" fill="#a8d8ff" stroke="#333" stroke-width="1.5"/>
+            <polygon points="50,60 200,0 350,60" fill="#8b4513" opacity="0.8"/>
+            <polygon points="55,60 200,10 345,60" fill="#a0714f"/>
+            <rect x="20" y="300" width="360" height="15" fill="#b8a890" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="model-content">
+          <div class="model-header">
+            <div class="model-name">Maison R+1</div>
+            <div class="model-type">130 m² (2 niv.) | Investissement</div>
+          </div>
+          <div class="model-specs">
+            <div class="spec">
+              <div class="spec-value">130</div>
+              <div class="spec-label">m² plancher</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">152mm</div>
+              <div class="spec-label">Nudura</div>
+            </div>
+            <div class="spec">
+              <div class="spec-value">R+1</div>
+              <div class="spec-label">Étages</div>
+            </div>
+          </div>
+          <div class="model-description">
+            Duplex performant : 2 x 65m². RDC avec séjour/cuisine, Étage 2-3 chambres. Nudura 152mm optimise tout l'habitat en hauteur.
+          </div>
+          <div class="nudura-detail">
+            <strong>Deux étages :</strong> Bloc + béton armé pour plancher intermédiaire. Performance thermique maintenue partout.
+          </div>
+          <div class="model-price">
+            <div class="price-label">Gros œuvre hors d'eau</div>
+            <div class="price-value">93 600 €</div>
+            <div class="price-note">HT — 102 960 € TTC (TVA 10%)</div>
+          </div>
+          <div class="model-actions">
+            <button class="btn btn-primary" data-model="Maison R+1" data-surface="130" data-nudura="152mm">Estimer en détail</button>
+            <button class="btn btn-secondary" data-model="Maison R+1" data-surface="130">Devis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODÈLES 6-11 (Résumé) -->
+      <div style="grid-column: 1 / -1; background: var(--color-accent-light); border: 2px solid var(--color-nudura); border-radius: 12px; padding: 2rem; text-align: center;">
+        <h3 style="color: var(--color-nudura); margin-bottom: 1rem;">Les 11 modèles SCAF Alliance complets</h3>
+        <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">
+          <strong>6 modèles supplémentaires</strong> en cours de création : R+1 Prestige 160m² • R+2 Standard 160m² • R+2 Premium 190m² • R+3 Collectif 190m² • R+3 Prestige 220m² • Villa Prestige 250m²
+        </p>
+        <p style="color: var(--color-text); font-weight: 600;">
+          ✓ Tous construits en Nudura (102mm / 152mm / 203mm)<br>
+          ✓ Performance énergétique garantie<br>
+          ✓ Murs fins = +surface habitable vs CMU<br>
+          ✓ Économies charges locataires/habitants
+        </p>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>🏗️ Technologie Nudura — Blocs, performance, gain :</strong><br>
+      <br>
+      <strong>Les blocs :</strong> Coffrage isolant 4-en-1 (EPS + béton armé + EPS). Préfabriqués, assemblage rapide, zéro déchet chantier.
+      <br><br>
+      <strong>Performance :</strong> R thermique 3.8-4.2 m²K/W (vs 1.5-2.0 CMU). Étanchéité à l'air certifiée. Conforme RT2012 + RE2020.
+      <br><br>
+      <strong>Gain clients :</strong> Murs fins (67mm isolant au lieu de 150mm CMU) = +20% surface habitable. Chauffage/clim -30 à 40%. Confort été/hiver. Structures durables 50+ ans.
+      <br><br>
+      <strong>Prix estimatif :</strong> Formule €/m² plancher (750€/m² RDC, 720€/m² R+1, 700€/m² R+2+). Affinage gratuit lors d'une étude site SCAF Alliance.
+    </div>
+  </div>
+
+  <script>
+    // Configuration des URLs (à adapter selon votre domaine)
+    const CONFIG = {
+      calculatorUrl: '/calculateur', // URL du calculateur de prix
+      quoteFormUrl: '/devis',       // URL du formulaire de devis
+    };
+
+    // Gestion des clics sur les boutons "Estimer en détail"
+    document.querySelectorAll('.btn-primary').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const modelName = this.getAttribute('data-model');
+        const surface = this.getAttribute('data-surface');
+        const nudura = this.getAttribute('data-nudura');
+
+        // Construire l'URL avec paramètres
+        const url = new URL(CONFIG.calculatorUrl, window.location.origin);
+        url.searchParams.append('model', modelName);
+        url.searchParams.append('surface', surface);
+        url.searchParams.append('nudura', nudura);
+
+        // Tracker Analytics (optionnel)
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'estimate_click', {
+            'model': modelName,
+            'surface': surface
+          });
+        }
+
+        // Rediriger vers le calculateur
+        window.location.href = url.toString();
+      });
+    });
+
+    // Gestion des clics sur les boutons "Devis"
+    document.querySelectorAll('.btn-secondary').forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const modelName = this.getAttribute('data-model');
+        const surface = this.getAttribute('data-surface');
+
+        // Construire l'URL avec paramètres
+        const url = new URL(CONFIG.quoteFormUrl, window.location.origin);
+        url.searchParams.append('model', modelName);
+        url.searchParams.append('surface', surface);
+
+        // Tracker Analytics (optionnel)
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'quote_request_click', {
+            'model': modelName,
+            'surface': surface
+          });
+        }
+
+        // Rediriger vers le formulaire de devis
+        window.location.href = url.toString();
+      });
+    });
+
+    // Support pour thème sombre (optionnel)
+    function initThemeToggle() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem('theme');
+
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (prefersDark) {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    }
+
+    // Initialiser au chargement
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initThemeToggle);
+    } else {
+      initThemeToggle();
+    }
+  </script>
+</body>
+</html>

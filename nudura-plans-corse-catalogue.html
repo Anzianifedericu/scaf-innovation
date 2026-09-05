@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans Nudura Adapté Corse — SCAF Alliance</title>
+  <meta name="description" content="11 plans de maison ICF Nudura adaptés à la Corse — climatisation, toiture TX5, gros œuvre SCAF, prix HT/TTC">
+  <meta name="keywords" content="Nudura, ICF, plans maison, Corse, SCAF, gros œuvre, climatisation">
+
+  <style>
+    :root {
+      --color-nudura: #2d5016;
+      --color-accent: #0066cc;
+      --color-bg: #fafaf8;
+      --color-text: #1a1a1a;
+      --color-border: #e5e5e5;
+      --color-price: #d97706;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --color-bg: #1a1a1a;
+        --color-text: #f5f5f5;
+        --color-border: #333;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --color-bg: #1a1a1a;
+      --color-text: #f5f5f5;
+      --color-border: #333;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--color-nudura);
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--color-text);
+      opacity: 0.8;
+      margin-bottom: 1rem;
+    }
+
+    .theme-toggle {
+      margin-top: 1.5rem;
+    }
+
+    .theme-toggle label {
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .plan-card {
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--color-bg);
+      transition: box-shadow 0.2s;
+    }
+
+    .plan-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .plan-visual {
+      background: linear-gradient(135deg, var(--color-nudura) 0%, #1a3a0a 100%);
+      padding: 2rem;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .plan-visual svg {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+    }
+
+    .plan-content {
+      padding: 1.5rem;
+    }
+
+    .plan-header {
+      margin-bottom: 1rem;
+    }
+
+    .plan-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--color-nudura);
+      margin-bottom: 0.25rem;
+    }
+
+    .plan-type {
+      font-size: 0.9rem;
+      color: var(--color-text);
+      opacity: 0.7;
+    }
+
+    .plan-specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem 0;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .spec {
+      font-size: 0.85rem;
+    }
+
+    .spec-label {
+      opacity: 0.7;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .spec-value {
+      font-weight: 600;
+      color: var(--color-nudura);
+    }
+
+    .plan-description {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .plan-options {
+      background: rgba(45, 80, 22, 0.05);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .plan-options strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--color-nudura);
+    }
+
+    .plan-options ul {
+      margin-left: 1rem;
+      line-height: 1.6;
+    }
+
+    .plan-price {
+      background: rgba(217, 119, 6, 0.08);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .price-label {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-bottom: 0.25rem;
+    }
+
+    .price-ht {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-price);
+      margin-bottom: 0.25rem;
+    }
+
+    .price-ttc {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .plan-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--color-nudura);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1a3a0a;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #0052a3;
+      transform: translateY(-2px);
+    }
+
+    .note {
+      background: rgba(0, 102, 204, 0.05);
+      border-left: 4px solid var(--color-accent);
+      padding: 1.5rem;
+      margin-top: 3rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      line-height: 1.8;
+    }
+
+    .note h3 {
+      margin-bottom: 1rem;
+      color: var(--color-accent);
+    }
+
+    .note ul {
+      margin-left: 1.5rem;
+      line-height: 1.8;
+    }
+
+    .note a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    .note a:hover {
+      text-decoration: underline;
+    }
+
+    .reference-link {
+      color: var(--color-accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .reference-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Plans Nudura Adaptés Corse</h1>
+      <p class="subtitle">11 maisons ICF — climatisation incluse, toiture TX5 SCAF, gros œuvre HT/TTC</p>
+      <div class="theme-toggle">
+        <label>
+          <input type="checkbox" id="themeToggle" aria-label="Basculer thème clair/sombre">
+          Mode sombre
+        </label>
+      </div>
+    </header>
+
+    <div class="models-grid" id="plansGrid"></div>
+
+    <div class="note">
+      <h3>📋 À propos de cette sélection</h3>
+      <p>
+        Ces 11 plans sont basés sur le catalogue officiel <a href="https://www.houseplans.com/collection/icf-house-plans" target="_blank" class="reference-link">Nudura House Plans</a>
+        et adaptés aux spécificités corsandes.
+      </p>
+      <ul>
+        <li><strong>Climatisation</strong> : Pompe à chaleur réversible air-air (Midea/Daikin) intégrée — essentiellement pour chauffage hiver et refroidissement étés chauds</li>
+        <li><strong>Toiture</strong> : TX5 Texsa (SBS) — 86 €/m² (SCAF) — excellent sur vents côtiers, 50+ ans</li>
+        <li><strong>Adaptations régionales</strong> : Isolation fenêtres renforcée (clim + UV été), drainage periphéral pour humidité, surexposition sud/ouest</li>
+        <li><strong>Gros œuvre</strong> : Tous murs + planchers en Nudura (102–203mm selon plan) — béton armé + isolant EPS</li>
+        <li><strong>Pricing</strong> : Formule €/m² plancher — gros œuvre HT + TVA Corse 10% = TTC</li>
+        <li><strong>PDFs</strong> : Chaque plan renvoie au document Nudura officiel (anglais) — équipe SCAF peut le localiser</li>
+      </ul>
+    </div>
+
+    <div class="note">
+      <h3>🎯 Flux commercial recommandé</h3>
+      <ul>
+        <li>Client choisit un plan dans ce catalogue</li>
+        <li>SCAF génère un devis détaillé (gros œuvre + options + planning)</li>
+        <li>Client peut commander les plans PDF Nudura (personnalisation architect si besoin)</li>
+        <li>SCAF coordonne with l'architecte local et démarre chantier</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      calculatorUrl: '/calculateur',
+      quoteFormUrl: '/devis'
+    };
+
+    const plans = [
+      {
+        id: '427-13',
+        name: 'Ranch Simple',
+        type: 'Plain-pied classique',
+        surface: 130,
+        nudura: '102mm',
+        rValue: 'R=3.8',
+        bedrooms: 3,
+        bathrooms: 2,
+        stories: 1,
+        description: 'Maison de plain-pied moderne avec disposition ouverte. Idéale pour couple ou petite famille. Accès jardin direct.',
+        options: [
+          'Pompe à chaleur 12kW réversible',
+          'Toiture TX5 SBS',
+          'Surélévation climatique (fondations ajustées)'
+        ],
+        priceSqm: 750,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#427-13'
+      },
+      {
+        id: '427-14',
+        name: 'Country Spacieux',
+        type: 'Maison familiale',
+        surface: 239,
+        nudura: '102mm',
+        rValue: 'R=3.8',
+        bedrooms: 4,
+        bathrooms: 2.5,
+        stories: 1,
+        description: 'Vaste maison à étage unique. Beaucoup de rangements, garage double. Parfait pour familles actives.',
+        options: [
+          'Pompe à chaleur 18kW réversible',
+          'Toiture TX5 SBS renforcée',
+          'Pergola/terrasse sud-ouest ombrée'
+        ],
+        priceSqm: 750,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#427-14'
+      },
+      {
+        id: '497-63',
+        name: 'Fermette Bureau',
+        type: 'Duplex avec home office',
+        surface: 273,
+        nudura: '152mm',
+        rValue: 'R=4.2',
+        bedrooms: 4,
+        bathrooms: 2.5,
+        stories: 2,
+        description: 'Deux étages, 4 chambres + bureau dédié. Façade fermette très présente en Corse. Ideal télétravail.',
+        options: [
+          'Pompe à chaleur 16kW réversible',
+          'Toiture TX5 SBS style Corse',
+          'Volets roulants motorisés (protection UV)'
+        ],
+        priceSqm: 720,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-63'
+      },
+      {
+        id: '497-64',
+        name: 'Fermette Prestige',
+        type: 'Maison semi-traditionnelle',
+        surface: 205,
+        nudura: '152mm',
+        rValue: 'R=4.2',
+        bedrooms: 4,
+        bathrooms: 3.5,
+        stories: 2,
+        description: 'Fermette soignée avec 3 salles de bain. Très bon pour accueil famille nombreuse, location saisonnière.',
+        options: [
+          'Pompe à chaleur 18kW réversible',
+          'Toiture TX5 Premium (pente Corse)',
+          'Balcons/terrasses étage chauffants'
+        ],
+        priceSqm: 720,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-64'
+      },
+      {
+        id: '497-65',
+        name: 'Traditionnel Terrasse',
+        type: 'Style méditerranéen',
+        surface: 206,
+        nudura: '152mm',
+        rValue: 'R=4.2',
+        bedrooms: 3,
+        bathrooms: 2.5,
+        stories: 2,
+        description: 'Maison traditionnelle avec toit-terrasse côté suite principale. Très architectural, vue potentielle sur mer.',
+        options: [
+          'Pompe à chaleur 14kW réversible',
+          'Toiture-terrasse accessible (TX5 renforcée)',
+          'Pergola bioclimatique étage'
+        ],
+        priceSqm: 720,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-65'
+      },
+      {
+        id: '497-66',
+        name: 'Country Élégant',
+        type: 'Maison compacte 2 étages',
+        surface: 191,
+        nudura: '152mm',
+        rValue: 'R=4.2',
+        bedrooms: 3,
+        bathrooms: 2.5,
+        stories: 2,
+        description: 'Petite maison 2 étages avec garage intégré. Agencement très pratique, tous rangements pensés.',
+        options: [
+          'Pompe à chaleur 14kW réversible',
+          'Toiture TX5 SBS',
+          'Claustras bois côté ouest (ombragement)'
+        ],
+        priceSqm: 720,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-66'
+      },
+      {
+        id: '497-67',
+        name: 'Fermette Réception',
+        type: 'Maison pour divertissement',
+        surface: 313,
+        nudura: '203mm',
+        rValue: 'R=4.4',
+        bedrooms: 4,
+        bathrooms: 2.5,
+        stories: 2,
+        description: 'Grande maison avec salle de réception, minibar, espace lounge. Idéale location haut de gamme, événements.',
+        options: [
+          'Pompe à chaleur 20kW réversible + zone 2',
+          'Toiture TX5 Premium pente forte',
+          'Terrasse panoramique ouest avec parasol'
+        ],
+        priceSqm: 700,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-67'
+      },
+      {
+        id: '497-68',
+        name: 'Fermette Authentique',
+        type: 'Style rustique Corse',
+        surface: 235,
+        nudura: '203mm',
+        rValue: 'R=4.4',
+        bedrooms: 4,
+        bathrooms: 2.5,
+        stories: 2,
+        description: 'Toit métal, bardage classique, porche ample. Charme fermette très corsande, très demandée location.',
+        options: [
+          'Pompe à chaleur 16kW réversible',
+          'Toiture métal (Texsa ou tuile TX5)',
+          'Bandeaux ombre traditionnel'
+        ],
+        priceSqm: 700,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-68'
+      },
+      {
+        id: '497-69',
+        name: 'Farmhouse Vérandas',
+        type: 'Maison famille large',
+        surface: 200,
+        nudura: '203mm',
+        rValue: 'R=4.4',
+        bedrooms: 3,
+        bathrooms: 3.5,
+        stories: 2,
+        description: 'Grandes vérandas avant et arrière. Parfait pour famille nombreuse, réunions, repos extérieur ombré.',
+        options: [
+          'Pompe à chaleur 18kW réversible',
+          'Toiture TX5 SBS standard',
+          'Pergola motorisée vérandas'
+        ],
+        priceSqm: 700,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#497-69'
+      },
+      {
+        id: '427-12',
+        name: 'Ranch Semi-Ouvert',
+        type: 'Plain-pied + suite invités',
+        surface: 176,
+        nudura: '102mm',
+        rValue: 'R=3.8',
+        bedrooms: 3,
+        bathrooms: 2.5,
+        stories: 1,
+        description: 'Plain-pied avec suite pour belle-famille séparée. Semi-ouvert (cuisine/salon distinct). Intimité garantie.',
+        options: [
+          'Pompe à chaleur 12kW réversible',
+          'Toiture TX5 SBS',
+          'Espace extérieur divisé'
+        ],
+        priceSqm: 750,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans#427-12'
+      },
+      {
+        id: 'bonus-villa',
+        name: 'Villa Prestige',
+        type: 'Maison haut de gamme',
+        surface: 320,
+        nudura: '203mm',
+        rValue: 'R=4.4',
+        bedrooms: 5,
+        bathrooms: 4,
+        stories: 2,
+        description: 'Villa prestigieuse avec suite parentale étage, piscine, terrasses multiples, vue dégagée. Haut standing Corse.',
+        options: [
+          'Pompe à chaleur 24kW multi-zone',
+          'Toiture TX5 Premium + balcon plein sud',
+          'Système domotique intégré'
+        ],
+        priceSqm: 700,
+        nuduraUrl: 'https://www.houseplans.com/collection/icf-house-plans'
+      }
+    ];
+
+    function calculatePrice(surface, priceSqm) {
+      const priceHT = surface * priceSqm;
+      const priceTTC = priceHT * 1.10;
+      return { HT: priceHT, TTC: priceTTC };
+    }
+
+    function renderPlans() {
+      const grid = document.getElementById('plansGrid');
+      grid.innerHTML = plans.map(plan => {
+        const price = calculatePrice(plan.surface, plan.priceSqm);
+        return `
+          <div class="plan-card">
+            <div class="plan-visual">
+              <svg viewBox="0 0 200 160" style="width: 100%; height: 100%;">
+                <defs>
+                  <pattern id="nudura-${plan.id}" patternUnits="userSpaceOnUse" width="8" height="8">
+                    <rect width="8" height="8" fill="#2d5016" opacity="0.3"/>
+                    <path d="M0,0 l8,8 M8,0 l-8,8" stroke="#2d5016" stroke-width="0.5" opacity="0.2"/>
+                  </pattern>
+                </defs>
+
+                <!-- Terrain -->
+                <rect width="200" height="160" fill="#90EE90" opacity="0.2"/>
+
+                <!-- Fondations -->
+                <rect x="40" y="100" width="120" height="8" fill="#999" stroke="#666" stroke-width="0.5"/>
+
+                <!-- Rez-de-chaussée -->
+                <rect x="40" y="70" width="120" height="30" fill="url(#nudura-${plan.id})" stroke="#2d5016" stroke-width="1.5"/>
+                <rect x="50" y="75" width="15" height="12" fill="#87CEEB" opacity="0.7" stroke="#333" stroke-width="0.5"/>
+                <rect x="105" y="75" width="15" height="12" fill="#87CEEB" opacity="0.7" stroke="#333" stroke-width="0.5"/>
+                <rect x="60" y="60" width="25" height="10" fill="#8B4513" opacity="0.6" stroke="#333" stroke-width="0.5"/>
+
+                ${plan.stories === 2 ? `
+                  <!-- Étage -->
+                  <rect x="50" y="35" width="100" height="30" fill="url(#nudura-${plan.id})" stroke="#2d5016" stroke-width="1.5"/>
+                  <rect x="60" y="42" width="12" height="10" fill="#87CEEB" opacity="0.7" stroke="#333" stroke-width="0.5"/>
+                  <rect x="90" y="42" width="12" height="10" fill="#87CEEB" opacity="0.7" stroke="#333" stroke-width="0.5"/>
+                  <rect x="120" y="42" width="12" height="10" fill="#87CEEB" opacity="0.7" stroke="#333" stroke-width="0.5"/>
+
+                  <!-- Toit -->
+                  <polygon points="50,35 150,35 180,15 20,15" fill="#D2691E" stroke="#8B4513" stroke-width="1"/>
+                  <line x1="50" y1="35" x2="75" y2="10" stroke="#A0522D" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="100" y1="35" x2="100" y2="10" stroke="#A0522D" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="150" y1="35" x2="125" y2="10" stroke="#A0522D" stroke-width="0.5" opacity="0.5"/>
+                ` : `
+                  <!-- Toit plain-pied -->
+                  <polygon points="40,70 160,70 185,50 15,50" fill="#D2691E" stroke="#8B4513" stroke-width="1"/>
+                `}
+
+                <!-- Ombre blocks Nudura -->
+                <text x="100" y="140" text-anchor="middle" font-size="10" fill="#2d5016" opacity="0.5">Nudura ${plan.nudura}</text>
+              </svg>
+            </div>
+
+            <div class="plan-content">
+              <div class="plan-header">
+                <div class="plan-name">${plan.name}</div>
+                <div class="plan-type">${plan.type} | ${plan.surface}m²</div>
+              </div>
+
+              <div class="plan-specs">
+                <div class="spec">
+                  <div class="spec-label">Surface</div>
+                  <div class="spec-value">${plan.surface}m²</div>
+                </div>
+                <div class="spec">
+                  <div class="spec-label">Nudura</div>
+                  <div class="spec-value">${plan.nudura}</div>
+                </div>
+                <div class="spec">
+                  <div class="spec-label">Chambres</div>
+                  <div class="spec-value">${plan.bedrooms}ch / ${plan.bathrooms}sdb</div>
+                </div>
+              </div>
+
+              <div class="plan-description">${plan.description}</div>
+
+              <div class="plan-options">
+                <strong>Adaptations Corse incluses :</strong>
+                <ul>
+                  ${plan.options.map(opt => `<li>${opt}</li>`).join('')}
+                </ul>
+              </div>
+
+              <div class="plan-price">
+                <div class="price-label">Gros œuvre HT/TTC</div>
+                <div class="price-ht">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price.HT)}</div>
+                <div class="price-ttc">TTC Corse (10%) : ${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price.TTC)}</div>
+              </div>
+
+              <div class="plan-actions">
+                <a href="${CONFIG.calculatorUrl}?model=${encodeURIComponent(plan.name)}&surface=${plan.surface}&nudura=${encodeURIComponent(plan.nudura)}" class="btn btn-primary">Estimer détail</a>
+                <a href="${CONFIG.quoteFormUrl}?plan=${encodeURIComponent(plan.id)}&surface=${plan.surface}" class="btn btn-secondary">Devis</a>
+              </div>
+
+              <div style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.7;">
+                <a href="${plan.nuduraUrl}" target="_blank" class="reference-link">→ Plans PDF Nudura</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('change', (e) => {
+      const isDark = e.target.checked;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Load theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.getElementById('themeToggle').checked = true;
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+
+    // Analytics
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const model = btn.closest('.plan-card')?.querySelector('.plan-name')?.textContent;
+        if (btn.classList.contains('btn-primary') && typeof gtag !== 'undefined') {
+          gtag('event', 'estimate_click', { 'plan': model });
+        } else if (btn.classList.contains('btn-secondary') && typeof gtag !== 'undefined') {
+          gtag('event', 'quote_request_click', { 'plan': model });
+        }
+      });
+    });
+
+    // Render on load
+    renderPlans();
+  </script>
+</body>
+</html>
