@@ -40,3 +40,40 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Audit 07/09/2026 : une seule URL par page (sans .html), sinon Google
+# indexe des doublons. /tracer est fusionne dans le calculateur.
+[[redirects]]
+  from = "/tracer"
+  to = "/calculateur"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/tracer.html"
+  to = "/calculateur"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/calculateur.html"
+  to = "/calculateur"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/demande-etude-nudura.html"
+  to = "/demande-etude-nudura"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/texsa.html"
+  to = "/texsa"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/catalogue-entretien-corse"
+  to = "/ouvrir-un-commerce-corse"
+  status = 301
