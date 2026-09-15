@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prix d'une maison en Corse — estimez votre gros œuvre en 3 questions</title>
-<meta name="description" content="Combien coûte la construction d'une maison en Corse ? Estimation immédiate du gros œuvre hors d'eau à partir de 750 €/m² de plancher. Trois questions, une réponse, sans engagement.">
+<meta name="description" content="Combien coûte la construction d'une maison en Corse ? Estimation immédiate du gros œuvre hors d'eau, calculée sur notre bordereau de prix à partir de votre surface. Trois questions, une fourchette, sans engagement.">
 <meta name="keywords" content="prix construction maison Corse, combien coûte une maison Haute-Corse, prix m2 construction Corse, estimation maison Bastia, gros œuvre hors d\'eau">
 <meta name="author" content="SCAF Innovation">
 <link rel="canonical" href="https://scaf-innovation.com/prix-construction-maison-corse">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Prix d'une maison en Corse — estimez votre gros œuvre en 3 questions">
-<meta property="og:description" content="Combien coûte la construction d'une maison en Corse ? Estimation immédiate du gros œuvre hors d'eau à partir de 750 €/m² de plancher. Trois questions, une réponse, sans engagement.">
+<meta property="og:description" content="Combien coûte la construction d'une maison en Corse ? Estimation immédiate du gros œuvre hors d'eau, calculée sur notre bordereau de prix à partir de votre surface. Trois questions, une fourchette, sans engagement.">
 <meta property="og:url" content="https://scaf-innovation.com/prix-construction-maison-corse">
 <meta property="og:image" content="https://crbvlowxxmspjnyculzl.supabase.co/storage/v1/object/public/site/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -647,6 +647,14 @@
       display:block; margin:.3rem 0 .1rem; }
     .resultat .ht { font-family:'IBM Plex Mono',monospace; font-size:.8rem;
       letter-spacing:.1em; color:rgba(251,247,236,.7); }
+    .fourchette { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.4rem; margin:.9rem 0 .2rem; }
+    .fourchette div { background:rgba(255,255,255,.08); border-radius:10px; padding:.55rem .4rem; text-align:center; }
+    .fourchette b { display:block; font-family:'Fraunces',Georgia,serif; font-size:1.05rem; }
+    .fourchette span { font-family:'IBM Plex Mono',monospace; font-size:.62rem; letter-spacing:.06em; text-transform:uppercase; color:rgba(251,247,236,.7); }
+    .resultat .ref { font-family:'IBM Plex Mono',monospace; font-size:.66rem; color:rgba(251,247,236,.55); margin:.6rem 0 0; }
+    .resultat .etat { font-size:.8rem; color:rgba(251,247,236,.75); min-height:1.2em; }
+    .resultat .btn2 { display:inline-block; margin:.5rem .4rem 0 0; }
+    .zone { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.6rem; }
     .resultat .ttc { font-size:.95rem; color:rgba(251,247,236,.9); margin:.5rem 0 0; }
     .resultat .apartir { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.08em;
       text-transform:uppercase; color:rgba(251,247,236,.75); }
@@ -749,15 +757,27 @@
         <h2>Dans quelle commune ?</h2>
         <input type="text" id="commune" placeholder="Borgo, Bastia, Oletta…"
                autocomplete="address-level2">
+        <div class="choix zone" id="zone">
+          <button type="button" data-z="2B" aria-pressed="true">Haute-Corse<small>2B</small></button>
+          <button type="button" data-z="2A" aria-pressed="false">Corse-du-Sud<small>2A</small></button>
+        </div>
       </div>
 
       <div class="resultat">
-        <span class="apartir">Gros œuvre hors d'eau, à partir de</span>
-        <span class="montant" id="montant">90 000 €</span>
+        <span class="apartir">Gros œuvre hors d'eau, estimation calculée sur notre bordereau</span>
+        <span class="montant" id="montant">96 995 €</span>
         <span class="ht">HT</span>
-        <p class="ttc" id="ttc">soit 99 000 € TTC, TVA 10 % applicable en Corse</p>
-        <p class="detail" id="detail">Soit 750 € par m² de plancher, pour 120 m² de plain-pied.</p>
-        <a class="btn" href="/demande-etude-nudura" id="cta">Affiner par une étude gratuite</a>
+        <p class="ttc" id="ttc">soit 106 695 € TTC, TVA 10 % applicable en Corse</p>
+        <div class="fourchette">
+          <div><span>Basse</span><b id="bas">82 446 €</b></div>
+          <div><span>Estimation</span><b id="central">96 995 €</b></div>
+          <div><span>Haute</span><b id="haut">111 544 €</b></div>
+        </div>
+        <p class="detail" id="detail">Soit 808 € par m² de plancher, pour 120 m² de plain-pied.</p>
+        <p class="etat" id="etat"></p>
+        <a class="btn btn2" href="/demande-etude-nudura" id="cta">Affiner par une étude gratuite</a>
+        <a class="btn btn2 btn-ghost" href="/calculateur" id="cta2" style="border-color:rgba(255,255,255,.6);color:#fff">Tracer mon plan pour un métré réel</a>
+        <p class="ref" id="ref"></p>
       </div>
 
       <div class="avert">
@@ -815,40 +835,72 @@
 </footer>
 <script>
 (function(){
-  var PRIX = 750;
+  // Estimateur unifié SCAF (15/09/2026) : le chiffre vient du moteur TradePro
+  // (rpc_estimation_publique -> bordereau PriMus x zone), plus d'un forfait au m2.
+  // Le forfait 750 EUR/m2 ne sert plus que de repli si la base ne repond pas.
+  var API = 'https://crbvlowxxmspjnyculzl.supabase.co/rest/v1/rpc/rpc_estimation_publique';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyYnZsb3d4eG1zcGpueWN1bHpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMjU0NTgsImV4cCI6MjEwMDYwMTQ1OH0.5Cyas303BU5XYrI8b3YE3f-_5TIdrt_9027rDi9P4CE';
+  var REPLI = 750;
   var surface = document.getElementById('surface');
   var vSurface = document.getElementById('vSurface');
   var montant = document.getElementById('montant');
   var detail = document.getElementById('detail');
   var commune = document.getElementById('commune');
   var cta = document.getElementById('cta');
-  var niveaux = 1;
+  var etat = document.getElementById('etat');
+  var refEl = document.getElementById('ref');
+  var niveaux = 1, zone = '2B', minuteur = null, jeton = 0;
 
-  function fmt(n){ return n.toLocaleString('fr-FR').replace(/\u202f/g,' ') + ' €'; }
+  function fmt(n){ return Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g,' ') + ' €'; }
+  function set(id, t){ document.getElementById(id).textContent = t; }
+
+  function afficher(s, r){
+    // r = reponse du moteur ; sans r, repli forfaitaire
+    var central = r ? r.central_ht : Math.round(s * REPLI / 1000) * 1000;
+    var plancher = r && r.surface_plancher_m2 ? Number(r.surface_plancher_m2) : s;
+    montant.textContent = fmt(central);
+    set('ttc', 'soit ' + fmt(r ? r.central_ttc : central * 1.10) + ' TTC, TVA 10 % applicable en Corse');
+    set('bas', r ? fmt(r.bas_ht) : '—'); set('central', fmt(central)); set('haut', r && r.haut_ht ? fmt(r.haut_ht) : '—');
+    detail.textContent = 'Soit ' + Math.round(central / plancher) + ' € par m² de plancher, pour ' + s + ' m² '
+      + (niveaux === 1 ? 'de plain-pied.' : 'répartis sur deux niveaux.');
+    refEl.textContent = r ? 'Référence ' + r.reference + ' · zone ' + (r.zone || zone) + ' · fourchette ±15 %' : 'Estimation forfaitaire (moteur indisponible)';
+    var p = new URLSearchParams({ surface: s, niveaux: niveaux, zone: zone });
+    if (commune.value.trim()) p.set('commune', commune.value.trim());
+    if (r) p.set('estimation', r.reference);
+    cta.href = '/demande-etude-nudura?' + p.toString();
+  }
 
   function calcul(){
     var s = parseInt(surface.value, 10);
     vSurface.innerHTML = s + ' <span>m²</span>';
-    // arrondi au millier : afficher 90 375 € donnerait une fausse precision
-    var total = Math.round(s * PRIX / 1000) * 1000;
-    montant.textContent = fmt(total);
-    document.getElementById('ttc').textContent =
-      'soit ' + fmt(Math.round(total * 1.10 / 1000) * 1000) + ' TTC, TVA 10 % applicable en Corse';
-    detail.textContent = 'Soit ' + PRIX + ' € par m² de plancher, pour ' + s + ' m² '
-      + (niveaux === 1 ? 'de plain-pied.' : 'répartis sur deux niveaux ou plus.');
-    var p = new URLSearchParams({ surface: s, niveaux: niveaux });
-    if (commune.value.trim()) p.set('commune', commune.value.trim());
-    cta.href = 'demande-etude-nudura.html?' + p.toString();
+    etat.textContent = 'Calcul en cours…';
+    clearTimeout(minuteur);
+    minuteur = setTimeout(function(){
+      var mien = ++jeton;
+      fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + ANON },
+        body: JSON.stringify({ p: { surface: s, niveaux: niveaux, zone_code: zone, commune: commune.value.trim() || null } })
+      }).then(function(r){ return r.json(); }).then(function(r){
+        if (mien !== jeton) return;
+        if (r && r.status === 'ok') { afficher(s, r); etat.textContent = ''; }
+        else { afficher(s, null); etat.textContent = (r && r.message) || 'Estimation forfaitaire.'; }
+      }).catch(function(){ if (mien === jeton) { afficher(s, null); etat.textContent = 'Moteur injoignable, estimation forfaitaire.'; } });
+    }, 500);
   }
 
   surface.addEventListener('input', calcul);
-  commune.addEventListener('input', calcul);
+  commune.addEventListener('change', calcul);
   document.getElementById('niveaux').addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b) return;
     niveaux = parseInt(b.dataset.n, 10);
-    this.querySelectorAll('button').forEach(function(x){
-      x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
-    });
+    this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    calcul();
+  });
+  document.getElementById('zone').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    zone = b.dataset.z;
+    this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
     calcul();
   });
   calcul();
@@ -881,7 +933,7 @@
         "name": "Combien coûte le gros œuvre d'une maison en Corse ?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Le gros œuvre hors d'eau démarre à 750 € HT par mètre carré de plancher. Ce montant couvre l'implantation, les fouilles, les fondations, le soubassement, le plancher bas, l'élévation des murs isolants, les planchers d'étage, la charpente et la couverture."
+          "text": "Le gros œuvre hors d'eau est calculé sur notre bordereau de prix, à partir de la surface, du nombre de niveaux et du département : de l'ordre de 750 à 850 € HT par mètre carré de plancher pour une maison de plain-pied. Ce montant couvre l'implantation, les fouilles, les fondations, le soubassement, le plancher bas, l'élévation des murs isolants, les planchers d'étage, la charpente et la couverture."
         }
       },
       {
