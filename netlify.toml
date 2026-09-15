@@ -43,6 +43,19 @@
 
 # Audit 07/09/2026 : une seule URL par page (sans .html), sinon Google
 # indexe des doublons. /tracer est fusionne dans le calculateur.
+# 15/09/2026 : estimation immédiate mise en retrait (décision de Frédéric) — la page reste dans le dépôt, prête à revenir
+[[redirects]]
+  from = "/prix-construction-maison-corse"
+  to = "/demande-etude-nudura"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/prix-construction-maison-corse.html"
+  to = "/demande-etude-nudura"
+  status = 302
+  force = true
+
 [[redirects]]
   from = "/tracer"
   to = "/calculateur"
