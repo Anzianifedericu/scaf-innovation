@@ -999,7 +999,13 @@ async function envoyerPlan(){
       murs: n.murs.map(m=>({ longueur: m.longueur })),
       points: pointsContour(n),
       angles: a.s90 + a.r90 + a.s45 + a.r45,
-      refendLineaire: totalRefends(n),
+      refendLineaire: Number(totalRefends(n).toFixed(3)),
+      // Chaque refend avec ses points : l'estimateur les compte en m² de
+      // Nudura et le tracé pourra être rechargé tel quel.
+      refends: n.refends.map(r=>({
+        longueur: Number(longueurPoly(r.pts).toFixed(3)),
+        pts: r.pts.map(p=>({ x: Number(p.x.toFixed(3)), y: Number(p.y.toFixed(3)) })),
+      })),
       ouvertures: n.ouvertures.map(o=>({
         type: o.nature === 'porte' ? 'porte' : 'fenetre',
         largeur: o.largeur, hauteur: o.hauteur, qte: 1,
