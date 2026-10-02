@@ -115,6 +115,11 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .legende{display:flex;gap:13px;flex-wrap:wrap;padding:7px 14px;font-size:11.5px;
   color:var(--beton);border-top:1px solid var(--paper-dim)}
 .legende span{display:inline-flex;align-items:center;gap:5px}
+.plancher-barre{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--trait);background:#F7F3EA}
+.plancher-barre label{font-size:12.5px;font-weight:600;display:flex;gap:8px;align-items:center}
+.plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
+.plancher-barre span{font-size:12px;color:var(--beton)}
+
 .ech{width:15px;height:2px;flex:none}
 
 /* Impression : le plan de chaque niveau, puis le recapitulatif.
@@ -321,6 +326,12 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="plancher-barre">
+        <label>Plancher
+          <select id="selPlancher" onchange="choisirPlancherIsoltop(this.value)"></select>
+        </label>
+        <span id="plancher-resume">Fermez le contour pour voir les poutrelles</span>
+      </div>
       <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
         <span><span class="ech" style="background:var(--encre)"></span>Contour</span>
@@ -329,6 +340,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
+        <span><span class="ech" style="background:#1F3A5F;height:3px"></span>Poutrelles Isoltop</span>
         <span class="pose"><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
         <span class="pose"><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
         <span class="pose"><span class="ech" style="background:#A8481F;height:6px"></span>Fausse coupe, cale bois</span>
@@ -1923,6 +1935,7 @@ function rendreScene(){
   if(!niv.ferme&&pts.length>2&&mode==='contour')
     g+=`<circle cx="0" cy="0" r="${ra*2.4}" fill="none" stroke="var(--vert)" stroke-width="${tr}" stroke-dasharray="${u/120} ${u/160}"/>`;
 
+  if (window.marquagePlancherIsoltop) g += window.marquagePlancherIsoltop(tr);
   scene.innerHTML=g;
 }
 

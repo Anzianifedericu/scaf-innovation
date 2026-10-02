@@ -1,4 +1,4 @@
-/* Calepinage Isoltop affiché sur le plan et dans le panneau.
+/* Calepinage Isoltop. Le dessin est réinjecté à chaque rendu du plan.
    N'intervient pas dans le moteur de blocs. */
 (function () {
   const ENTRAXE = 0.60, APPUI = 0.05, H_ENT = 1.20, ETAI = 1.50;
@@ -61,36 +61,52 @@
       `<option value="${k}"${k === cur ? " selected" : ""}>${m.label}</option>`).join("");
   }
 
-  function dessinerSurPlan(niv) {
-    const scene = document.getElementById("scene");
-    if (!scene) return;
-    const vieux = scene.querySelector("#iso-plancher");
-    if (vieux) vieux.remove();
-    if (!niv || niv.isoltop === "aucun") return;
-    const geom = interieur(niv);
-    const c = geom && calepiner(geom);
-    if (!c) return;
-    const pts = geom.pts.map(p => `${p.x},${-p.y}`).join(" ");
+  function etatCourant() {
+    if (typeof niveaux === "undefined" || typeof N !== "function") return null;
+    const i = typeof iNiveau === "number" ? iNiveau : 0;
+    const niv = niveaux[i];
+    if (!niv) return null;
+    choix(niv, i);
+    return { niv, i, geom: interieur(niv), calc: null };
+  }
+
+  window.marquagePlancherIsoltop = function (tr) {
+    const e = etatCourant();
+    if (!e || e.niv.isoltop === "aucun") return "";
+    const c = e.geom && calepiner(e.geom);
+    if (!c) return "";
+    const ep = Math.max(tr * 1.35, 0.03);
+    const pts = e.geom.pts.map(p => `${p.x},${-p.y}`).join(" ");
     let beams = "";
     for (let i = 0; i < c.nBeams; i++) {
       const t = c.nBeams === 1 ? 0.5 : i / (c.nBeams - 1);
       if (c.spanX) {
-        const y = geom.minY + t * geom.profondeur;
-        beams += `<line x1="${geom.minX}" y1="${-y}" x2="${geom.maxX}" y2="${-y}" stroke="#2F3D4A" stroke-width="0.045" stroke-linecap="round"/>`;
+        const y = e.geom.minY + t * e.geom.profondeur;
+        beams += `<line x1="${e.geom.minX}" y1="${-y}" x2="${e.geom.maxX}" y2="${-y}" stroke="#1F3A5F" stroke-width="${ep}" stroke-linecap="butt"/>`;
       } else {
-        const x = geom.minX + t * geom.largeur;
-        beams += `<line x1="${x}" y1="${-geom.minY}" x2="${x}" y2="${-geom.maxY}" stroke="#2F3D4A" stroke-width="0.045" stroke-linecap="round"/>`;
+        const x = e.geom.minX + t * e.geom.largeur;
+        beams += `<line x1="${x}" y1="${-e.geom.minY}" x2="${x}" y2="${-e.geom.maxY}" stroke="#1F3A5F" stroke-width="${ep}" stroke-linecap="butt"/>`;
       }
     }
-    const mx = (geom.minX + geom.maxX) / 2, my = (geom.minY + geom.maxY) / 2;
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.id = "iso-plancher";
-    g.innerHTML = `<defs><clipPath id="iso-clip"><polygon points="${pts}"/></clipPath></defs>
-      <polygon points="${pts}" fill="rgba(193,105,62,.08)" stroke="#A8481F" stroke-width="0.02" stroke-dasharray="0.08 0.05"/>
+    const mx = (e.geom.minX + e.geom.maxX) / 2;
+    const my = (e.geom.minY + e.geom.maxY) / 2;
+    const fs = Math.max(tr * 11, 0.22);
+    return `<g id="iso-plancher">
+      <defs><clipPath id="iso-clip"><polygon points="${pts}"/></clipPath></defs>
+      <polygon points="${pts}" fill="rgba(31,58,95,.06)"/>
       <g clip-path="url(#iso-clip)">${beams}</g>
-      <text x="${mx}" y="${-my}" text-anchor="middle" font-size="0.28" fill="#A8481F" font-family="IBM Plex Sans,sans-serif" font-weight="600">Isoltop · ${c.nBeams} poutrelles</text>`;
-    scene.appendChild(g);
-  }
+      <text x="${mx}" y="${-my}" text-anchor="middle" font-size="${fs}" fill="#1F3A5F"
+        font-family="IBM Plex Sans,sans-serif" font-weight="600">${c.nBeams} poutrelles</text>
+    </g>`;
+  };
+
+  window.choisirPlancherIsoltop = function (v) {
+    const e = etatCourant();
+    if (!e || !MONTAGES[v]) return;
+    e.niv.isoltop = v;
+    if (typeof rendreScene === "function") rendreScene();
+    rendre();
+  };
 
   function carte(niv, i, courant) {
     choix(niv, i);
@@ -102,31 +118,52 @@
       <div><b>${c.nBeams}</b><span>poutrelles · ${f(c.ml, 1)} ml</span></div>
       <div><b>${f(c.coupe, 2)} m</b><span>coupe, appui 5 cm</span></div>
       <div><b>${f(geom.aire * m.litres / 1000, 2)} m³</b><span>béton hors chaînages</span></div>
-    </div>` : `<p class="attente">${niv.isoltop === "aucun" ? "Aucun plancher sur ce niveau." : "Refermez le contour pour voir le calepinage sur le plan."}</p>`;
+    </div>` : `<p class="attente">${niv.isoltop === "aucun" ? "Aucun plancher sur ce niveau." : "Fermez le contour : les poutrelles se dessinent alors sur le plan."}</p>`;
     const toit = i === niveaux.length - 1
       ? `<label><input type="checkbox" data-toit="${i}"${niv.isoltopToit ? " checked" : ""}> Aussi en toiture-terrasse</label>` : "";
     return `<article class="carte${courant ? " actif" : ""}">
-      <div class="ligne"><b>${niv.nom}${courant ? " · affiché sur le plan" : ""}</b>
+      <div class="ligne"><b>${niv.nom}${courant ? " · sur le plan" : ""}</b>
         <select data-iso="${i}">${options(niv.isoltop)}</select></div>
       ${toit}${chiffres}
     </article>`;
   }
 
   function rendre() {
-    const host = document.getElementById("plancher-isoltop");
-    if (!host || typeof niveaux === "undefined") return;
+    if (typeof niveaux === "undefined") return;
     const i = typeof iNiveau === "number" ? iNiveau : 0;
+    const niv = niveaux[i];
+    if (niv) choix(niv, i);
+    const sel = document.getElementById("selPlancher");
+    const resume = document.getElementById("plancher-resume");
+    if (sel && niv) {
+      const html = options(niv.isoltop);
+      if (sel.dataset.cle !== i + html) {
+        sel.innerHTML = html;
+        sel.value = niv.isoltop;
+        sel.dataset.cle = i + html;
+      } else if (sel.value !== niv.isoltop) sel.value = niv.isoltop;
+    }
+    if (resume && niv) {
+      const geom = interieur(niv);
+      const c = geom && niv.isoltop !== "aucun" ? calepiner(geom) : null;
+      resume.textContent = !geom
+        ? "Fermez le contour pour voir les poutrelles"
+        : niv.isoltop === "aucun"
+          ? "Pas de plancher sur ce niveau"
+          : c.nBeams + " poutrelles · entraxe " + f(c.entraxe * 100, 0) + " cm · " + f(geom.aire, 1) + " m²";
+    }
+    const host = document.getElementById("plancher-isoltop");
+    if (!host) return;
     const ordre = [i, ...niveaux.map((_, k) => k).filter(k => k !== i)];
     host.innerHTML = `<h3>Plancher Isoltop</h3>
-      <p class="note">Le calepinage du niveau en cours se dessine sur le plan. Choix libre, vide sanitaire compris. Le + ajoute un étage.</p>
+      <p class="note">Le menu au-dessus du plan règle le niveau affiché. Chaque niveau garde son choix, vide sanitaire compris.</p>
       ${ordre.map(k => carte(niveaux[k], k, k === i)).join("")}`;
     host.querySelectorAll("[data-iso]").forEach(el => {
-      el.onchange = () => { niveaux[+el.dataset.iso].isoltop = el.value; rendre(); };
+      el.onchange = () => { niveaux[+el.dataset.iso].isoltop = el.value; rendre(); if (typeof rendreScene === "function") rendreScene(); };
     });
     host.querySelectorAll("[data-toit]").forEach(el => {
       el.onchange = () => { niveaux[+el.dataset.toit].isoltopToit = el.checked; rendre(); };
     });
-    dessinerSurPlan(niveaux[i]);
   }
 
   window.rendrePlancherIsoltop = rendre;
