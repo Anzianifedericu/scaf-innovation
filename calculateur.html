@@ -249,6 +249,15 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 
     .stat-note { display:block; font-size:.68rem; font-weight:400; opacity:.65;
       margin-top:.15rem; line-height:1.35; letter-spacing:0; text-transform:none; }
+
+.plancher-isoltop{margin-top:14px;border-top:1px solid var(--trait);padding-top:12px}
+.plancher-isoltop h3{font-size:14px;margin:0 0 6px}
+.plancher-isoltop .note{font-size:12px;color:var(--muted,#6b645b);margin:0 0 8px}
+.plancher-isoltop label{font-size:12px;display:flex;gap:6px;align-items:center;margin:6px 0}
+.plancher-isoltop select{font:inherit;font-size:12px;margin-left:6px}
+.plancher-isoltop table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.plancher-isoltop td,.plancher-isoltop th{text-align:left;padding:4px 2px;border-bottom:1px solid var(--trait);vertical-align:top}
+
 </style>
 
 <link rel="manifest" href="/manifest.webmanifest">
@@ -406,6 +415,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </span>
       </div>
       <div id="panier"></div>
+      <div id="plancher-isoltop" class="plancher-isoltop"></div>
     </div>
   </div>
 </div>
@@ -2128,7 +2138,7 @@ function rendrePanneaux(){
   rendreQuantitatif();
 }
 
-function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); }
+function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }
 
 /* ---------------- interactions ---------------- */
 
@@ -2574,5 +2584,6 @@ if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
 </script>
+<script src="/isoltop-plancher.js"></script>
 </body>
 </html>
