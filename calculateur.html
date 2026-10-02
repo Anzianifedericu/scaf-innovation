@@ -17,16 +17,16 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--paper);color:var(--encre);
   font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;padding:22px 18px 60px}
-.wrap{max-width:1440px;margin:0 auto}
+.wrap{max-width:1220px;margin:0 auto}
 h1{font:600 26px/1.2 'Fraunces',Georgia,serif;letter-spacing:-.01em}
 .sub{color:var(--beton);font-size:13.5px;margin-top:4px}
 header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trait)}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 376px;gap:20px;align-items:start}
 @media(max-width:960px){.grid{grid-template-columns:1fr}}
 
 .panneau{background:#fff;border:1px solid var(--trait);border-radius:var(--r)}
-.panneau-tete{padding:8px 12px;border-bottom:1px solid var(--trait);
-  display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.panneau-tete{padding:10px 14px;border-bottom:1px solid var(--trait);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .panneau-titre{font-weight:600;font-size:13.5px}
 
 .niveaux-onglets{display:flex;border-bottom:1px solid var(--trait);
@@ -38,7 +38,7 @@ header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trai
 .onglet .etat{font-size:10.5px;display:block;font-weight:400;opacity:.75}
 .onglet-plus{padding:9px 13px;font-size:16px;color:var(--beton);border:0;background:none;cursor:pointer}
 
-#scene{display:block;width:100%;height:min(70vh,760px);min-height:560px;background:#FCFAF5;cursor:crosshair;touch-action:none}
+#scene{display:block;width:100%;height:470px;background:#FCFAF5;cursor:crosshair;touch-action:none}
 .barre{display:flex;gap:6px;flex-wrap:wrap}
 button{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:6px;
   border:1px solid var(--trait);background:var(--paper);color:var(--encre);cursor:pointer}
@@ -47,6 +47,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
+.actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
 .actif-plancher{background:#1F3A5F;border-color:#1F3A5F;color:#fff}
 .actif-terre{background:var(--terre);border-color:var(--terre);color:#fff}
 button:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
@@ -115,16 +116,6 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .legende{display:flex;gap:13px;flex-wrap:wrap;padding:7px 14px;font-size:11.5px;
   color:var(--beton);border-top:1px solid var(--paper-dim)}
 .legende span{display:inline-flex;align-items:center;gap:5px}
-.plancher-barre{display:flex;flex-direction:column;gap:8px;padding:8px 12px;border-top:1px solid var(--trait);background:#F7F3EA}
-.plancher-barre .ligne-trace{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.plancher-barre label{font-size:12.5px;font-weight:600;display:flex;gap:8px;align-items:center}
-.plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
-.plancher-barre button.murs{background:var(--vert);color:#fff;border-color:var(--vert)}
-.plancher-barre button.murs.actif{background:#C08A2E;border-color:#C08A2E}
-.plancher-barre button.tracer{background:#1F3A5F;color:#fff;border-color:#1F3A5F}
-.plancher-barre button.tracer.actif{background:#C08A2E;border-color:#C08A2E}
-.plancher-barre span{font-size:12px;color:var(--beton)}
-
 .ech{width:15px;height:2px;flex:none}
 
 /* Impression : le plan de chaque niveau, puis le recapitulatif.
@@ -193,7 +184,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .enveloppe{padding:8px 14px;font-size:11px;color:var(--beton);line-height:1.7;
   border-top:1px solid var(--paper-dim);background:#FCFAF5}
 .enveloppe b{color:var(--encre);font-size:11.5px}
-.enveloppe .couche{display:inline-flex;align-items:center;margin-right:12px}
+.enveloppe .couche{display:block;padding-left:2px}
 .enveloppe .couche i{display:inline-block;width:11px;height:8px;margin-right:6px;
   border:1px solid;vertical-align:-1px}
 
@@ -260,19 +251,13 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
     .stat-note { display:block; font-size:.68rem; font-weight:400; opacity:.65;
       margin-top:.15rem; line-height:1.35; letter-spacing:0; text-transform:none; }
 
-.plancher-isoltop{margin-top:0;border-top:1px solid var(--trait);padding:12px 14px 14px;background:#FCFAF5}
-.plancher-isoltop h3{font:600 15px/1.2 'Fraunces',Georgia,serif;margin:0 0 4px}
-.plancher-isoltop .note{font-size:12px;color:var(--beton);margin:0 0 10px;line-height:1.45}
-.plancher-isoltop .carte{background:#fff;border:1px solid var(--trait);border-radius:8px;padding:10px 12px;margin:0 0 8px}
-.plancher-isoltop .carte.actif{border-color:var(--vert);box-shadow:inset 3px 0 0 var(--vert)}
-.plancher-isoltop .ligne{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
-.plancher-isoltop select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff;max-width:100%}
-.plancher-isoltop label{font-size:12px;display:flex;gap:6px;align-items:center;margin-top:6px}
-.plancher-isoltop .chiffres{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.plancher-isoltop .chiffres div{background:var(--paper);border-radius:6px;padding:6px 8px}
-.plancher-isoltop .chiffres b{display:block;font-size:14px}
-.plancher-isoltop .chiffres span{font-size:10.5px;color:var(--beton)}
-.plancher-isoltop .attente{font-size:12px;color:var(--beton);margin-top:6px}
+.plancher-isoltop{margin-top:14px;border-top:1px solid var(--trait);padding-top:12px}
+.plancher-isoltop h3{font-size:14px;margin:0 0 6px}
+.plancher-isoltop .note{font-size:12px;color:var(--muted,#6b645b);margin:0 0 8px}
+.plancher-isoltop label{font-size:12px;display:flex;gap:6px;align-items:center;margin:6px 0}
+.plancher-isoltop select{font:inherit;font-size:12px;margin-left:6px}
+.plancher-isoltop table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.plancher-isoltop td,.plancher-isoltop th{text-align:left;padding:4px 2px;border-bottom:1px solid var(--trait);vertical-align:top}
 
 </style>
 
@@ -321,10 +306,6 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
-          <label style="font-size:12px;display:flex;align-items:center;gap:4px">Longueur
-            <input id="saisieLongueur" type="number" step="0.01" min="0" placeholder="libre"
-                   style="width:70px" oninput="majSaisieLongueur(this.value)"> m
-          </label>
           <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
           <button id="bAiles" onclick="basculerAiles()" title="Tracer les ailes A1 et A2 des blocs d angle a leur longueur reelle">Ailes A1/A2</button>
           <button id="bRang" onclick="inverserAiles()" hidden title="Basculer entre rang impair et rang pair">Rang pair</button>
@@ -336,42 +317,6 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="plancher-barre">
-        <div class="ligne-trace">
-          <button type="button" id="bTracerMurs" class="murs actif" onclick="setMode('contour')">Tracer les murs</button>
-          <button type="button" id="bTracerPlancher" class="tracer" onclick="setMode('plancher')">Tracer le plancher</button>
-          <span id="plancher-resume">À vous de poser le plancher</span>
-        </div>
-        <div class="ligne-trace">
-        <label>Hauteur
-          <input id="cotePlancher" type="number" step="0.01" placeholder="libre"
-                 style="width:72px" oninput="choisirCotePlancher(this.value)"> m
-        </label>
-        <label>Plancher
-          <select id="selPlancher" onchange="choisirPlancherIsoltop(this.value)"></select>
-        </label>
-        <label>Pente
-          <select id="selPente" onchange="choisirPenteIsoltop(this.value)">
-            <option value="aucune">Sans pente</option>
-            <option value="bas">Vers le bas du plan</option>
-            <option value="haut">Vers le haut du plan</option>
-            <option value="gauche">Vers la gauche</option>
-            <option value="droite">Vers la droite</option>
-          </select>
-        </label>
-        <label>Sens des poutrelles
-          <select id="selSens" onchange="choisirSensIsoltop(this.value)">
-            <option value="choisir">À choisir</option>
-            <option value="x">Horizontales sur le plan</option>
-            <option value="y">Verticales sur le plan</option>
-            <option value="pente">Dans le sens de la pente</option>
-            <option value="perp">Perpendiculaires à la pente</option>
-            <option value="auto">Automatique — portée la plus courte</option>
-          </select>
-        </label>
-        <button type="button" onclick="effacerPoutresIsoltop()">Aucune poutrelle</button>
-        </div>
-      </div>
       <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
         <span><span class="ech" style="background:var(--encre)"></span>Contour</span>
@@ -380,7 +325,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span><span class="ech" style="background:#C9C2B2"></span>Niveau du dessous</span>
         <span><span class="ech" style="background:var(--terre);height:3px"></span>Sans porteur</span>
         <span><span class="ech" style="background:#DFD6C2;height:6px"></span>Épaisseur du mur</span>
-        <span><span class="ech" style="background:#1F3A5F;height:3px"></span>Poutrelles Isoltop</span>
+        <span><span class="ech" style="background:#1F3A5F;height:3px"></span>Poutrelles</span>
         <span class="pose"><span class="ech" style="background:#C08A2E;height:6px"></span>Blocs d'angle</span>
         <span class="pose"><span class="ech" style="background:#3F6B4A;height:6px"></span>Coupe centrale</span>
         <span class="pose"><span class="ech" style="background:#A8481F;height:6px"></span>Fausse coupe, cale bois</span>
@@ -534,6 +479,7 @@ let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 /* Poignee saisie en mode Deplacer : sommet du contour, point de refend ou
    ouverture. Le contour est stocke en longueurs et directions, pas en
    points : deplacer un sommet reconstruit donc les deux murs voisins. */
+let prise = null;
 let tracePoutre = null, poutreSel = null, saisiePoutre = false;
 
 
@@ -567,7 +513,6 @@ const nouveauNiveau = (nom,h)=>({nom, hauteur:h, gamme:'standard', epaisseur:152
 let niveaux = [ nouveauNiveau('Vide sanitaire',1.20), nouveauNiveau('RDC',2.70) ];
 let iNiveau = 1;
 let ortho = true, mode = 'contour';
-let longueurImposee = 0, dernierPointeur = null;
 let curseur = null, refEnCours = null, survol = null;
 let cadre = null, cadreAuto = null;   // cadrage manuel une fois que l'on zoome
 
@@ -1663,7 +1608,7 @@ function rendreScene(){
   const minX=Math.min(0,...xs), maxX=Math.max(0,...xs);
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
   const w=Math.max(6,maxX-minX), hh=Math.max(4,maxY-minY);
-  const pad=Math.max(w,hh)*0.28+1.8;
+  const pad=Math.max(w,hh)*0.18+1.2;
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
   const c = cadre || cadreAuto;
   scene.setAttribute('viewBox',`${c.x} ${c.y} ${c.w} ${c.h}`);
@@ -1808,12 +1753,8 @@ function rendreScene(){
             font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle"
             dominant-baseline="middle">h ${Number(m.hauteur).toFixed(2)}</text>`;
     }
-    if(m.longueur/u > 0.045){
-      g+=`<text x="${mx+nx.x*dec*1.7}" y="${-(my+nx.y*dec*1.7)}" font-size="${po*0.95}"
-            font-family="IBM Plex Mono,monospace" fill="var(--encre)" font-weight="600"
-            stroke="#FCFAF5" stroke-width="${po*0.45}" paint-order="stroke"
-            text-anchor="middle" dominant-baseline="middle">${m.longueur.toFixed(2)}</text>`;
-    }
+    g+=`<line x1="${mx+nx.x*dec*.35}" y1="${-(my+nx.y*dec*.35)}" x2="${mx+nx.x*dec*.72}" y2="${-(my+nx.y*dec*.72)}" stroke="var(--trait)" stroke-width="${tr*.8}"/>`;
+    g+=`<text x="${mx+nx.x*dec}" y="${-(my+nx.y*dec)}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--beton)" text-anchor="middle" dominant-baseline="middle">${m.longueur.toFixed(2)}</text>`;
   });
 
   // refends
@@ -1925,12 +1866,12 @@ function rendreScene(){
   if(curseur&&mode!=='ouverture'){
     let dep=null;
     if(mode==='contour'&&!niv.ferme&&pts.length) dep=pts[pts.length-1];
-    if(mode==='plancher'&&tracePoutre) dep=tracePoutre;
+    if(mode==='refend'&&refEnCours) dep=refEnCours.pts[refEnCours.pts.length-1];
     if(dep){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
       if(d>.05){
-        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.9}" font-size="${po*1.05}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" stroke="#FCFAF5" stroke-width="${po*0.4}" paint-order="stroke" text-anchor="middle" font-weight="600">${d.toFixed(2)} m</text>`;
+        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m</text>`;
         // Ce que donnerait la coupe si l'on posait le point ici : mieux vaut
         // le savoir avant, une coupe se joue a quelques centimetres.
         if(mode==='contour' && vuePro()){
@@ -1980,7 +1921,13 @@ function rendreScene(){
   if(!niv.ferme&&pts.length>2&&mode==='contour')
     g+=`<circle cx="0" cy="0" r="${ra*2.4}" fill="none" stroke="var(--vert)" stroke-width="${tr}" stroke-dasharray="${u/120} ${u/160}"/>`;
 
-  if (window.marquagePlancherIsoltop) g += window.marquagePlancherIsoltop(tr);
+  (niv.poutres||[]).forEach((b,i)=>{
+    const long=Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y);
+    const sel=poutreSel===i;
+    g+=`<line x1="${b.a.x}" y1="${-b.a.y}" x2="${b.b.x}" y2="${-b.b.y}" stroke="${sel?'#C08A2E':'#1F3A5F'}" stroke-width="${tr*(sel?3.2:2.2)}" stroke-linecap="round"/>`;
+    g+=`<text x="${(b.a.x+b.b.x)/2}" y="${-((b.a.y+b.b.y)/2)-po*0.65}" font-size="${po*0.75}" fill="#1F3A5F" text-anchor="middle" font-family="IBM Plex Mono,monospace">${long.toFixed(2)}</text>`;
+  });
+
   scene.innerHTML=g;
 }
 
@@ -2204,8 +2151,7 @@ function rendrePanneaux(){
 
 function recalcul(){
   rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons();
-  try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }
-  catch(err){ console.error(err); }
+  try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }catch(e){}
 }
 
 /* ---------------- interactions ---------------- */
@@ -2218,7 +2164,7 @@ function versMetres(e){
 }
 
 function accrocher(p,seulementDessous){
-  let best=null,dmin=0.12;
+  let best=null,dmin=0.45;
   const cibles=[]; const bas=dessous();
   if(bas) cibles.push(...segmentsDe(bas));
   if(!seulementDessous) cibles.push(...segmentsDe(N()));
@@ -2229,43 +2175,17 @@ function accrocher(p,seulementDessous){
     if(d<dmin){dmin=d;best=q;}
   });
   const sc=[]; if(bas){ sc.push(...sommetsDe(bas)); bas.refends.forEach(r=>sc.push(...r.pts)); }
-  if(!seulementDessous){ sc.push(...sommetsDe(N()).slice(0,-1)); N().refends.forEach(r=>sc.push(...r.pts)); }
-  sc.forEach(q=>{ const d=Math.hypot(p.x-q.x,p.y-q.y); if(d<0.18&&d<=dmin){dmin=d;best=q;} });
+  sc.forEach(q=>{ const d=Math.hypot(p.x-q.x,p.y-q.y); if(d<0.6&&d<dmin+0.3){dmin=d;best=q;} });
   return best||p;
 }
-function auCentimetre(p){
-  return { x:Math.round(p.x*100)/100, y:Math.round(p.y*100)/100 };
-}
+
 function contraindre(p,libre,depart){
-  if(!depart){
-    const a=accrocher(p, mode==='contour');
-    if(a!==p) return a;
-    return libre ? p : auCentimetre(p);
-  }
+  if(!depart) return accrocher(p, mode==='contour');
   let dx=p.x-depart.x, dy=p.y-depart.y;
   if(ortho&&!libre){ if(Math.abs(dx)>=Math.abs(dy)) dy=0; else dx=0; }
-  let h=Math.hypot(dx,dy);
-  let l=h;
-  if(longueurImposee>0) l=longueurImposee;
-  else if(!libre && h>0) l=Math.max(0.01, Math.round(h*100)/100);
-  if(!(h>0)) return depart;
-  dx=dx/h*l; dy=dy/h*l;
-  // L'axe reste celui du départ : arrondir les deux coordonnées
-  // faisait partir le mur en biais.
-  if(ortho&&!libre){
-    if(Math.abs(dx)>=Math.abs(dy)) return {x:Math.round((depart.x+dx)*100)/100, y:depart.y};
-    return {x:depart.x, y:Math.round((depart.y+dy)*100)/100};
-  }
-  const q=libre ? {x:depart.x+dx,y:depart.y+dy} : auCentimetre({x:depart.x+dx,y:depart.y+dy});
-  const acc=accrocher(q, mode==='contour');
-  if(acc!==q && Math.hypot(acc.x-q.x, acc.y-q.y)<0.08) return acc;
-  return q;
-}
-function majSaisieLongueur(v){
-  const n=parseFloat(String(v).replace(',','.'));
-  longueurImposee=Number.isFinite(n)&&n>0 ? Math.round(n*100)/100 : 0;
-  const dep=departCourant();
-  if(dernierPointeur&&dep){ curseur=contraindre(dernierPointeur,false,dep); rendreScene(); }
+  const l=Math.hypot(dx,dy);
+  if(l>0){ const s=Math.max(0.25,Math.round(l*4)/4); dx=dx/l*s; dy=dy/l*s; }
+  return accrocher({x:depart.x+dx,y:depart.y+dy}, mode==='contour');
 }
 
 const departCourant=()=> mode==='plancher' ? tracePoutre
@@ -2307,14 +2227,10 @@ scene.addEventListener('contextmenu', e=>e.preventDefault());
 scene.addEventListener('mousedown', e=>{
   // Bouton gauche en mode Deplacer : on saisit une poignee.
   if(e.button===0 && mode==='plancher'){
-    const p0=versMetres(e), bout=boutPoutre(p0), sous=poutreSous(p0);
-    if(bout){
-      prise={type:'poutre-bout', i:bout.i, k:bout.k};
-      poutreSel=bout.i; saisiePoutre=true; e.preventDefault();
-      return;
-    }
+    const p0=versMetres(e);
+    const sous=poutreSous(p0);
     if(sous!==null && !tracePoutre){
-      const b=poutresDe(N())[sous];
+      const b=N().poutres[sous];
       prise={type:'poutre', i:sous, x:p0.x, y:p0.y, ax:b.a.x, ay:b.a.y, bx:b.b.x, by:b.b.y};
       poutreSel=sous; saisiePoutre=true; e.preventDefault();
       return;
@@ -2345,24 +2261,11 @@ window.addEventListener('mousemove', e=>{
 
 scene.addEventListener('mousemove', e=>{
   const p=versMetres(e);
-  dernierPointeur=p;
 
-  if(mode==='plancher'){
-    if(prise && prise.type==='poutre-bout'){
-      const b=poutresDe(N())[prise.i];
-      const autre=prise.k==='a'?b.b:b.a;
-      b[prise.k]=contraindre(p, e.shiftKey, autre);
-      rendreScene(); return;
-    }
-    if(prise && prise.type==='poutre'){
-      const b=poutresDe(N())[prise.i];
-      const dx=p.x-prise.x, dy=p.y-prise.y;
-      b.a={x:prise.ax+dx, y:prise.ay+dy};
-      b.b={x:prise.bx+dx, y:prise.by+dy};
-      rendreScene(); return;
-    }
-    curseur=contraindre(p, e.shiftKey, tracePoutre);
-    scene.style.cursor = poutreSous(p)!==null || boutPoutre(p) ? 'grab' : 'crosshair';
+  if(mode==='plancher' && prise && prise.type==='poutre'){
+    const b=N().poutres[prise.i];
+    b.a={x:prise.ax+(p.x-prise.x), y:prise.ay+(p.y-prise.y)};
+    b.b={x:prise.bx+(p.x-prise.x), y:prise.by+(p.y-prise.y)};
     rendreScene(); return;
   }
 
@@ -2377,7 +2280,7 @@ scene.addEventListener('mousemove', e=>{
     }
     const niv = N();
     // pas de 5 cm, sauf touche Maj enfoncee
-    const q = e.shiftKey ? p : auCentimetre(p);
+    const q = e.shiftKey ? p : { x:Math.round(p.x/0.05)*0.05, y:Math.round(p.y/0.05)*0.05 };
 
     if(prise.type==='sommet'){
       const pts = sommets().slice(0, niv.ferme ? -1 : undefined);
@@ -2417,10 +2320,11 @@ scene.addEventListener('click', e=>{
   if(mode==='plancher'){
     if(saisiePoutre){ saisiePoutre=false; recalcul(); return; }
     const p=contraindre(brut, e.shiftKey, tracePoutre);
+    if(!niv.poutres) niv.poutres=[];
     if(!tracePoutre){ tracePoutre={x:p.x,y:p.y}; poutreSel=null; rendreScene(); return; }
     if(Math.hypot(p.x-tracePoutre.x, p.y-tracePoutre.y)<0.2) return;
-    poutresDe(niv).push({ a:{...tracePoutre}, b:{x:p.x,y:p.y} });
-    poutreSel=poutresDe(niv).length-1;
+    niv.poutres.push({ a:{...tracePoutre}, b:{x:p.x,y:p.y} });
+    poutreSel=niv.poutres.length-1;
     tracePoutre=null;
     recalcul(); return;
   }
@@ -2441,16 +2345,11 @@ scene.addEventListener('click', e=>{
   const p=contraindre(brut,e.shiftKey,departCourant());
   if(mode==='contour'){
     if(niv.ferme) return;
-    if(niv.murs.length>=3 && Math.hypot(p.x,p.y)<0.35){ fermerTrace(); return; }
+    if(niv.murs.length>2&&Math.hypot(p.x,p.y)<0.9){ fermerTrace(); return; }
     const a=sommets().slice(-1)[0];
-    let dx=p.x-a.x, dy=p.y-a.y, l=Math.hypot(dx,dy);
-    if(l<0.05) return;
-    if(ortho && !e.shiftKey){
-      if(Math.abs(dx)>=Math.abs(dy)){ l=Math.abs(p.x-a.x); dx=p.x>=a.x?1:-1; dy=0; }
-      else { l=Math.abs(p.y-a.y); dy=p.y>=a.y?1:-1; dx=0; }
-    } else { dx/=l; dy/=l; }
-    if(l<0.05) return;
-    niv.murs.push({dx, dy, longueur:l});
+    const dx=p.x-a.x, dy=p.y-a.y, l=Math.hypot(dx,dy);
+    if(l<0.2) return;
+    niv.murs.push({dx:dx/l,dy:dy/l,longueur:l});
   } else {
     if(!refEnCours) refEnCours={pts:[p]};
     else{
@@ -2465,9 +2364,8 @@ scene.addEventListener('click', e=>{
 scene.addEventListener('dblclick', e=>{
   if(mode==='plancher'){
     const i=poutreSous(versMetres(e));
-    if(i===null) return;
-    poutresDe(N()).splice(i,1);
-    poutreSel=null; tracePoutre=null; recalcul(); return;
+    if(i===null){ return; }
+    N().poutres.splice(i,1); poutreSel=null; tracePoutre=null; recalcul(); return;
   }
   if(mode==='refend') validerRefend();
   // En mode Deplacer, un double-clic retire ce qui est sous le curseur.
@@ -2481,12 +2379,11 @@ scene.addEventListener('dblclick', e=>{
 });
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') annuler();
-  if((e.key==='Delete'||e.key==='Backspace') && mode==='plancher' && poutreSel!==null){
+  if((e.key==='Delete'||e.key==='Backspace') && mode==='plancher' && poutreSel!==null && N().poutres){
     const tag=document.activeElement && document.activeElement.tagName;
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
     e.preventDefault();
-    poutresDe(N()).splice(poutreSel,1);
-    poutreSel=null; recalcul();
+    N().poutres.splice(poutreSel,1); poutreSel=null; recalcul();
   }
   if(e.key==='Enter'&&mode==='refend') validerRefend();
 });
@@ -2526,13 +2423,10 @@ function poigneeSous(p){
   return null;
 }
 
-function poutresDe(niv){
-  if(!niv.poutres) niv.poutres=[];
-  return niv.poutres;
-}
 function poutreSous(p){
+  const ps=N().poutres||[];
   let best=null, dmin=0.4;
-  poutresDe(N()).forEach((b,i)=>{
+  ps.forEach((b,i)=>{
     const vx=b.b.x-b.a.x, vy=b.b.y-b.a.y, l2=vx*vx+vy*vy; if(!l2) return;
     let t=((p.x-b.a.x)*vx+(p.y-b.a.y)*vy)/l2; t=Math.max(0,Math.min(1,t));
     const d=Math.hypot(p.x-(b.a.x+t*vx), p.y-(b.a.y+t*vy));
@@ -2540,20 +2434,6 @@ function poutreSous(p){
   });
   return best;
 }
-function boutPoutre(p){
-  let best=null, dmin=0.45;
-  poutresDe(N()).forEach((b,i)=>{
-    ['a','b'].forEach(k=>{
-      const d=Math.hypot(b[k].x-p.x, b[k].y-p.y);
-      if(d<dmin){ dmin=d; best={i,k}; }
-    });
-  });
-  return best;
-}
-function effacerPoutresIsoltop(){
-  poutresDe(N()).length=0; tracePoutre=null; poutreSel=null; recalcul();
-}
-
 function setMode(m){
   if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
     const vd=document.getElementById('verdict');
@@ -2568,20 +2448,12 @@ function setMode(m){
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
   const bp=document.getElementById('mPlancher');
   if(bp) bp.classList.toggle('actif-plancher', m==='plancher');
-  const bt=document.getElementById('bTracerPlancher');
-  if(bt) bt.classList.toggle('actif', m==='plancher');
-  const bm=document.getElementById('bTracerMurs');
-  if(bm) bm.classList.toggle('actif', m==='contour');
-  if(m!=='plancher'){ tracePoutre=null; saisiePoutre=false; }
+  if(m!=='plancher') tracePoutre=null;
   prise = null;
   recalcul();
 }
 
-function allerNiveau(i){
-  validerRefend();
-  iNiveau=i;
-  setMode(mode==='plancher' ? 'plancher' : 'contour');
-}
+function allerNiveau(i){ validerRefend(); iNiveau=i; setMode('contour'); }
 
 function ajouterNiveau(){
   const noms=['Vide sanitaire','RDC','R+1','R+2','R+3','Combles'];
@@ -2610,13 +2482,13 @@ function reporterDepuisDessus(){
 function majAide(){
   const bas=dessous();
   document.getElementById('aide').innerHTML = mode==='contour'
-    ? `Chaque clic pose un mur droit, horizontal ou vertical. La case Longueur fixe la cote. <kbd>Fermer</kbd> termine à l'équerre, sans diagonale. <kbd>Maj</kbd> libère l'angle. Molette pour zoomer.`
+    ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
     : mode==='plancher'
-    ? `Posez une poutrelle en deux clics, au centimètre, ou tapez sa longueur. <kbd>Maj</kbd> libère le pas. Cliquez-la pour la sélectionner.`
+    ? `Deux clics posent une poutrelle. Cliquez-la pour la déplacer, double-clic ou Suppr pour l'enlever. Les murs, eux, se tracent avec Contour.`
     : mode==='deplacer'
-    ? `Glissez un sommet au centimètre. <kbd>Maj</kbd> libère le pas, un double-clic supprime.`
+    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
     : (vuePro() ? `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.` : `Cliquez sur un mur pour y poser une porte ou une fenêtre, puis ajustez ses dimensions dans le tableau.`);
 }
 
@@ -2691,7 +2563,7 @@ function annuler(){
   const niv=N();
   if(mode==='plancher'){
     if(tracePoutre) tracePoutre=null;
-    else if(poutresDe(niv).length) poutresDe(niv).pop();
+    else if(niv.poutres&&niv.poutres.length) niv.poutres.pop();
     poutreSel=null;
   } else if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
   else if(mode==='refend'){
@@ -2705,17 +2577,9 @@ function annuler(){
 
 function fermerTrace(){
   const niv=N();
-  if(niv.murs.length<2) return;
-  const poser=(dx,dy,l)=>{ if(l>=0.01) niv.murs.push({dx,dy,longueur:l}); };
-  let d=sommets().slice(-1)[0];
-  if(ortho){
-    if(Math.abs(d.x)>0.02) poser(d.x>0?-1:1, 0, Math.abs(d.x));
-    d=sommets().slice(-1)[0];
-    if(Math.abs(d.y)>0.02) poser(0, d.y>0?-1:1, Math.abs(d.y));
-  } else {
-    const l=Math.hypot(d.x,d.y);
-    if(l>=0.01) poser(-d.x/l, -d.y/l, l);
-  }
+  if(niv.murs.length<3) return;
+  const d=sommets().slice(-1)[0], l=Math.hypot(d.x,d.y);
+  if(l>0.2) niv.murs.push({dx:-d.x/l,dy:-d.y/l,longueur:l});
   niv.ferme=true; curseur=null; recalcul();
 }
 
