@@ -23,14 +23,9 @@
     "aucun": { label: "Pas de plancher", litres: 0, languette: false }
   };
 
-  function defaut(niv, i) {
-    if (/vide/i.test(niv.nom || "") || i === 0) return "elitech-r5";
-    if (/comble|toit/i.test(niv.nom || "")) return "hourdinov-20";
-    return "hourdinov-15";
-  }
-  function choix(niv, i) {
-    if (!MONTAGES[niv.isoltop]) niv.isoltop = defaut(niv, i);
-    if (niv.isoltopSens !== "x" && niv.isoltopSens !== "y" && niv.isoltopSens !== "pente" && niv.isoltopSens !== "perp") niv.isoltopSens = "auto";
+  function choix(niv) {
+    if (!MONTAGES[niv.isoltop]) niv.isoltop = "aucun";
+    if (!["x", "y", "pente", "perp", "auto", "choisir"].includes(niv.isoltopSens)) niv.isoltopSens = "choisir";
     if (!["haut", "bas", "gauche", "droite"].includes(niv.isoltopPente)) niv.isoltopPente = "aucune";
     if (typeof niv.isoltopToit !== "boolean") niv.isoltopToit = false;
     return niv;
@@ -177,7 +172,7 @@
     return null;
   }
   function calepiner(geom, niv) {
-    if (!geom || geom.aire < 0.5) return null;
+    if (!geom || geom.aire < 0.5 || !niv || niv.isoltop === "aucun" || niv.isoltopSens === "choisir") return null;
     const px = poser(geom, niv, true);
     const py = poser(geom, niv, false);
     const cle = niv.isoltop;
@@ -193,6 +188,7 @@
     let choisi;
     if (force === true) choisi = px || py;
     else if (force === false) choisi = py || px;
+    else if (niv.isoltopSens !== "auto") return null;
     else {
       const rang = c => {
         if (!c) return 1e9;
@@ -215,11 +211,12 @@
   function f(n, d) { return n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function optionsSens(cur) {
     const opt = (v, t) => `<option value="${v}"${cur === v ? " selected" : ""}>${t}</option>`;
-    return opt("auto", "Automatique — portée la plus courte")
+    return opt("choisir", "À choisir")
+      + opt("x", "Horizontales sur le plan")
+      + opt("y", "Verticales sur le plan")
       + opt("pente", "Dans le sens de la pente")
       + opt("perp", "Perpendiculaires à la pente")
-      + opt("x", "Horizontales sur le plan")
-      + opt("y", "Verticales sur le plan");
+      + opt("auto", "Automatique — portée la plus courte");
   }
   function optionsPente(cur) {
     const opt = (v, t) => `<option value="${v}"${cur === v ? " selected" : ""}>${t}</option>`;
@@ -309,7 +306,7 @@
   window.choisirSensIsoltop = function (v) {
     const e = etatCourant();
     if (!e) return;
-    e.niv.isoltopSens = ["x", "y", "pente", "perp"].includes(v) ? v : "auto";
+    e.niv.isoltopSens = ["x", "y", "pente", "perp", "auto", "choisir"].includes(v) ? v : "choisir";
     if (typeof rendreScene === "function") rendreScene();
     rendre();
   };
@@ -339,7 +336,7 @@
       <div><b>${f(j.brut, 1)} m</b><span>limite de ce montage</span></div>
       <div><b>${c.nBeams}</b><span>poutrelles · coupe max ${f(j.coupe, 2)} m</span></div>
       <div><b>${f(geom.aire * m.litres / 1000, 2)} m³</b><span>béton hors chaînages</span></div>
-    </div>${alerte}` : `<p class="attente">${niv.isoltop === "aucun" ? "Aucun plancher sur ce niveau." : "Fermez le contour : la portée se mesure de mur à mur."}</p>`;
+    </div>${alerte}` : `<p class="attente">${niv.isoltop === "aucun" ? "Rien n'est posé. Choisissez le plancher vous-même." : niv.isoltopSens === "choisir" ? "Choisissez le sens des poutrelles pour les poser." : "Fermez le contour : la portée se mesure de mur à mur."}</p>`;
     const toit = i === niveaux.length - 1
       ? `<label><input type="checkbox" data-toit="${i}"${niv.isoltopToit ? " checked" : ""}> Aussi en toiture-terrasse</label>` : "";
     return `<article class="carte${courant ? " actif" : ""}">
@@ -388,9 +385,9 @@
     const c = geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null;
     if (resume && niv) {
       resume.textContent = !geom
-        ? "Fermez le contour : le plancher suit les murs"
-        : niv.isoltop === "aucun"
-          ? "Pas de plancher sur ce niveau"
+        ? "Fermez le contour, puis choisissez le plancher"
+        : niv.isoltop === "aucun" || niv.isoltopSens === "choisir"
+          ? "À vous de le poser : montage et sens des poutrelles"
           : "portée max " + f(c.jugement.portee, 2) + " m · limite " + f(c.jugement.brut, 1) + " m · " + c.nBeams + " poutrelles";
     }
     const host = document.getElementById("plancher-isoltop");
@@ -404,7 +401,7 @@
     });
     host.querySelectorAll("[data-sens]").forEach(el => {
       el.onchange = () => {
-        niveaux[+el.dataset.sens].isoltopSens = ["x", "y", "pente", "perp"].includes(el.value) ? el.value : "auto";
+        niveaux[+el.dataset.sens].isoltopSens = ["x", "y", "pente", "perp", "auto", "choisir"].includes(el.value) ? el.value : "choisir";
         rendre();
         if (typeof rendreScene === "function") rendreScene();
       };
