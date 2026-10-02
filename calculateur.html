@@ -320,6 +320,10 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px">Longueur
+            <input id="saisieLongueur" type="number" step="0.01" min="0" placeholder="1 cm"
+                   style="width:70px" oninput="majSaisieLongueur(this.value)"> m
+          </label>
           <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
           <button id="bAiles" onclick="basculerAiles()" title="Tracer les ailes A1 et A2 des blocs d angle a leur longueur reelle">Ailes A1/A2</button>
           <button id="bRang" onclick="inverserAiles()" hidden title="Basculer entre rang impair et rang pair">Rang pair</button>
@@ -558,6 +562,7 @@ const nouveauNiveau = (nom,h)=>({nom, hauteur:h, gamme:'standard', epaisseur:152
 let niveaux = [ nouveauNiveau('Vide sanitaire',1.20), nouveauNiveau('RDC',2.70) ];
 let iNiveau = 1;
 let ortho = true, mode = 'contour';
+let longueurImposee = 0, dernierPointeur = null;
 let curseur = null, refEnCours = null, survol = null;
 let cadre = null, cadreAuto = null;   // cadrage manuel une fois que l'on zoome
 
@@ -1916,7 +1921,7 @@ function rendreScene(){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
       if(d>.05){
-        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m</text>`;
+        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m · ${Math.round(d*100)} cm</text>`;
         // Ce que donnerait la coupe si l'on posait le point ici : mieux vaut
         // le savoir avant, une coupe se joue a quelques centimetres.
         if(mode==='contour' && vuePro()){
@@ -2200,7 +2205,7 @@ function versMetres(e){
 }
 
 function accrocher(p,seulementDessous){
-  let best=null,dmin=0.45;
+  let best=null,dmin=0.12;
   const cibles=[]; const bas=dessous();
   if(bas) cibles.push(...segmentsDe(bas));
   if(!seulementDessous) cibles.push(...segmentsDe(N()));
@@ -2211,17 +2216,36 @@ function accrocher(p,seulementDessous){
     if(d<dmin){dmin=d;best=q;}
   });
   const sc=[]; if(bas){ sc.push(...sommetsDe(bas)); bas.refends.forEach(r=>sc.push(...r.pts)); }
-  sc.forEach(q=>{ const d=Math.hypot(p.x-q.x,p.y-q.y); if(d<0.6&&d<dmin+0.3){dmin=d;best=q;} });
+  if(!seulementDessous){ sc.push(...sommetsDe(N()).slice(0,-1)); N().refends.forEach(r=>sc.push(...r.pts)); }
+  sc.forEach(q=>{ const d=Math.hypot(p.x-q.x,p.y-q.y); if(d<0.18&&d<=dmin){dmin=d;best=q;} });
   return best||p;
 }
-
+function auCentimetre(p){
+  return { x:Math.round(p.x*100)/100, y:Math.round(p.y*100)/100 };
+}
 function contraindre(p,libre,depart){
-  if(!depart) return accrocher(p, mode==='contour');
+  if(!depart){
+    const a=accrocher(p, mode==='contour');
+    if(a!==p) return a;
+    return libre ? p : auCentimetre(p);
+  }
   let dx=p.x-depart.x, dy=p.y-depart.y;
   if(ortho&&!libre){ if(Math.abs(dx)>=Math.abs(dy)) dy=0; else dx=0; }
-  const l=Math.hypot(dx,dy);
-  if(l>0){ const s=Math.max(0.25,Math.round(l*4)/4); dx=dx/l*s; dy=dy/l*s; }
-  return accrocher({x:depart.x+dx,y:depart.y+dy}, mode==='contour');
+  let h=Math.hypot(dx,dy);
+  let l=h;
+  if(longueurImposee>0) l=longueurImposee;
+  else if(!libre && h>0) l=Math.max(0.01, Math.round(h*100)/100);
+  if(h>0){ dx=dx/h*l; dy=dy/h*l; }
+  const q=libre ? {x:depart.x+dx,y:depart.y+dy} : auCentimetre({x:depart.x+dx,y:depart.y+dy});
+  const acc=accrocher(q, mode==='contour');
+  if(acc!==q && Math.hypot(acc.x-q.x, acc.y-q.y)<0.08) return acc;
+  return q;
+}
+function majSaisieLongueur(v){
+  const n=parseFloat(String(v).replace(',','.'));
+  longueurImposee=Number.isFinite(n)&&n>0 ? Math.round(n*100)/100 : 0;
+  const dep=departCourant();
+  if(dernierPointeur&&dep){ curseur=contraindre(dernierPointeur,false,dep); rendreScene(); }
 }
 
 const departCourant=()=> mode==='plancher' ? tracePoutre
@@ -2301,6 +2325,7 @@ window.addEventListener('mousemove', e=>{
 
 scene.addEventListener('mousemove', e=>{
   const p=versMetres(e);
+  dernierPointeur=p;
 
   if(mode==='plancher'){
     if(prise && prise.type==='poutre-bout'){
@@ -2332,7 +2357,7 @@ scene.addEventListener('mousemove', e=>{
     }
     const niv = N();
     // pas de 5 cm, sauf touche Maj enfoncee
-    const q = e.shiftKey ? p : { x:Math.round(p.x/0.05)*0.05, y:Math.round(p.y/0.05)*0.05 };
+    const q = e.shiftKey ? p : auCentimetre(p);
 
     if(prise.type==='sommet'){
       const pts = sommets().slice(0, niv.ferme ? -1 : undefined);
@@ -2400,7 +2425,7 @@ scene.addEventListener('click', e=>{
     const a=sommets().slice(-1)[0];
     const dx=p.x-a.x, dy=p.y-a.y, l=Math.hypot(dx,dy);
     if(l<0.2) return;
-    niv.murs.push({dx:dx/l,dy:dy/l,longueur:l});
+    niv.murs.push({dx:dx/l,dy:dy/l,longueur:Math.round(l*100)/100});
   } else {
     if(!refEnCours) refEnCours={pts:[p]};
     else{
@@ -2560,13 +2585,13 @@ function reporterDepuisDessus(){
 function majAide(){
   const bas=dessous();
   document.getElementById('aide').innerHTML = mode==='contour'
-    ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
+    ? `Cliquez pour poser chaque angle, au centimètre. La case Longueur fixe le mur. <kbd>Maj</kbd> libère l'angle et le pas. Molette pour zoomer.${bas&&bas.murs.length?' Le tracé s\'accroche au niveau du dessous.':''}`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
     : mode==='plancher'
-    ? `Posez une poutrelle en deux clics, d'un appui à l'autre. Cliquez-la pour la sélectionner, glissez-la, tirez un bout. Double-clic ou Suppr l'enlève. La hauteur est libre, et vous pouvez n'en poser aucune.`
+    ? `Posez une poutrelle en deux clics, au centimètre, ou tapez sa longueur. <kbd>Maj</kbd> libère le pas. Cliquez-la pour la sélectionner.`
     : mode==='deplacer'
-    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
+    ? `Glissez un sommet au centimètre. <kbd>Maj</kbd> libère le pas, un double-clic supprime.`
     : (vuePro() ? `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.` : `Cliquez sur un mur pour y poser une porte ou une fenêtre, puis ajustez ses dimensions dans le tableau.`);
 }
 
