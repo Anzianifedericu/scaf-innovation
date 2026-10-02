@@ -289,6 +289,13 @@
     return `<article class="carte${courant ? " actif" : ""}">
       <div class="ligne"><b>${niv.nom}${courant ? " · sur le plan" : ""}</b>
         <select data-iso="${i}">${options(niv.isoltop)}</select></div>
+      <label>Sens des poutrelles
+        <select data-sens="${i}">
+          <option value="auto"${niv.isoltopSens === "auto" ? " selected" : ""}>Automatique — portée la plus courte</option>
+          <option value="x"${niv.isoltopSens === "x" ? " selected" : ""}>Horizontales sur le plan</option>
+          <option value="y"${niv.isoltopSens === "y" ? " selected" : ""}>Verticales sur le plan</option>
+        </select>
+      </label>
       ${toit}${chiffres}
     </article>`;
   }
@@ -337,6 +344,13 @@
       ${ordre.map(k => carte(niveaux[k], k, k === i)).join("")}`;
     host.querySelectorAll("[data-iso]").forEach(el => {
       el.onchange = () => { niveaux[+el.dataset.iso].isoltop = el.value; rendre(); if (typeof rendreScene === "function") rendreScene(); };
+    });
+    host.querySelectorAll("[data-sens]").forEach(el => {
+      el.onchange = () => {
+        niveaux[+el.dataset.sens].isoltopSens = el.value === "x" || el.value === "y" ? el.value : "auto";
+        rendre();
+        if (typeof rendreScene === "function") rendreScene();
+      };
     });
     host.querySelectorAll("[data-toit]").forEach(el => {
       el.onchange = () => { niveaux[+el.dataset.toit].isoltopToit = el.checked; rendre(); };
