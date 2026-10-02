@@ -39,6 +39,10 @@ header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trai
 .onglet-plus{padding:9px 13px;font-size:16px;color:var(--beton);border:0;background:none;cursor:pointer}
 
 #scene{display:block;width:100%;height:470px;background:#FCFAF5;cursor:crosshair;touch-action:none}
+.plancher-barre{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--trait);background:#F7F3EA}
+.plancher-barre label{font-size:12.5px;font-weight:600;display:flex;gap:6px;align-items:center}
+.plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
+.plancher-barre button.poser{background:#1F3A5F;color:#fff;border-color:#1F3A5F}
 .barre{display:flex;gap:6px;flex-wrap:wrap}
 button{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:6px;
   border:1px solid var(--trait);background:var(--paper);color:var(--encre);cursor:pointer}
@@ -317,6 +321,16 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="plancher-barre">
+        <label>Sens des poutrelles
+          <select id="sensPlancher">
+            <option value="x">Horizontales</option>
+            <option value="y">Verticales</option>
+          </select>
+        </label>
+        <button type="button" class="poser" onclick="poserPlancherNiveau()">Poser le plancher</button>
+        <button type="button" onclick="effacerPlancherNiveau()">Enlever le plancher</button>
+      </div>
       <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
         <span><span class="ech" style="background:var(--encre)"></span>Contour</span>
@@ -2434,6 +2448,95 @@ function poutreSous(p){
   });
   return best;
 }
+function poserPlancherNiveau(){
+  const niv=N();
+  const vd=document.getElementById('verdict');
+  if(!niv.ferme||niv.murs.length<3){
+    vd.className='verdict ko';
+    vd.textContent="Fermez d'abord le contour. Le plancher se pose entre les murs.";
+    return;
+  }
+  const pts=sommetsDe(niv).slice(0,-1);
+  const ep=(typeof HORS_TOUT!=='undefined'&&HORS_TOUT[niv.epaisseur])||0.286;
+  const inter=versInterieur(pts, ep, aireSignee(niv)>0);
+  const horizontal=(document.getElementById('sensPlancher')||{value:'x'}).value!=='y';
+  const ys=inter.map(p=>horizontal?p.y:p.x);
+  const min=Math.min(...ys), max=Math.max(...ys);
+  const ampleur=max-min;
+  if(ampleur<0.4){ vd.className='verdict ko'; vd.textContent="Pièce trop petite pour un plancher."; return; }
+  const n=Math.max(1, Math.round(ampleur/0.60));
+  const entraxe=ampleur/n;
+  const poutres=[];
+  for(let i=0;i<n;i++){
+    const coord=min+(i+0.5)*entraxe;
+    coupePoly(inter, horizontal, coord).forEach(([a,b])=>{
+      soustraire(a,b,trousRefend(niv, horizontal, coord, ep)).forEach(([u,v])=>{
+        if(v-u<0.35) return;
+        poutres.push(horizontal
+          ? {a:{x:u,y:coord}, b:{x:v,y:coord}}
+          : {a:{x:coord,y:u}, b:{x:coord,y:v}});
+      });
+    });
+  }
+  niv.poutres=poutres;
+  if(!niv.isoltop||niv.isoltop==='aucun') niv.isoltop='hourdinov-15';
+  const portee=poutres.reduce((m,p)=>Math.max(m, Math.hypot(p.b.x-p.a.x,p.b.y-p.a.y)),0);
+  setMode('plancher');
+  const vd2=document.getElementById('verdict');
+  vd2.className='verdict neutre';
+  vd2.textContent=poutres.length+" poutrelles · portée la plus longue "+portee.toFixed(2).replace('.',',')+" m";
+}
+function effacerPlancherNiveau(){
+  N().poutres=[]; tracePoutre=null; poutreSel=null; recalcul();
+}
+function coupePoly(poly, horizontal, coord){
+  const hits=[];
+  for(let i=0;i<poly.length;i++){
+    const a=poly[i], b=poly[(i+1)%poly.length];
+    const aT=horizontal?a.y:a.x, bT=horizontal?b.y:b.x;
+    const aU=horizontal?a.x:a.y, bU=horizontal?b.x:b.y;
+    if((aT<=coord&&bT>coord)||(bT<=coord&&aT>coord)){
+      const t=(coord-aT)/(bT-aT);
+      hits.push(aU+t*(bU-aU));
+    }
+  }
+  hits.sort((p,q)=>p-q);
+  const segs=[];
+  for(let i=0;i+1<hits.length;i+=2) if(hits[i+1]-hits[i]>0.35) segs.push([hits[i],hits[i+1]]);
+  return segs;
+}
+function trousRefend(niv, horizontal, coord, ep){
+  const iv=[];
+  (niv.refends||[]).forEach(r=>{
+    for(let i=1;i<r.pts.length;i++){
+      const a=r.pts[i-1], b=r.pts[i];
+      const dx=Math.abs(b.x-a.x), dy=Math.abs(b.y-a.y);
+      if(horizontal?dy<dx:dx<dy) continue;
+      const aT=horizontal?a.y:a.x, bT=horizontal?b.y:b.x;
+      const aU=horizontal?a.x:a.y, bU=horizontal?b.x:b.y;
+      if(coord<Math.min(aT,bT)-ep/2 || coord>Math.max(aT,bT)+ep/2) continue;
+      const t=Math.abs(bT-aT)<1e-6?0:(coord-aT)/(bT-aT);
+      if(t<-0.05||t>1.05) continue;
+      const u=aU+Math.max(0,Math.min(1,t))*(bU-aU);
+      iv.push([u-ep/2, u+ep/2]);
+    }
+  });
+  return iv;
+}
+function soustraire(a,b,iv){
+  let segs=[[a,b]];
+  iv.forEach(([c,d])=>{
+    const next=[];
+    segs.forEach(([u,v])=>{
+      if(d<=u||c>=v){ next.push([u,v]); return; }
+      if(c>u) next.push([u, Math.max(u,c)]);
+      if(d<v) next.push([Math.min(v,d), v]);
+    });
+    segs=next.filter(([u,v])=>v-u>0.35);
+  });
+  return segs;
+}
+
 function setMode(m){
   if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
     const vd=document.getElementById('verdict');
