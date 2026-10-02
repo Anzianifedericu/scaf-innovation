@@ -42,7 +42,12 @@ h1{font:600 26px/1.2 'Fraunces',Georgia,serif;letter-spacing:-.01em}
 .sub{color:var(--beton);font-size:13.5px;margin-top:4px}
 header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trait)}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 376px;gap:20px;align-items:start}
-@media(max-width:960px){.grid{grid-template-columns:1fr}}
+body.plein .grid{display:flex !important;grid-template-columns:none;flex:1;min-height:0;gap:0}
+body.plein #vue-resultats{display:none !important}
+body.resultats #vue-plan{display:none !important}
+body.resultats .grid{display:block;max-width:920px;margin:0 auto;grid-template-columns:1fr}
+body.plein .enveloppe,body.plein .legende{display:none}
+@media(max-width:960px){body:not(.plein) .grid{grid-template-columns:1fr}}
 
 .panneau{background:#fff;border:1px solid var(--trait);border-radius:var(--r)}
 .panneau-tete{padding:10px 14px;border-bottom:1px solid var(--trait);
@@ -344,6 +349,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="bFermer" onclick="fermerTrace()">Fermer</button>
           <button onclick="effacerNiveau()">Effacer</button>
           <button onclick="exemple()">Exemple</button>
+          <button type="button" onclick="voirResultats()">Résultats</button>
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
@@ -375,6 +381,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
   </div>
 
   <div id="vue-resultats">
+    <p style="margin:0 0 12px"><button type="button" onclick="voirPlan()">Retour au plan</button></p>
     <div class="panneau" style="margin-bottom:16px">
       <div class="panneau-tete">
         <span class="panneau-titre">Niveau</span>
@@ -1962,10 +1969,8 @@ function rendreScene(){
     g+=`<circle cx="0" cy="0" r="${ra*2.4}" fill="none" stroke="var(--vert)" stroke-width="${tr}" stroke-dasharray="${u/120} ${u/160}"/>`;
 
   (niv.poutres||[]).forEach((b,i)=>{
-    const long=Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y);
     const sel=poutreSel===i;
-    g+=`<line x1="${b.a.x}" y1="${-b.a.y}" x2="${b.b.x}" y2="${-b.b.y}" stroke="${sel?'#C08A2E':'#1F3A5F'}" stroke-width="${tr*(sel?3.2:2.2)}" stroke-linecap="round"/>`;
-    g+=`<text x="${(b.a.x+b.b.x)/2}" y="${-((b.a.y+b.b.y)/2)-po*0.65}" font-size="${po*0.75}" fill="#1F3A5F" text-anchor="middle" font-family="IBM Plex Mono,monospace">${long.toFixed(2)}</text>`;
+    g+=`<line x1="${b.a.x}" y1="${-b.a.y}" x2="${b.b.x}" y2="${-b.b.y}" stroke="${sel?'#C08A2E':'#1F3A5F'}" stroke-width="${tr*(sel?3.2:2)}" stroke-linecap="round"/>`;
   });
 
   scene.innerHTML=g;
