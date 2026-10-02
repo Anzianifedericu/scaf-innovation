@@ -17,16 +17,16 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--paper);color:var(--encre);
   font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;padding:22px 18px 60px}
-.wrap{max-width:1220px;margin:0 auto}
+.wrap{max-width:1440px;margin:0 auto}
 h1{font:600 26px/1.2 'Fraunces',Georgia,serif;letter-spacing:-.01em}
 .sub{color:var(--beton);font-size:13.5px;margin-top:4px}
 header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trait)}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 376px;gap:20px;align-items:start}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
 @media(max-width:960px){.grid{grid-template-columns:1fr}}
 
 .panneau{background:#fff;border:1px solid var(--trait);border-radius:var(--r)}
-.panneau-tete{padding:10px 14px;border-bottom:1px solid var(--trait);
-  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.panneau-tete{padding:8px 12px;border-bottom:1px solid var(--trait);
+  display:flex;flex-direction:column;align-items:stretch;gap:8px}
 .panneau-titre{font-weight:600;font-size:13.5px}
 
 .niveaux-onglets{display:flex;border-bottom:1px solid var(--trait);
@@ -38,7 +38,7 @@ header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--trai
 .onglet .etat{font-size:10.5px;display:block;font-weight:400;opacity:.75}
 .onglet-plus{padding:9px 13px;font-size:16px;color:var(--beton);border:0;background:none;cursor:pointer}
 
-#scene{display:block;width:100%;height:470px;background:#FCFAF5;cursor:crosshair;touch-action:none}
+#scene{display:block;width:100%;height:min(70vh,760px);min-height:560px;background:#FCFAF5;cursor:crosshair;touch-action:none}
 .barre{display:flex;gap:6px;flex-wrap:wrap}
 button{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:6px;
   border:1px solid var(--trait);background:var(--paper);color:var(--encre);cursor:pointer}
@@ -115,7 +115,8 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .legende{display:flex;gap:13px;flex-wrap:wrap;padding:7px 14px;font-size:11.5px;
   color:var(--beton);border-top:1px solid var(--paper-dim)}
 .legende span{display:inline-flex;align-items:center;gap:5px}
-.plancher-barre{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--trait);background:#F7F3EA}
+.plancher-barre{display:flex;flex-direction:column;gap:8px;padding:8px 12px;border-top:1px solid var(--trait);background:#F7F3EA}
+.plancher-barre .ligne-trace{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .plancher-barre label{font-size:12.5px;font-weight:600;display:flex;gap:8px;align-items:center}
 .plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
 .plancher-barre button.murs{background:var(--vert);color:#fff;border-color:var(--vert)}
@@ -192,7 +193,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 .enveloppe{padding:8px 14px;font-size:11px;color:var(--beton);line-height:1.7;
   border-top:1px solid var(--paper-dim);background:#FCFAF5}
 .enveloppe b{color:var(--encre);font-size:11.5px}
-.enveloppe .couche{display:block;padding-left:2px}
+.enveloppe .couche{display:inline-flex;align-items:center;margin-right:12px}
 .enveloppe .couche i{display:inline-block;width:11px;height:8px;margin-right:6px;
   border:1px solid;vertical-align:-1px}
 
@@ -321,7 +322,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
           <label style="font-size:12px;display:flex;align-items:center;gap:4px">Longueur
-            <input id="saisieLongueur" type="number" step="0.01" min="0" placeholder="1 cm"
+            <input id="saisieLongueur" type="number" step="0.01" min="0" placeholder="libre"
                    style="width:70px" oninput="majSaisieLongueur(this.value)"> m
           </label>
           <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
@@ -336,6 +337,12 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="plancher-barre">
+        <div class="ligne-trace">
+          <button type="button" id="bTracerMurs" class="murs actif" onclick="setMode('contour')">Tracer les murs</button>
+          <button type="button" id="bTracerPlancher" class="tracer" onclick="setMode('plancher')">Tracer le plancher</button>
+          <span id="plancher-resume">À vous de poser le plancher</span>
+        </div>
+        <div class="ligne-trace">
         <label>Hauteur
           <input id="cotePlancher" type="number" step="0.01" placeholder="libre"
                  style="width:72px" oninput="choisirCotePlancher(this.value)"> m
@@ -362,10 +369,8 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
             <option value="auto">Automatique — portée la plus courte</option>
           </select>
         </label>
-        <button type="button" id="bTracerMurs" class="murs actif" onclick="setMode('contour')">Tracer les murs</button>
-        <button type="button" id="bTracerPlancher" class="tracer" onclick="setMode('plancher')">Tracer le plancher</button>
-        <span id="plancher-resume">À vous de poser le plancher</span>
         <button type="button" onclick="effacerPoutresIsoltop()">Aucune poutrelle</button>
+        </div>
       </div>
       <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
@@ -1658,7 +1663,7 @@ function rendreScene(){
   const minX=Math.min(0,...xs), maxX=Math.max(0,...xs);
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
   const w=Math.max(6,maxX-minX), hh=Math.max(4,maxY-minY);
-  const pad=Math.max(w,hh)*0.18+1.2;
+  const pad=Math.max(w,hh)*0.28+1.8;
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
   const c = cadre || cadreAuto;
   scene.setAttribute('viewBox',`${c.x} ${c.y} ${c.w} ${c.h}`);
@@ -1803,8 +1808,12 @@ function rendreScene(){
             font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle"
             dominant-baseline="middle">h ${Number(m.hauteur).toFixed(2)}</text>`;
     }
-    g+=`<line x1="${mx+nx.x*dec*.35}" y1="${-(my+nx.y*dec*.35)}" x2="${mx+nx.x*dec*.72}" y2="${-(my+nx.y*dec*.72)}" stroke="var(--trait)" stroke-width="${tr*.8}"/>`;
-    g+=`<text x="${mx+nx.x*dec}" y="${-(my+nx.y*dec)}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--beton)" text-anchor="middle" dominant-baseline="middle">${m.longueur.toFixed(2)}</text>`;
+    if(m.longueur/u > 0.045){
+      g+=`<text x="${mx+nx.x*dec*1.7}" y="${-(my+nx.y*dec*1.7)}" font-size="${po*0.95}"
+            font-family="IBM Plex Mono,monospace" fill="var(--encre)" font-weight="600"
+            stroke="#FCFAF5" stroke-width="${po*0.45}" paint-order="stroke"
+            text-anchor="middle" dominant-baseline="middle">${m.longueur.toFixed(2)}</text>`;
+    }
   });
 
   // refends
@@ -1921,7 +1930,7 @@ function rendreScene(){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
       if(d>.05){
-        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.7}" font-size="${po}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" text-anchor="middle" font-weight="500">${d.toFixed(2)} m · ${Math.round(d*100)} cm</text>`;
+        g+=`<text x="${(dep.x+curseur.x)/2}" y="${-((dep.y+curseur.y)/2)-po*.9}" font-size="${po*1.05}" font-family="IBM Plex Mono,monospace" fill="var(--ocre)" stroke="#FCFAF5" stroke-width="${po*0.4}" paint-order="stroke" text-anchor="middle" font-weight="600">${d.toFixed(2)} m</text>`;
         // Ce que donnerait la coupe si l'on posait le point ici : mieux vaut
         // le savoir avant, une coupe se joue a quelques centimetres.
         if(mode==='contour' && vuePro()){
