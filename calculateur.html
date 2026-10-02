@@ -333,6 +333,13 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <label>Plancher
           <select id="selPlancher" onchange="choisirPlancherIsoltop(this.value)"></select>
         </label>
+        <label>Sens
+          <select id="selSens" onchange="choisirSensIsoltop(this.value)">
+            <option value="auto">Selon les murs</option>
+            <option value="x">Poutrelles en travers</option>
+            <option value="y">Poutrelles en long</option>
+          </select>
+        </label>
         <span id="plancher-resume">Fermez le contour pour voir les poutrelles</span>
       </div>
       <div class="enveloppe" id="enveloppe"></div>
