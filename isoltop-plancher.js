@@ -1,7 +1,17 @@
 /* Calepinage Isoltop au nu intérieur, de mur à mur, refends compris.
    N'intervient pas dans le moteur de blocs. */
 (function () {
-  const ENTRAXE = 0.60, APPUI = 0.05, H_ENT = 1.20, ETAI = 1.50;
+  const ENTRAXE = 0.60, APPUI = 0.05, H_ENT = 1.20, ETAI = 2.25;
+  const PSI_COUPE_MAX = 8.2;
+  const LIMITES = {
+    "elitech-r4": { brut: 5.8, reh: 8.0 },
+    "elitech-r5": { brut: 5.8, reh: 8.0 },
+    "elitech-r6": { brut: 5.8, reh: 8.0 },
+    "hourdinov-12": { brut: 5.1, reh: 5.1 },
+    "hourdinov-15": { brut: 6.0, reh: 6.0 },
+    "hourdinov-20": { brut: 6.0, reh: 6.0 },
+    "hourdinov-25": { brut: 8.1, reh: 8.1 }
+  };
   const MONTAGES = {
     "elitech-r4": { label: "ELITech R4 à languette", litres: 77, languette: true },
     "elitech-r5": { label: "ELITech R5 à languette", litres: 80, languette: true },
@@ -132,14 +142,25 @@
     if (!poutres.length) return null;
     const mlUtile = poutres.reduce((s, p) => s + p.long, 0);
     const moy = mlUtile / poutres.length;
+    const portee = Math.max(...poutres.map(p => p.long));
     return {
       horizontal, entraxe, nSpaces, poutres,
       nBeams: poutres.length,
       ml: poutres.reduce((s, p) => s + p.long + 2 * APPUI, 0),
-      moy,
+      moy, portee,
       nHourdis: Math.max(1, Math.ceil(mlUtile / H_ENT)),
       nEtais: poutres.reduce((s, p) => s + Math.max(0, Math.ceil(p.long / ETAI) - 1), 0)
     };
+  }
+  function juger(c, cle) {
+    const L = LIMITES[cle] || { brut: 8.1, reh: 8.1 };
+    const portee = c.portee;
+    const coupe = portee + 2 * APPUI;
+    let etat = "ok";
+    if (coupe > PSI_COUPE_MAX + 0.05) etat = "impossible";
+    else if (portee > L.reh + 0.05) etat = "depasse";
+    else if (portee > L.brut + 0.05) etat = "rehausse";
+    return { portee, coupe, etat, brut: L.brut, reh: L.reh };
   }
   function sensRefend(niv) {
     let hx = 0, hy = 0;
@@ -158,11 +179,28 @@
     if (!geom || geom.aire < 0.5) return null;
     const px = poser(geom, niv, true);
     const py = poser(geom, niv, false);
-    const force = niv.isoltopSens === "x" ? true : niv.isoltopSens === "y" ? false : sensRefend(niv);
-    if (force === true && px) return px;
-    if (force === false && py) return py;
-    if (px && py) return px.moy <= py.moy ? px : py;
-    return px || py;
+    const cle = niv.isoltop;
+    const force = niv.isoltopSens === "x" ? true : niv.isoltopSens === "y" ? false : null;
+    let choisi;
+    if (force === true) choisi = px || py;
+    else if (force === false) choisi = py || px;
+    else {
+      const rang = c => {
+        if (!c) return 1e9;
+        const e = juger(c, cle).etat;
+        return (e === "ok" ? 0 : e === "rehausse" ? 1 : e === "depasse" ? 2 : 3) * 100 + c.portee;
+      };
+      const pref = sensRefend(niv);
+      const a = pref === true ? px : pref === false ? py : null;
+      const b = pref === true ? py : pref === false ? px : null;
+      if (a && juger(a, cle).etat === "ok") choisi = a;
+      else if (b && rang(b) < rang(a)) choisi = b;
+      else if (px && py) choisi = rang(px) <= rang(py) ? px : py;
+      else choisi = px || py;
+    }
+    if (!choisi) return null;
+    choisi.jugement = juger(choisi, cle);
+    return choisi;
   }
 
   function f(n, d) { return n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }); }
@@ -186,10 +224,14 @@
     const c = e.calc;
     const ep = Math.max(tr * 1.15, 0.025);
     const pts = e.geom.pts.map(p => `${p.x},${-p.y}`).join(" ");
-    const beams = c.poutres.map(p => c.horizontal
-      ? `<line x1="${p.a}" y1="${-p.coord}" x2="${p.b}" y2="${-p.coord}" stroke="#1F3A5F" stroke-width="${ep}" stroke-linecap="butt"/>`
-      : `<line x1="${p.coord}" y1="${-p.a}" x2="${p.coord}" y2="${-p.b}" stroke="#1F3A5F" stroke-width="${ep}" stroke-linecap="butt"/>`
-    ).join("");
+    const j = c.jugement;
+    const beams = c.poutres.map(p => {
+      const dep = p.long > j.brut + 0.05;
+      const coul = p.long + 2 * APPUI > PSI_COUPE_MAX + 0.05 || p.long > j.reh + 0.05 ? "#A32020" : dep ? "#A8481F" : "#1F3A5F";
+      return c.horizontal
+        ? `<line x1="${p.a}" y1="${-p.coord}" x2="${p.b}" y2="${-p.coord}" stroke="${coul}" stroke-width="${ep}" stroke-linecap="butt"/>`
+        : `<line x1="${p.coord}" y1="${-p.a}" x2="${p.coord}" y2="${-p.b}" stroke="${coul}" stroke-width="${ep}" stroke-linecap="butt"/>`;
+    }).join("");
     let sx = 0, sy = 0;
     e.geom.pts.forEach(p => { sx += p.x; sy += p.y; });
     const mx = sx / e.geom.pts.length, my = sy / e.geom.pts.length;
@@ -199,7 +241,7 @@
       <polygon points="${pts}" fill="rgba(31,58,95,.07)"/>
       <g clip-path="url(#iso-clip)">${beams}</g>
       <text x="${mx}" y="${-my}" text-anchor="middle" font-size="${fs}" fill="#1F3A5F"
-        font-family="IBM Plex Sans,sans-serif" font-weight="600">${c.nBeams} poutrelles · mur à mur</text>
+        font-family="IBM Plex Sans,sans-serif" font-weight="600">portée max ${f(j.portee, 2)} m</text>
     </g>`;
   };
 
@@ -228,12 +270,20 @@
     const m = MONTAGES[niv.isoltop];
     const geom = interieur(niv);
     const c = geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null;
+    const j = c && c.jugement;
+    const alerte = !j ? "" : j.etat === "impossible"
+      ? `<p class="attente" style="color:#A32020">Portée ${f(j.portee, 2)} m, coupe ${f(j.coupe, 2)} m : au-delà des 8,20 m fabriqués. Il faut un porteur.</p>`
+      : j.etat === "depasse"
+        ? `<p class="attente" style="color:#A32020">Portée ${f(j.portee, 2)} m > limite ${f(j.reh, 1)} m de ce montage. Monter en Hourdinov plus haut, ou changer le sens.</p>`
+        : j.etat === "rehausse"
+          ? `<p class="attente" style="color:#A8481F">Portée ${f(j.portee, 2)} m : ELITech brut limité à ${f(j.brut, 1)} m, 8 m avec rehausses.</p>`
+          : "";
     const chiffres = c ? `<div class="chiffres">
-      <div><b>${f(geom.aire, 1)} m²</b><span>entre murs, hors refends</span></div>
-      <div><b>${c.nBeams}</b><span>poutrelles · ${f(c.ml, 1)} ml</span></div>
-      <div><b>${f(c.moy + 2 * APPUI, 2)} m</b><span>coupe moyenne, appui 5 cm</span></div>
+      <div><b>${f(j.portee, 2)} m</b><span>portée la plus longue</span></div>
+      <div><b>${f(j.brut, 1)} m</b><span>limite de ce montage</span></div>
+      <div><b>${c.nBeams}</b><span>poutrelles · coupe max ${f(j.coupe, 2)} m</span></div>
       <div><b>${f(geom.aire * m.litres / 1000, 2)} m³</b><span>béton hors chaînages</span></div>
-    </div>` : `<p class="attente">${niv.isoltop === "aucun" ? "Aucun plancher sur ce niveau." : "Fermez le contour : les poutrelles suivent les murs."}</p>`;
+    </div>${alerte}` : `<p class="attente">${niv.isoltop === "aucun" ? "Aucun plancher sur ce niveau." : "Fermez le contour : la portée se mesure de mur à mur."}</p>`;
     const toit = i === niveaux.length - 1
       ? `<label><input type="checkbox" data-toit="${i}"${niv.isoltopToit ? " checked" : ""}> Aussi en toiture-terrasse</label>` : "";
     return `<article class="carte${courant ? " actif" : ""}">
@@ -277,13 +327,13 @@
         ? "Fermez le contour : le plancher suit les murs"
         : niv.isoltop === "aucun"
           ? "Pas de plancher sur ce niveau"
-          : c.nBeams + " poutrelles de mur à mur · " + f(geom.aire, 1) + " m² · entraxe " + f(c.entraxe * 100, 0) + " cm";
+          : "portée max " + f(c.jugement.portee, 2) + " m · limite " + f(c.jugement.brut, 1) + " m · " + c.nBeams + " poutrelles";
     }
     const host = document.getElementById("plancher-isoltop");
     if (!host) return;
     const ordre = [i, ...niveaux.map((_, k) => k).filter(k => k !== i)];
     host.innerHTML = `<h3>Plancher Isoltop</h3>
-      <p class="note">Le plancher s'arrête au nu intérieur des murs et se coupe sur les refends. L'épaisseur du bloc (102 à 305 mm) est celle du niveau.</p>
+      <p class="note">La portée est la distance entre murs, sans les appuis. Limites fiche Isoltop : Hourdinov 12 = 5,1 m, 15 et 20 = 6 m, 25 = 8,1 m, ELITech brut 5,8 m (8 m avec rehausses). La poutrelle se fabrique jusqu'à 8,20 m. Le plan de pose confirme.</p>
       ${ordre.map(k => carte(niveaux[k], k, k === i)).join("")}`;
     host.querySelectorAll("[data-iso]").forEach(el => {
       el.onchange = () => { niveaux[+el.dataset.iso].isoltop = el.value; rendre(); if (typeof rendreScene === "function") rendreScene(); };
