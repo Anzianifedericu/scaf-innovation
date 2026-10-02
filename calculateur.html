@@ -333,9 +333,20 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <label>Plancher
           <select id="selPlancher" onchange="choisirPlancherIsoltop(this.value)"></select>
         </label>
+        <label>Pente
+          <select id="selPente" onchange="choisirPenteIsoltop(this.value)">
+            <option value="aucune">Sans pente</option>
+            <option value="bas">Vers le bas du plan</option>
+            <option value="haut">Vers le haut du plan</option>
+            <option value="gauche">Vers la gauche</option>
+            <option value="droite">Vers la droite</option>
+          </select>
+        </label>
         <label>Sens des poutrelles
           <select id="selSens" onchange="choisirSensIsoltop(this.value)">
             <option value="auto">Automatique — portée la plus courte</option>
+            <option value="pente">Dans le sens de la pente</option>
+            <option value="perp">Perpendiculaires à la pente</option>
             <option value="x">Horizontales sur le plan</option>
             <option value="y">Verticales sur le plan</option>
           </select>

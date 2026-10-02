@@ -30,7 +30,8 @@
   }
   function choix(niv, i) {
     if (!MONTAGES[niv.isoltop]) niv.isoltop = defaut(niv, i);
-    if (niv.isoltopSens !== "x" && niv.isoltopSens !== "y" && niv.isoltopSens !== "auto") niv.isoltopSens = "auto";
+    if (niv.isoltopSens !== "x" && niv.isoltopSens !== "y" && niv.isoltopSens !== "pente" && niv.isoltopSens !== "perp") niv.isoltopSens = "auto";
+    if (!["haut", "bas", "gauche", "droite"].includes(niv.isoltopPente)) niv.isoltopPente = "aucune";
     if (typeof niv.isoltopToit !== "boolean") niv.isoltopToit = false;
     return niv;
   }
@@ -180,7 +181,15 @@
     const px = poser(geom, niv, true);
     const py = poser(geom, niv, false);
     const cle = niv.isoltop;
-    const force = niv.isoltopSens === "x" ? true : niv.isoltopSens === "y" ? false : null;
+    const penteX = niv.isoltopPente === "gauche" || niv.isoltopPente === "droite";
+    const penteY = niv.isoltopPente === "haut" || niv.isoltopPente === "bas";
+    let force = null;
+    if (niv.isoltopSens === "x") force = true;
+    else if (niv.isoltopSens === "y") force = false;
+    else if (niv.isoltopSens === "pente" && penteX) force = true;
+    else if (niv.isoltopSens === "pente" && penteY) force = false;
+    else if (niv.isoltopSens === "perp" && penteX) force = false;
+    else if (niv.isoltopSens === "perp" && penteY) force = true;
     let choisi;
     if (force === true) choisi = px || py;
     else if (force === false) choisi = py || px;
@@ -204,6 +213,22 @@
   }
 
   function f(n, d) { return n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function optionsSens(cur) {
+    const opt = (v, t) => `<option value="${v}"${cur === v ? " selected" : ""}>${t}</option>`;
+    return opt("auto", "Automatique — portée la plus courte")
+      + opt("pente", "Dans le sens de la pente")
+      + opt("perp", "Perpendiculaires à la pente")
+      + opt("x", "Horizontales sur le plan")
+      + opt("y", "Verticales sur le plan");
+  }
+  function optionsPente(cur) {
+    const opt = (v, t) => `<option value="${v}"${cur === v ? " selected" : ""}>${t}</option>`;
+    return opt("aucune", "Sans pente")
+      + opt("bas", "Vers le bas du plan")
+      + opt("haut", "Vers le haut du plan")
+      + opt("gauche", "Vers la gauche")
+      + opt("droite", "Vers la droite");
+  }
   function options(cur) {
     return Object.entries(MONTAGES).map(([k, m]) =>
       `<option value="${k}"${k === cur ? " selected" : ""}>${m.label}</option>`).join("");
@@ -237,13 +262,37 @@
     const mx = sx / e.geom.pts.length, my = sy / e.geom.pts.length;
     const fs = Math.max(tr * 9, 0.18);
     return `<g id="iso-plancher">
-      <defs><clipPath id="iso-clip"><polygon points="${pts}"/></clipPath></defs>
+      <defs><clipPath id="iso-clip"><polygon points="${pts}"/></clipPath>
+        <marker id="iso-fleche" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#A8481F"/>
+        </marker>
+      </defs>
       <polygon points="${pts}" fill="rgba(31,58,95,.07)"/>
       <g clip-path="url(#iso-clip)">${beams}</g>
       <text x="${mx}" y="${-my}" text-anchor="middle" font-size="${fs}" fill="#1F3A5F"
         font-family="IBM Plex Sans,sans-serif" font-weight="600">portée max ${f(j.portee, 2)} m</text>
+      ${flechePente(e.niv, e.geom, tr)}
     </g>`;
   };
+
+  function flechePente(niv, geom, tr) {
+    const p = niv.isoltopPente;
+    if (!p || p === "aucune") return "";
+    const len = Math.max(geom.largeur, geom.profondeur) * 0.22;
+    let x2 = 0, y2 = 0;
+    if (p === "droite") x2 = len;
+    else if (p === "gauche") x2 = -len;
+    else if (p === "haut") y2 = len;
+    else y2 = -len;
+    const cx = (geom.minX + geom.maxX) / 2;
+    const cy = (geom.minY + geom.maxY) / 2;
+    const fs = Math.max(tr * 8, 0.16);
+    return `<g stroke="#A8481F" fill="#A8481F" stroke-width="${Math.max(tr * 0.7, 0.02)}">
+      <line x1="${cx}" y1="${-cy}" x2="${cx + x2}" y2="${-(cy + y2)}" marker-end="url(#iso-fleche)"/>
+      <text x="${cx + x2 * 1.15}" y="${-(cy + y2 * 1.15)}" font-size="${fs}" stroke="none"
+        font-family="IBM Plex Sans,sans-serif" text-anchor="middle">pente</text>
+    </g>`;
+  }
 
   window.choisirNiveauIsoltop = function (v) {
     const i = Number(v);
@@ -260,7 +309,14 @@
   window.choisirSensIsoltop = function (v) {
     const e = etatCourant();
     if (!e) return;
-    e.niv.isoltopSens = v === "x" || v === "y" ? v : "auto";
+    e.niv.isoltopSens = ["x", "y", "pente", "perp"].includes(v) ? v : "auto";
+    if (typeof rendreScene === "function") rendreScene();
+    rendre();
+  };
+  window.choisirPenteIsoltop = function (v) {
+    const e = etatCourant();
+    if (!e) return;
+    e.niv.isoltopPente = ["haut", "bas", "gauche", "droite"].includes(v) ? v : "aucune";
     if (typeof rendreScene === "function") rendreScene();
     rendre();
   };
@@ -289,12 +345,11 @@
     return `<article class="carte${courant ? " actif" : ""}">
       <div class="ligne"><b>${niv.nom}${courant ? " · sur le plan" : ""}</b>
         <select data-iso="${i}">${options(niv.isoltop)}</select></div>
+      <label>Pente
+        <select data-pente="${i}">${optionsPente(niv.isoltopPente)}</select>
+      </label>
       <label>Sens des poutrelles
-        <select data-sens="${i}">
-          <option value="auto"${niv.isoltopSens === "auto" ? " selected" : ""}>Automatique — portée la plus courte</option>
-          <option value="x"${niv.isoltopSens === "x" ? " selected" : ""}>Horizontales sur le plan</option>
-          <option value="y"${niv.isoltopSens === "y" ? " selected" : ""}>Verticales sur le plan</option>
-        </select>
+        <select data-sens="${i}">${optionsSens(niv.isoltopSens)}</select>
       </label>
       ${toit}${chiffres}
     </article>`;
@@ -326,6 +381,8 @@
     }
     const sens = document.getElementById("selSens");
     if (sens && niv && sens.value !== niv.isoltopSens) sens.value = niv.isoltopSens;
+    const pente = document.getElementById("selPente");
+    if (pente && niv && pente.value !== niv.isoltopPente) pente.value = niv.isoltopPente;
     const resume = document.getElementById("plancher-resume");
     const geom = niv ? interieur(niv) : null;
     const c = geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null;
@@ -347,7 +404,14 @@
     });
     host.querySelectorAll("[data-sens]").forEach(el => {
       el.onchange = () => {
-        niveaux[+el.dataset.sens].isoltopSens = el.value === "x" || el.value === "y" ? el.value : "auto";
+        niveaux[+el.dataset.sens].isoltopSens = ["x", "y", "pente", "perp"].includes(el.value) ? el.value : "auto";
+        rendre();
+        if (typeof rendreScene === "function") rendreScene();
+      };
+    });
+    host.querySelectorAll("[data-pente]").forEach(el => {
+      el.onchange = () => {
+        niveaux[+el.dataset.pente].isoltopPente = ["haut", "bas", "gauche", "droite"].includes(el.value) ? el.value : "aucune";
         rendre();
         if (typeof rendreScene === "function") rendreScene();
       };
