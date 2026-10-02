@@ -311,6 +311,7 @@
   <form class="form-card" id="etude-form" name="etude-nudura" method="POST" enctype="multipart/form-data" action="/merci-fr" data-netlify="true" data-netlify-honeypot="bot-field" novalidate>
 
     <input type="hidden" name="form-name" value="etude-nudura">
+    <input type="hidden" name="source" id="source-field" value="site">
     <p hidden><label>Ne pas remplir : <input name="bot-field"></label></p>
 
 
@@ -610,6 +611,13 @@
   const errorBanner = document.getElementById('form-error-banner');
   const networkError = document.getElementById('form-network-error');
   const submitBtn = document.getElementById('submit-btn');
+
+  /* ---- Origine de la demande (QR code, campagne...) ---- */
+  (function(){
+    const src = new URLSearchParams(window.location.search).get('source');
+    const field = document.getElementById('source-field');
+    if (src && field) field.value = src.trim().slice(0, 60);
+  })();
 
   /* ---- Gestion des fichiers ---- */
   const dropzone = document.getElementById('dropzone');
