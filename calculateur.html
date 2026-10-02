@@ -47,7 +47,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
-.actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
+.actif-plancher{background:#1F3A5F;border-color:#1F3A5F;color:#fff}
 .actif-terre{background:var(--terre);border-color:var(--terre);color:#fff}
 button:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
 .modes{display:flex;border:1px solid var(--trait);border-radius:6px;overflow:hidden}
@@ -312,6 +312,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mRefend" onclick="setMode('refend')">Refends</button>
           <button id="mOuv" onclick="setMode('ouverture')">Ouvertures</button>
           <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
+          <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
         </div>
         <div class="barre">
           <button id="bOrtho" class="actif" onclick="basculerOrtho()">Angles droits</button>
@@ -327,8 +328,9 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="plancher-barre">
-        <label>Niveau
-          <select id="selNiveau" onchange="choisirNiveauIsoltop(this.value)"></select>
+        <label>Hauteur
+          <input id="cotePlancher" type="number" step="0.01" placeholder="libre"
+                 style="width:72px" oninput="choisirCotePlancher(this.value)"> m
         </label>
         <label>Plancher
           <select id="selPlancher" onchange="choisirPlancherIsoltop(this.value)"></select>
@@ -353,6 +355,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           </select>
         </label>
         <span id="plancher-resume">À vous de poser le plancher</span>
+        <button type="button" onclick="effacerPoutresIsoltop()">Aucune poutrelle</button>
       </div>
       <div class="enveloppe" id="enveloppe"></div>
       <div class="legende">
@@ -516,7 +519,7 @@ let vueEpaisse = true, vueAiles = false, ailesInversees = false;
 /* Poignee saisie en mode Deplacer : sommet du contour, point de refend ou
    ouverture. Le contour est stocke en longueurs et directions, pas en
    points : deplacer un sommet reconstruit donc les deux murs voisins. */
-let prise = null;
+let tracePoutre = null, poutreSel = null, saisiePoutre = false;
 
 
 /* Decale un contour vers l'interieur : chaque sommet est l'intersection des
@@ -1902,7 +1905,7 @@ function rendreScene(){
   if(curseur&&mode!=='ouverture'){
     let dep=null;
     if(mode==='contour'&&!niv.ferme&&pts.length) dep=pts[pts.length-1];
-    if(mode==='refend'&&refEnCours) dep=refEnCours.pts[refEnCours.pts.length-1];
+    if(mode==='plancher'&&tracePoutre) dep=tracePoutre;
     if(dep){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
@@ -2215,7 +2218,8 @@ function contraindre(p,libre,depart){
   return accrocher({x:depart.x+dx,y:depart.y+dy}, mode==='contour');
 }
 
-const departCourant=()=> mode==='contour'
+const departCourant=()=> mode==='plancher' ? tracePoutre
+  : mode==='contour'
   ? (N().ferme?null:sommets().slice(-1)[0])
   : (mode==='refend'&&refEnCours?refEnCours.pts[refEnCours.pts.length-1]:null);
 
@@ -2252,6 +2256,20 @@ let glisse=null;
 scene.addEventListener('contextmenu', e=>e.preventDefault());
 scene.addEventListener('mousedown', e=>{
   // Bouton gauche en mode Deplacer : on saisit une poignee.
+  if(e.button===0 && mode==='plancher'){
+    const p0=versMetres(e), bout=boutPoutre(p0), sous=poutreSous(p0);
+    if(bout){
+      prise={type:'poutre-bout', i:bout.i, k:bout.k};
+      poutreSel=bout.i; saisiePoutre=true; e.preventDefault();
+      return;
+    }
+    if(sous!==null && !tracePoutre){
+      const b=poutresDe(N())[sous];
+      prise={type:'poutre', i:sous, x:p0.x, y:p0.y, ax:b.a.x, ay:b.a.y, bx:b.b.x, by:b.b.y};
+      poutreSel=sous; saisiePoutre=true; e.preventDefault();
+      return;
+    }
+  }
   if(e.button===0 && mode==='deplacer'){
     const h = poigneeSous(versMetres(e));
     if(h){ prise = h; e.preventDefault(); scene.style.cursor='grabbing'; }
@@ -2277,6 +2295,25 @@ window.addEventListener('mousemove', e=>{
 
 scene.addEventListener('mousemove', e=>{
   const p=versMetres(e);
+
+  if(mode==='plancher'){
+    if(prise && prise.type==='poutre-bout'){
+      const b=poutresDe(N())[prise.i];
+      const autre=prise.k==='a'?b.b:b.a;
+      b[prise.k]=contraindre(p, e.shiftKey, autre);
+      rendreScene(); return;
+    }
+    if(prise && prise.type==='poutre'){
+      const b=poutresDe(N())[prise.i];
+      const dx=p.x-prise.x, dy=p.y-prise.y;
+      b.a={x:prise.ax+dx, y:prise.ay+dy};
+      b.b={x:prise.bx+dx, y:prise.by+dy};
+      rendreScene(); return;
+    }
+    curseur=contraindre(p, e.shiftKey, tracePoutre);
+    scene.style.cursor = poutreSous(p)!==null || boutPoutre(p) ? 'grab' : 'crosshair';
+    rendreScene(); return;
+  }
 
   if(mode==='deplacer'){
     if(!prise){
@@ -2326,6 +2363,17 @@ scene.addEventListener('mouseleave',()=>{ curseur=null; survol=null; rendreScene
 scene.addEventListener('click', e=>{
   const niv=N(), brut=versMetres(e);
 
+  if(mode==='plancher'){
+    if(saisiePoutre){ saisiePoutre=false; recalcul(); return; }
+    const p=contraindre(brut, e.shiftKey, tracePoutre);
+    if(!tracePoutre){ tracePoutre={x:p.x,y:p.y}; poutreSel=null; rendreScene(); return; }
+    if(Math.hypot(p.x-tracePoutre.x, p.y-tracePoutre.y)<0.2) return;
+    poutresDe(niv).push({ a:{...tracePoutre}, b:{x:p.x,y:p.y} });
+    poutreSel=poutresDe(niv).length-1;
+    tracePoutre=null;
+    recalcul(); return;
+  }
+
   if(mode==='ouverture'){
     const s=segmentSousCurseur(brut); if(!s) return;
     const reste=s.longueur-largeurOccupee(niv,s);
@@ -2359,6 +2407,12 @@ scene.addEventListener('click', e=>{
 });
 
 scene.addEventListener('dblclick', e=>{
+  if(mode==='plancher'){
+    const i=poutreSous(versMetres(e));
+    if(i===null) return;
+    poutresDe(N()).splice(i,1);
+    poutreSel=null; tracePoutre=null; recalcul(); return;
+  }
   if(mode==='refend') validerRefend();
   // En mode Deplacer, un double-clic retire ce qui est sous le curseur.
   if(mode==='deplacer'){
@@ -2371,6 +2425,13 @@ scene.addEventListener('dblclick', e=>{
 });
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') annuler();
+  if((e.key==='Delete'||e.key==='Backspace') && mode==='plancher' && poutreSel!==null){
+    const tag=document.activeElement && document.activeElement.tagName;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
+    e.preventDefault();
+    poutresDe(N()).splice(poutreSel,1);
+    poutreSel=null; recalcul();
+  }
   if(e.key==='Enter'&&mode==='refend') validerRefend();
 });
 
@@ -2409,6 +2470,34 @@ function poigneeSous(p){
   return null;
 }
 
+function poutresDe(niv){
+  if(!niv.poutres) niv.poutres=[];
+  return niv.poutres;
+}
+function poutreSous(p){
+  let best=null, dmin=0.4;
+  poutresDe(N()).forEach((b,i)=>{
+    const vx=b.b.x-b.a.x, vy=b.b.y-b.a.y, l2=vx*vx+vy*vy; if(!l2) return;
+    let t=((p.x-b.a.x)*vx+(p.y-b.a.y)*vy)/l2; t=Math.max(0,Math.min(1,t));
+    const d=Math.hypot(p.x-(b.a.x+t*vx), p.y-(b.a.y+t*vy));
+    if(d<dmin){ dmin=d; best=i; }
+  });
+  return best;
+}
+function boutPoutre(p){
+  let best=null, dmin=0.45;
+  poutresDe(N()).forEach((b,i)=>{
+    ['a','b'].forEach(k=>{
+      const d=Math.hypot(b[k].x-p.x, b[k].y-p.y);
+      if(d<dmin){ dmin=d; best={i,k}; }
+    });
+  });
+  return best;
+}
+function effacerPoutresIsoltop(){
+  poutresDe(N()).length=0; tracePoutre=null; poutreSel=null; recalcul();
+}
+
 function setMode(m){
   if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
     const vd=document.getElementById('verdict');
@@ -2421,11 +2510,18 @@ function setMode(m){
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
+  const bp=document.getElementById('mPlancher');
+  if(bp) bp.classList.toggle('actif-plancher', m==='plancher');
+  if(m!=='plancher'){ tracePoutre=null; saisiePoutre=false; }
   prise = null;
   recalcul();
 }
 
-function allerNiveau(i){ validerRefend(); iNiveau=i; setMode('contour'); }
+function allerNiveau(i){
+  validerRefend();
+  iNiveau=i;
+  setMode(mode==='plancher' ? 'plancher' : 'contour');
+}
 
 function ajouterNiveau(){
   const noms=['Vide sanitaire','RDC','R+1','R+2','R+3','Combles'];
@@ -2457,6 +2553,8 @@ function majAide(){
     ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
+    : mode==='plancher'
+    ? `Posez une poutrelle en deux clics, d'un appui à l'autre. Cliquez-la pour la sélectionner, glissez-la, tirez un bout. Double-clic ou Suppr l'enlève. La hauteur est libre, et vous pouvez n'en poser aucune.`
     : mode==='deplacer'
     ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
     : (vuePro() ? `Cliquez sur un mur ou un refend pour y poser une ouverture, puis ajustez ses dimensions dans le tableau.` : `Cliquez sur un mur pour y poser une porte ou une fenêtre, puis ajustez ses dimensions dans le tableau.`);
@@ -2531,7 +2629,11 @@ function majOuv(i,champ,v){
 
 function annuler(){
   const niv=N();
-  if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
+  if(mode==='plancher'){
+    if(tracePoutre) tracePoutre=null;
+    else if(poutresDe(niv).length) poutresDe(niv).pop();
+    poutreSel=null;
+  } else if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
   else if(mode==='refend'){
     if(refEnCours){ refEnCours.pts.pop(); if(!refEnCours.pts.length) refEnCours=null; }
     else if(niv.refends.length) supprimerRefend(niv.refends.length-1);
@@ -2551,7 +2653,7 @@ function fermerTrace(){
 
 function effacerNiveau(){
   const niv=N();
-  niv.murs=[]; niv.refends=[]; niv.ouvertures=[]; niv.ferme=false;
+  niv.murs=[]; niv.refends=[]; niv.ouvertures=[]; niv.poutres=[]; niv.ferme=false;
   refEnCours=null; curseur=null; setMode('contour');
 }
 

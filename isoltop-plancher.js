@@ -230,6 +230,23 @@
     return Object.entries(MONTAGES).map(([k, m]) =>
       `<option value="${k}"${k === cur ? " selected" : ""}>${m.label}</option>`).join("");
   }
+  function depuisTrace(niv) {
+    const ps = (niv.poutres || []).map(b => {
+      const long = Math.hypot(b.b.x - b.a.x, b.b.y - b.a.y);
+      return { a: b.a, b: b.b, long };
+    }).filter(p => p.long > 0.15);
+    if (!ps.length) return null;
+    const portee = Math.max(...ps.map(p => p.long));
+    const mlUtile = ps.reduce((s, p) => s + p.long, 0);
+    return {
+      trace: true, poutres: ps, nBeams: ps.length,
+      ml: ps.reduce((s, p) => s + p.long + 2 * APPUI, 0),
+      portee, moy: mlUtile / ps.length,
+      nHourdis: Math.max(1, Math.ceil(mlUtile / H_ENT)),
+      nEtais: ps.reduce((s, p) => s + Math.max(0, Math.ceil(p.long / ETAI) - 1), 0),
+      jugement: juger({ portee }, niv.isoltop === "aucun" ? "hourdinov-25" : niv.isoltop)
+    };
+  }
   function etatCourant() {
     if (typeof niveaux === "undefined" || typeof N !== "function") return null;
     const i = typeof iNiveau === "number" ? iNiveau : 0;
@@ -237,12 +254,39 @@
     if (!niv) return null;
     choix(niv, i);
     const geom = interieur(niv);
-    return { niv, i, geom, calc: geom ? calepiner(geom, niv) : null };
+    const trace = depuisTrace(niv);
+    return { niv, i, geom, calc: trace || (geom ? calepiner(geom, niv) : null) };
+  }
+
+  function dessinTrace(e, tr) {
+    const ps = e.niv.poutres || [];
+    const ep = Math.max(tr * 1.5, 0.028);
+    const fs = Math.max(tr * 8, 0.16);
+    const j = e.calc && e.calc.jugement;
+    const lignes = ps.map((b, i) => {
+      const long = Math.hypot(b.b.x - b.a.x, b.b.y - b.a.y);
+      const sel = typeof poutreSel === "number" && poutreSel === i;
+      const trop = j && (long > j.reh + 0.05 || long + 2 * APPUI > PSI_COUPE_MAX + 0.05);
+      const coul = sel ? "#C08A2E" : trop ? "#A32020" : "#1F3A5F";
+      const mx = (b.a.x + b.b.x) / 2, my = (b.a.y + b.b.y) / 2;
+      return `<line x1="${b.a.x}" y1="${-b.a.y}" x2="${b.b.x}" y2="${-b.b.y}" stroke="${coul}" stroke-width="${sel ? ep * 1.7 : ep}" stroke-linecap="round"/>
+        <circle cx="${b.a.x}" cy="${-b.a.y}" r="${ep * 1.6}" fill="${coul}"/>
+        <circle cx="${b.b.x}" cy="${-b.b.y}" r="${ep * 1.6}" fill="${coul}"/>
+        <text x="${mx}" y="${-my - fs}" font-size="${fs}" fill="${coul}" text-anchor="middle" font-family="IBM Plex Sans,sans-serif">${long.toFixed(2)} m</text>`;
+    }).join("");
+    const cote = e.niv.cotePlancher;
+    const coteTxt = cote === null || cote === undefined || cote === ""
+      ? ""
+      : `<text x="${ps[0].a.x}" y="${-ps[0].a.y - fs * 2.2}" font-size="${fs}" fill="#A8481F" font-family="IBM Plex Sans,sans-serif">hauteur ${Number(cote).toFixed(2)} m</text>`;
+    const fleche = e.geom ? flechePente(e.niv, e.geom, tr) : "";
+    return `<g id="iso-plancher">${lignes}${coteTxt}${fleche}</g>`;
   }
 
   window.marquagePlancherIsoltop = function (tr) {
     const e = etatCourant();
-    if (!e || e.niv.isoltop === "aucun" || !e.calc) return "";
+    if (!e) return "";
+    if (e.calc && e.calc.trace) return dessinTrace(e, tr);
+    if (e.niv.isoltop === "aucun" || !e.calc || !e.geom) return "";
     const c = e.calc;
     const ep = Math.max(tr * 1.15, 0.025);
     const pts = e.geom.pts.map(p => `${p.x},${-p.y}`).join(" ");
@@ -310,6 +354,13 @@
     if (typeof rendreScene === "function") rendreScene();
     rendre();
   };
+  window.choisirCotePlancher = function (v) {
+    const e = etatCourant();
+    if (!e) return;
+    const n = parseFloat(String(v).replace(",", "."));
+    e.niv.cotePlancher = Number.isFinite(n) ? n : null;
+    if (typeof rendreScene === "function") rendreScene();
+  };
   window.choisirPenteIsoltop = function (v) {
     const e = etatCourant();
     if (!e) return;
@@ -322,7 +373,7 @@
     choix(niv, i);
     const m = MONTAGES[niv.isoltop];
     const geom = interieur(niv);
-    const c = geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null;
+    const c = depuisTrace(niv) || (geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null);
     const j = c && c.jugement;
     const alerte = !j ? "" : j.etat === "impossible"
       ? `<p class="attente" style="color:#A32020">Portée ${f(j.portee, 2)} m, coupe ${f(j.coupe, 2)} m : au-delà des 8,20 m fabriqués. Il faut un porteur.</p>`
@@ -334,9 +385,9 @@
     const chiffres = c ? `<div class="chiffres">
       <div><b>${f(j.portee, 2)} m</b><span>portée la plus longue</span></div>
       <div><b>${f(j.brut, 1)} m</b><span>limite de ce montage</span></div>
-      <div><b>${c.nBeams}</b><span>poutrelles · coupe max ${f(j.coupe, 2)} m</span></div>
-      <div><b>${f(geom.aire * m.litres / 1000, 2)} m³</b><span>béton hors chaînages</span></div>
-    </div>${alerte}` : `<p class="attente">${niv.isoltop === "aucun" ? "Rien n'est posé. Choisissez le plancher vous-même." : niv.isoltopSens === "choisir" ? "Choisissez le sens des poutrelles pour les poser." : "Fermez le contour : la portée se mesure de mur à mur."}</p>`;
+      <div><b>${c.nBeams}</b><span>${c.trace ? "poutrelles tracées" : "poutrelles"} · coupe max ${f(j.coupe, 2)} m</span></div>
+      <div><b>${geom ? f(geom.aire * m.litres / 1000, 2) + " m³" : "—"}</b><span>${niv.cotePlancher == null ? "béton, hauteur libre" : "béton, hauteur " + f(niv.cotePlancher, 2) + " m"}</span></div>
+    </div>${alerte}` : `<p class="attente">Rien n'est posé. Bouton Plancher : deux clics par poutrelle, à la hauteur que vous voulez. Ou aucune.</p>`;
     const toit = i === niveaux.length - 1
       ? `<label><input type="checkbox" data-toit="${i}"${niv.isoltopToit ? " checked" : ""}> Aussi en toiture-terrasse</label>` : "";
     return `<article class="carte${courant ? " actif" : ""}">
@@ -380,15 +431,19 @@
     if (sens && niv && sens.value !== niv.isoltopSens) sens.value = niv.isoltopSens;
     const pente = document.getElementById("selPente");
     if (pente && niv && pente.value !== niv.isoltopPente) pente.value = niv.isoltopPente;
+    const cote = document.getElementById("cotePlancher");
+    if (cote && niv && document.activeElement !== cote) {
+      cote.value = niv.cotePlancher == null ? "" : niv.cotePlancher;
+    }
+    const trace = niv ? depuisTrace(niv) : null;
     const resume = document.getElementById("plancher-resume");
     const geom = niv ? interieur(niv) : null;
-    const c = geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null;
+    const c = trace || (geom && niv.isoltop !== "aucun" ? calepiner(geom, niv) : null);
     if (resume && niv) {
-      resume.textContent = !geom
-        ? "Fermez le contour, puis choisissez le plancher"
-        : niv.isoltop === "aucun" || niv.isoltopSens === "choisir"
-          ? "À vous de le poser : montage et sens des poutrelles"
-          : "portée max " + f(c.jugement.portee, 2) + " m · limite " + f(c.jugement.brut, 1) + " m · " + c.nBeams + " poutrelles";
+      resume.textContent = trace
+        ? trace.nBeams + " poutrelle" + (trace.nBeams > 1 ? "s" : "") + " tracée" + (trace.nBeams > 1 ? "s" : "") + " · portée " + f(trace.portee, 2) + " m"
+          + (niv.cotePlancher == null ? " · hauteur libre" : " · hauteur " + f(niv.cotePlancher, 2) + " m")
+        : "À vous de les tracer : bouton Plancher, ou aucune";
     }
     const host = document.getElementById("plancher-isoltop");
     if (!host) return;
