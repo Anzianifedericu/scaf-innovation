@@ -17,6 +17,26 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--paper);color:var(--encre);
   font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;padding:22px 18px 60px}
+body.plein{padding:0;height:100vh;overflow:hidden}
+body.plein .wrap{max-width:none;height:100vh;display:flex;flex-direction:column}
+body.plein header{margin:0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+body.plein h1{font-size:18px}
+body.plein .sub{display:none}
+body.plein .grid{flex:1;min-height:0;display:flex;grid-template-columns:none}
+body.plein #vue-plan{flex:1;min-width:0;display:flex;flex-direction:column}
+body.plein #vue-plan > .panneau{flex:1;display:flex;flex-direction:column;min-height:0;border-radius:0;border-left:0;border-right:0}
+body.plein #scene{flex:1;height:auto;min-height:0}
+body.plein #vue-resultats{display:none}
+body.resultats #vue-plan{display:none}
+body.resultats .grid{display:block;max-width:920px;margin:0 auto}
+.vues{display:flex;border:1px solid var(--trait);border-radius:6px;overflow:hidden}
+.vues button{border:0;border-radius:0;padding:7px 16px}
+.vues button+button{border-left:1px solid var(--trait)}
+.vues button.actif{background:var(--encre);color:#fff;border-color:var(--encre)}
+@media print{
+  #vue-plan,#vue-resultats{display:block !important}
+  body{height:auto;overflow:auto}
+}
 .wrap{max-width:1220px;margin:0 auto}
 h1{font:600 26px/1.2 'Fraunces',Georgia,serif;letter-spacing:-.01em}
 .sub{color:var(--beton);font-size:13.5px;margin-top:4px}
@@ -272,7 +292,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="SCAF">
 </head>
-<body>
+<body class="plein">
 <div class="wrap">
 
 <div class="entete-impression">
@@ -290,14 +310,20 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
 </div>
 
 <header>
-  <h1>Calculateur Nudura</h1>
-  <p class="sub">Tracez votre plan niveau par niveau. Les quantités sont calculées par le moteur SCAF : blocs, accessoires, béton.</p>
+  <div>
+    <h1>Calculateur Nudura</h1>
+    <p class="sub">Tracez votre plan niveau par niveau. Les quantités sont dans l'onglet Résultats.</p>
+  </div>
+  <nav class="vues">
+    <button type="button" id="bVuePlan" class="actif" onclick="voirPlan()">Plan</button>
+    <button type="button" id="bVueResultats" onclick="voirResultats()">Résultats</button>
+  </nav>
 </header>
 
 <div id="impression"></div>
 
 <div class="grid">
-  <div>
+  <div id="vue-plan">
     <div class="panneau">
       <div class="niveaux-onglets" id="onglets"></div>
       <div class="panneau-tete">
@@ -348,7 +374,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
     </div>
   </div>
 
-  <div>
+  <div id="vue-resultats">
     <div class="panneau" style="margin-bottom:16px">
       <div class="panneau-tete">
         <span class="panneau-titre">Niveau</span>
@@ -2535,6 +2561,20 @@ function soustraire(a,b,iv){
     segs=next.filter(([u,v])=>v-u>0.35);
   });
   return segs;
+}
+
+function voirPlan(){
+  document.body.classList.add('plein');
+  document.body.classList.remove('resultats');
+  document.getElementById('bVuePlan').classList.add('actif');
+  document.getElementById('bVueResultats').classList.remove('actif');
+  requestAnimationFrame(()=>{ if(typeof rendreScene==='function') rendreScene(); });
+}
+function voirResultats(){
+  document.body.classList.remove('plein');
+  document.body.classList.add('resultats');
+  document.getElementById('bVueResultats').classList.add('actif');
+  document.getElementById('bVuePlan').classList.remove('actif');
 }
 
 function setMode(m){
