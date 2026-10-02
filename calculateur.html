@@ -2202,7 +2202,11 @@ function rendrePanneaux(){
   rendreQuantitatif();
 }
 
-function recalcul(){ rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }
+function recalcul(){
+  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons();
+  try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }
+  catch(err){ console.error(err); }
+}
 
 /* ---------------- interactions ---------------- */
 
@@ -2244,7 +2248,14 @@ function contraindre(p,libre,depart){
   let l=h;
   if(longueurImposee>0) l=longueurImposee;
   else if(!libre && h>0) l=Math.max(0.01, Math.round(h*100)/100);
-  if(h>0){ dx=dx/h*l; dy=dy/h*l; }
+  if(!(h>0)) return depart;
+  dx=dx/h*l; dy=dy/h*l;
+  // L'axe reste celui du départ : arrondir les deux coordonnées
+  // faisait partir le mur en biais.
+  if(ortho&&!libre){
+    if(Math.abs(dx)>=Math.abs(dy)) return {x:Math.round((depart.x+dx)*100)/100, y:depart.y};
+    return {x:depart.x, y:Math.round((depart.y+dy)*100)/100};
+  }
   const q=libre ? {x:depart.x+dx,y:depart.y+dy} : auCentimetre({x:depart.x+dx,y:depart.y+dy});
   const acc=accrocher(q, mode==='contour');
   if(acc!==q && Math.hypot(acc.x-q.x, acc.y-q.y)<0.08) return acc;
@@ -2430,11 +2441,16 @@ scene.addEventListener('click', e=>{
   const p=contraindre(brut,e.shiftKey,departCourant());
   if(mode==='contour'){
     if(niv.ferme) return;
-    if(niv.murs.length>2&&Math.hypot(p.x,p.y)<0.9){ fermerTrace(); return; }
+    if(niv.murs.length>=3 && Math.hypot(p.x,p.y)<0.35){ fermerTrace(); return; }
     const a=sommets().slice(-1)[0];
-    const dx=p.x-a.x, dy=p.y-a.y, l=Math.hypot(dx,dy);
-    if(l<0.2) return;
-    niv.murs.push({dx:dx/l,dy:dy/l,longueur:Math.round(l*100)/100});
+    let dx=p.x-a.x, dy=p.y-a.y, l=Math.hypot(dx,dy);
+    if(l<0.05) return;
+    if(ortho && !e.shiftKey){
+      if(Math.abs(dx)>=Math.abs(dy)){ l=Math.abs(p.x-a.x); dx=p.x>=a.x?1:-1; dy=0; }
+      else { l=Math.abs(p.y-a.y); dy=p.y>=a.y?1:-1; dx=0; }
+    } else { dx/=l; dy/=l; }
+    if(l<0.05) return;
+    niv.murs.push({dx, dy, longueur:l});
   } else {
     if(!refEnCours) refEnCours={pts:[p]};
     else{
@@ -2594,7 +2610,7 @@ function reporterDepuisDessus(){
 function majAide(){
   const bas=dessous();
   document.getElementById('aide').innerHTML = mode==='contour'
-    ? `Cliquez pour poser chaque angle, au centimètre. La case Longueur fixe le mur. <kbd>Maj</kbd> libère l'angle et le pas. Molette pour zoomer.${bas&&bas.murs.length?' Le tracé s\'accroche au niveau du dessous.':''}`
+    ? `Chaque clic pose un mur droit, horizontal ou vertical. La case Longueur fixe la cote. <kbd>Fermer</kbd> termine à l'équerre, sans diagonale. <kbd>Maj</kbd> libère l'angle. Molette pour zoomer.`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
     : mode==='plancher'
@@ -2689,9 +2705,17 @@ function annuler(){
 
 function fermerTrace(){
   const niv=N();
-  if(niv.murs.length<3) return;
-  const d=sommets().slice(-1)[0], l=Math.hypot(d.x,d.y);
-  if(l>0.2) niv.murs.push({dx:-d.x/l,dy:-d.y/l,longueur:l});
+  if(niv.murs.length<2) return;
+  const poser=(dx,dy,l)=>{ if(l>=0.01) niv.murs.push({dx,dy,longueur:l}); };
+  let d=sommets().slice(-1)[0];
+  if(ortho){
+    if(Math.abs(d.x)>0.02) poser(d.x>0?-1:1, 0, Math.abs(d.x));
+    d=sommets().slice(-1)[0];
+    if(Math.abs(d.y)>0.02) poser(0, d.y>0?-1:1, Math.abs(d.y));
+  } else {
+    const l=Math.hypot(d.x,d.y);
+    if(l>=0.01) poser(-d.x/l, -d.y/l, l);
+  }
   niv.ferme=true; curseur=null; recalcul();
 }
 
