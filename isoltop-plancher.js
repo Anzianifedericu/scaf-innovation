@@ -100,6 +100,12 @@
     </g>`;
   };
 
+  window.choisirNiveauIsoltop = function (v) {
+    const i = Number(v);
+    if (!Number.isInteger(i) || typeof niveaux === "undefined" || !niveaux[i]) return;
+    if (typeof allerNiveau === "function") allerNiveau(i);
+  };
+
   window.choisirPlancherIsoltop = function (v) {
     const e = etatCourant();
     if (!e || !MONTAGES[v]) return;
@@ -133,6 +139,16 @@
     const i = typeof iNiveau === "number" ? iNiveau : 0;
     const niv = niveaux[i];
     if (niv) choix(niv, i);
+    const selNiv = document.getElementById("selNiveau");
+    if (selNiv) {
+      const optsNiv = niveaux.map((n, k) =>
+        `<option value="${k}"${k === i ? " selected" : ""}>${n.nom}</option>`).join("");
+      if (selNiv.dataset.cle !== optsNiv) {
+        selNiv.innerHTML = optsNiv;
+        selNiv.dataset.cle = optsNiv;
+      }
+      selNiv.value = String(i);
+    }
     const sel = document.getElementById("selPlancher");
     const resume = document.getElementById("plancher-resume");
     if (sel && niv) {
@@ -156,7 +172,7 @@
     if (!host) return;
     const ordre = [i, ...niveaux.map((_, k) => k).filter(k => k !== i)];
     host.innerHTML = `<h3>Plancher Isoltop</h3>
-      <p class="note">Le menu au-dessus du plan règle le niveau affiché. Chaque niveau garde son choix, vide sanitaire compris.</p>
+      <p class="note">Choisissez le niveau, puis le plancher. Vide sanitaire, étages et toiture : chacun garde son montage.</p>
       ${ordre.map(k => carte(niveaux[k], k, k === i)).join("")}`;
     host.querySelectorAll("[data-iso]").forEach(el => {
       el.onchange = () => { niveaux[+el.dataset.iso].isoltop = el.value; rendre(); if (typeof rendreScene === "function") rendreScene(); };
