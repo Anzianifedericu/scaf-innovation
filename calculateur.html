@@ -101,6 +101,7 @@ button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
 .actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
+.actif-piece{background:#3F6B4A;border-color:#3F6B4A;color:#fff}
 .actif-cloison{background:#8A8478;border-color:#8A8478;color:#fff}
 .actif-plancher{background:#1F3A5F;border-color:#1F3A5F;color:#fff}
 .actif-terre{background:var(--terre);border-color:var(--terre);color:#fff}
@@ -362,6 +363,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mRefend" onclick="setMode('refend')">2 · Refends</button>
           <button id="mCloison" onclick="setMode('cloison')">3 · Cloisons</button>
           <button id="mOuv" onclick="setMode('ouverture')">4 · Ouvertures</button>
+          <button id="mPiece" onclick="setMode('piece')">5 · Pièces</button>
           <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
           <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
         </div>
@@ -395,6 +397,14 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <button type="button" id="bRecaler" onclick="demarrerCalage()">Recaler l'échelle</button>
         <label style="font-size:12.5px;display:flex;gap:6px;align-items:center">Opacité <input type="range" min="10" max="100" value="45" oninput="opaciteFond(this.value)"></label>
         <button type="button" onclick="retirerFond()">Retirer le fond</button>
+      </div>
+      <div class="edit-mur" id="editPiece" hidden>
+        <b>Pièce</b>
+        <select id="epNom" onchange="majPiece(this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px"></select>
+        <input id="epLibre" type="text" placeholder="ou un autre nom" style="width:150px" onkeydown="if(event.key==='Enter'){majPiece(this.value);this.value=''}">
+        <span id="epSurf" style="font:600 14px 'IBM Plex Mono',monospace;color:#3F6B4A"></span>
+        <button type="button" onclick="supprimerPieceSel()">Supprimer</button>
+        <button type="button" onclick="pieceSel=null;recalcul()">Fermer</button>
       </div>
       <div class="edit-mur" id="editOuv" hidden>
         <b id="eoTitre">Ouverture</b>
@@ -580,7 +590,17 @@ const LONG_BLOC = 2.438;
 // consommation d'angle du catalogue, a un millimetre pres.
 const EPS_PSE = 0.067;   // panneau PSE de chaque face, catalogue Nudura
 // Resistance thermique du complexe, valeur catalogue. A confirmer par gamme.
-const R_GAMME = { standard: 4.2, xr35: 4.2, plus: 4.2 };
+const R_GAMME = { standard: 3.0, xr35: 4.7, plus: 4.2 };
+/* Valeurs officielles du DTA 16/23-799_V1 (Tableau 5), lambda utile reglementaire :
+   standard 152 -> R 3,00 ; standard 203 -> R 3,03 ; XR35 152 -> R 4,71 ; XR35 203 -> R 4,74. */
+const R_DTA = { 'standard|152':3.00, 'standard|203':3.03, 'xr35|152':4.71, 'xr35|203':4.74 };
+const rDe = niv => R_DTA[`${niv.gamme}|${niv.epaisseur}`] ?? R_GAMME[niv.gamme] ?? 3.0;
+/* Largeur hors tout du mur : voile + deux panneaux PSE (67 mm, ou 102 mm en XR35). */
+function horsTout(niv){
+  const v = niv.epaisseur ?? 152;
+  if(niv.gamme === 'xr35') return v/1000 + 0.204;
+  return HORS_TOUT[v] ?? (v/1000 + 2*EPS_PSE);
+}
 const AILE_A1 = 0.803, AILE_A2 = 0.397;
 const ailes = v => { const d = Math.max(0, (v ?? 152) - 152) / 1000;
                      return { a1: AILE_A1 + d, a2: AILE_A2 + d }; };
@@ -720,7 +740,7 @@ const cloisonsDe=(niv=N())=> niv.cloisons || (niv.cloisons=[]);
 function interieurDe(niv){
   if(!niv.ferme||niv.murs.length<3) return null;
   const pts=sommetsDe(niv).slice(0,-1);
-  return versInterieur(pts, HORS_TOUT[niv.epaisseur]??0.286, aireSignee(niv)>0);
+  return versInterieur(pts, horsTout(niv)??0.286, aireSignee(niv)>0);
 }
 function longueurDans(a,b,poly){
   const L=Math.hypot(b.x-a.x,b.y-a.y); if(!poly||!L) return L;
@@ -859,7 +879,7 @@ function surfaceHabitable(niv){
   if(!niv.ferme || niv.murs.length < 3) return 0;
   const pts = sommetsDe(niv).slice(0, -1);
   if(pts.length < 3) return 0;
-  const dedans = versInterieur(pts, HORS_TOUT[niv.epaisseur] ?? 0.286, aireSignee(niv) > 0);
+  const dedans = versInterieur(pts, horsTout(niv) ?? 0.286, aireSignee(niv) > 0);
   let a = 0;
   for(let i=0;i<dedans.length;i++){
     const q = dedans[(i+1)%dedans.length];
@@ -871,7 +891,7 @@ function surfaceHabitable(niv){
    prend son epaisseur hors tout, moins la demi-epaisseur du mur exterieur
    ou il s'accroche a chaque bout. Approximation suffisante pour un affichage. */
 function surfaceRefends(niv){
-  const ep = HORS_TOUT[niv.epaisseur] ?? 0.286;
+  const ep = horsTout(niv) ?? 0.286;
   return niv.refends.reduce((t,r)=>t + longueurRefend(r,niv)*ep, 0);
 }
 /* ---- Types d'ouverture ----
@@ -938,6 +958,73 @@ function majEditOuv(champ, v){
   recalcul();
 }
 function supprimerOuvSel(){ if(ouvSel===null) return; const i=ouvSel; ouvSel=null; supprimerOuv(i); }
+
+/* ---- Pieces : un nom pose dans la piece, sa surface se mesure toute seule ----
+   La piece est la zone que l'on atteint depuis l'etiquette sans traverser un
+   mur, un refend ou une cloison (remplissage sur une grille de 5 cm). */
+const NOMS_PIECES = ['Séjour','Cuisine','Séjour-cuisine','Chambre','Chambre parentale','Salle de bain',
+  "Salle d'eau",'WC','Entrée','Dégagement','Bureau','Buanderie','Cellier','Dressing','Garage','Terrasse couverte'];
+const piecesDe = (niv=N()) => niv.pieces || (niv.pieces=[]);
+let pieceSel = null;
+const cacheGrille = new Map();
+function grillePieces(niv){
+  const poly=interieurDe(niv); if(!poly) return null;
+  const cle=JSON.stringify([niv.murs,niv.refends,niv.cloisons||[],niv.epaisseur,niv.gamme]);
+  if(cacheGrille.has(cle)) return cacheGrille.get(cle);
+  const pas=0.05, xs=poly.map(p=>p.x), ys=poly.map(p=>p.y);
+  const x0=Math.min(...xs), y0=Math.min(...ys), nx=Math.ceil((Math.max(...xs)-x0)/pas)+1, ny=Math.ceil((Math.max(...ys)-y0)/pas)+1;
+  const libre=new Uint8Array(nx*ny);
+  const obst=[]; const ep=horsTout(niv)/2;
+  niv.refends.forEach(r=>{ for(let i=1;i<r.pts.length;i++) obst.push([r.pts[i-1],r.pts[i],ep]); });
+  cloisonsDe(niv).forEach(r=>{ for(let i=1;i<r.pts.length;i++) obst.push([r.pts[i-1],r.pts[i],EP_CLOISON/2+0.03]); });
+  const dans=(x,y)=>{ let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const P=poly[i],Q=poly[j]; if((P.y>y)!==(Q.y>y)&&x<(Q.x-P.x)*(y-P.y)/(Q.y-P.y)+P.x) c=!c; } return c; };
+  for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){
+    const p={x:x0+(i+.5)*pas, y:y0+(j+.5)*pas};
+    if(!dans(p.x,p.y)) continue;
+    if(obst.some(([a,b,e])=>distSegment(p,a,b)<e)) continue;
+    libre[j*nx+i]=1;
+  }
+  const g={x0,y0,nx,ny,pas,libre};
+  if(cacheGrille.size>20) cacheGrille.clear();
+  cacheGrille.set(cle,g); return g;
+}
+function surfacePiece(niv, pc){
+  const g=grillePieces(niv); if(!g) return 0;
+  const i=Math.floor((pc.x-g.x0)/g.pas), j=Math.floor((pc.y-g.y0)/g.pas);
+  if(i<0||j<0||i>=g.nx||j>=g.ny||!g.libre[j*g.nx+i]) return 0;
+  const vu=new Uint8Array(g.nx*g.ny), pile=[j*g.nx+i]; vu[pile[0]]=1; let n=0;
+  while(pile.length){
+    const k=pile.pop(); n++;
+    const x=k%g.nx, y=(k-x)/g.nx;
+    if(x>0&&g.libre[k-1]&&!vu[k-1]){vu[k-1]=1;pile.push(k-1);}
+    if(x<g.nx-1&&g.libre[k+1]&&!vu[k+1]){vu[k+1]=1;pile.push(k+1);}
+    if(y>0&&g.libre[k-g.nx]&&!vu[k-g.nx]){vu[k-g.nx]=1;pile.push(k-g.nx);}
+    if(y<g.ny-1&&g.libre[k+g.nx]&&!vu[k+g.nx]){vu[k+g.nx]=1;pile.push(k+g.nx);}
+  }
+  return n*g.pas*g.pas;
+}
+function pieceSous(p){
+  let best=null,dmin=0.7;
+  piecesDe().forEach((pc,i)=>{ const d=Math.hypot(pc.x-p.x,pc.y-p.y); if(d<dmin){dmin=d;best=i;} });
+  return best;
+}
+function rendreEditPiece(){
+  const bar=document.getElementById('editPiece'); if(!bar) return;
+  const pc=piecesDe()[pieceSel];
+  if(mode!=='piece'||!pc){ bar.hidden=true; return; }
+  bar.hidden=false;
+  const sel=document.getElementById('epNom');
+  const liste=NOMS_PIECES.includes(pc.nom)?NOMS_PIECES:[pc.nom,...NOMS_PIECES];
+  sel.innerHTML=liste.map(n=>`<option ${n===pc.nom?'selected':''}>${n}</option>`).join('');
+  document.getElementById('epSurf').textContent=surfacePiece(N(),pc).toFixed(1).replace('.',',')+' m²';
+}
+function majPiece(nom){ const pc=piecesDe()[pieceSel]; if(pc&&nom){ pc.nom=nom.slice(0,40); recalcul(); } }
+function supprimerPieceSel(){ if(pieceSel===null) return; piecesDe().splice(pieceSel,1); pieceSel=null; recalcul(); }
+function nomParDefaut(){
+  const n=piecesDe(), nb=k=>n.filter(p=>p.nom.startsWith(k)).length;
+  if(!n.length) return 'Séjour-cuisine';
+  return 'Chambre'+(nb('Chambre')?` ${nb('Chambre')+1}`:'');
+}
 
 let prixParRef = null, tarifs = null;
 
@@ -1037,7 +1124,7 @@ const typeExtremite = t =>
 // Nombre d'extremites de ce refend qui butent sur un mur ou un autre refend.
 function jonctionsDuRefend(niv, ri){
   const r = niv.refends[ri];
-  const ep = HORS_TOUT[niv.epaisseur] ?? 0.286;
+  const ep = horsTout(niv) ?? 0.286;
   const autres = [], p = sommetsDe(niv);
   for(let i=0;i<niv.murs.length;i++) autres.push([p[i], p[i+1], ep + 0.12]);
   niv.refends.forEach((o,oi)=>{ if(oi!==ri)
@@ -1259,6 +1346,9 @@ async function envoyerPlan(){
       points: pointsContour(n),
       angles: a.s90 + a.r90 + a.s45 + a.r45,
       refendLineaire: Number(totalRefends(n).toFixed(3)),
+      pieces: piecesDe(n).map(pc=>({ nom: pc.nom, surface: Number(surfacePiece(n,pc).toFixed(2)) })),
+      cloisonLineaire: Number(totalCloisons(n).toFixed(2)),
+      gamme: n.gamme, voile_mm: n.epaisseur,
       // Chaque refend avec ses points : l'estimateur les compte en m² de
       // Nudura et le tracé pourra être rechargé tel quel.
       refends: n.refends.map(r=>({
@@ -1284,7 +1374,7 @@ async function envoyerPlan(){
         commune: document.getElementById('dCommune').value.trim(),
         codePostal: document.getElementById('dCp').value.trim(),
         profil: document.getElementById('dProfil').value,
-        message: document.getElementById('dMessage').value.trim(),
+        message: [window.resumeProjetMaison ? window.resumeProjetMaison() : '', document.getElementById('dMessage').value.trim()].filter(Boolean).join('\n\n').slice(0, 2000),
         niveaux: charge,
         // Le chiffrage deja calcule, pour ne pas avoir a le refaire au devis.
         // Absent si le visiteur envoie son plan sans avoir clique Calculer.
@@ -1340,8 +1430,8 @@ function plaquetteProjet(){
   resultat.forEach(({data})=> beton += data.recapitulatif.beton_m3);
 
   const niv = niveaux[iNiveau];
-  const ep = (niv.epaisseur ?? 152) + EPS_PSE*2000;
-  const R  = R_GAMME[niv.gamme] ?? 4.2;
+  const ep = horsTout(niv)*1000;
+  const R  = rDe(niv).toFixed(2);
 
   let lignes = '', pages = '';
   niveaux.forEach(n=>{
@@ -1676,8 +1766,9 @@ function rendreQuantitatif(){
           <b>${m2(s)} m²</b></div>`;
     });
 
-    const ep = (niveaux[iNiveau].epaisseur ?? 152) + EPS_PSE*2000;
-    const R  = R_GAMME[niveaux[iNiveau].gamme] ?? 4.2;
+    const nivA = niveaux.find(n=>n.hauteur>=1.8&&n.ferme) || niveaux[iNiveau];
+    const ep = horsTout(nivA)*1000;
+    const R  = rDe(nivA).toFixed(2);
 
     let h2 = `<div class="vitrine">
       <div class="hab-total">
@@ -1863,7 +1954,7 @@ function rendreSceneBase(){
   const minX=Math.min(0,...xs), maxX=Math.max(0,...xs);
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
   const w=Math.max(12,maxX-minX), hh=Math.max(8,maxY-minY);
-  const pad=Math.max(w,hh)*0.32+1.6;
+  const pad=Math.max(w,hh)*0.18+1.2;
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
   const c = cadre || cadreAuto;
   scene.setAttribute('viewBox',`${c.x} ${c.y} ${c.w} ${c.h}`);
@@ -1900,7 +1991,7 @@ function rendreSceneBase(){
   // ---- murs a leur epaisseur reelle ----
   // Un trait fin ne dit rien de l'encombrement : le voile plus ses deux faces
   // de PSE occupent 286 mm pour un 152, et cela se voit sur un plan.
-  const epMur = HORS_TOUT[niv.epaisseur] ?? 0.286;
+  const epMur = horsTout(niv) ?? 0.286;
   if(vueEpaisse && niv.ferme && pts.length > 3){
     const contour = pts.slice(0, -1);
     const anti = aireSignee(niv) > 0;
@@ -2037,7 +2128,7 @@ function rendreSceneBase(){
         const L0=Math.hypot(b.x-a.x,b.y-a.y);
         // Un refend bute contre le mur, il ne le traverse pas : on recule
         // chaque extremite qui touche le contour, de l'epaisseur du mur.
-        const epM = HORS_TOUT[niv.epaisseur] ?? 0.286;
+        const epM = horsTout(niv) ?? 0.286;
         const surContour = q => {
           for(let k=0;k<niv.murs.length;k++)
             if(distSegment(q, pts[k], pts[k+1]) < 0.12) return true;
@@ -2053,7 +2144,7 @@ function rendreSceneBase(){
         if(L>0.01){
           const a=A, b=B;
           const ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
-          const e=(HORS_TOUT[niv.epaisseur] ?? 0.286)/2;   // de part et d'autre de l'axe
+          const e=(horsTout(niv) ?? 0.286)/2;   // de part et d'autre de l'axe
           const nx=-uy*e, ny=ux*e;
           const q=[[a.x+nx,a.y+ny],[b.x+nx,b.y+ny],[b.x-nx,b.y-ny],[a.x-nx,a.y-ny]];
           const ep=EPS_PSE, vb=(niv.epaisseur ?? 152)/1000;
@@ -2069,7 +2160,7 @@ function rendreSceneBase(){
       g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}" stroke="${ko?'var(--terre)':sv?'var(--ciel)':couleur}" stroke-width="${tr*(ko||sv?2.6: (vueEpaisse&&ri!==undefined?0.7:1.7))}" stroke-linecap="round"/>`;
       const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, l=Math.hypot(b.x-a.x,b.y-a.y);
       const dx=(b.x-a.x)/l, dy=(b.y-a.y)/l;
-      g+=`<text x="${mx-dy*po*.8}" y="${-(my+dx*po*.8)}" font-size="${po*.88}" font-family="IBM Plex Mono,monospace" fill="${couleur}" text-anchor="middle" dominant-baseline="middle">${l.toFixed(2)}</text>`;
+      if(mode!=='piece') g+=`<text x="${mx-dy*po*.8}" y="${-(my+dx*po*.8)}" font-size="${po*.88}" font-family="IBM Plex Mono,monospace" fill="${couleur}" text-anchor="middle" dominant-baseline="middle">${l.toFixed(2)}</text>`;
     }
     r.pts.forEach(p=>g+=`<circle cx="${p.x}" cy="${-p.y}" r="${ra*.8}" fill="${couleur}"/>`);
   };
@@ -2080,7 +2171,7 @@ function rendreSceneBase(){
       const l=longueurDans(a,b,interieurDe(niv));
       g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}" stroke="#8A8478" stroke-width="${Math.max(EP_CLOISON,tr*1.6)}" stroke-linecap="square"/>`;
       const mx=a.x+(b.x-a.x)*.3, my=a.y+(b.y-a.y)*.3, dx=(b.x-a.x)/lt, dy=(b.y-a.y)/lt;
-      g+=`<text x="${mx-dy*po*.7}" y="${-(my+dx*po*.7)}" font-size="${po*.75}" font-family="IBM Plex Mono,monospace" fill="#6E685C" text-anchor="middle" dominant-baseline="middle">${l.toFixed(2).replace('.',',')}</text>`;
+      if(mode==='cloison') g+=`<text x="${mx-dy*po*.7}" y="${-(my+dx*po*.7)}" font-size="${po*.75}" font-family="IBM Plex Mono,monospace" fill="#6E685C" text-anchor="middle" dominant-baseline="middle">${l.toFixed(2).replace('.',',')}</text>`;
     }
   });
   if(refEnCours) traceRefend(refEnCours, mode==='cloison'?'#8A8478':'var(--ocre)');
@@ -2098,7 +2189,7 @@ function rendreSceneBase(){
     const anti = niv.ferme ? aireSignee(niv) > 0 : true;
     const sg = anti ? -1 : 1;
     const nIn = { x: sg*s.dy, y: -sg*s.dx };
-    const e = s.sur==='mur' ? (HORS_TOUT[niv.epaisseur] ?? 0.286) : (HORS_TOUT[niv.epaisseur] ?? 0.286);
+    const e = s.sur==='mur' ? (horsTout(niv) ?? 0.286) : (horsTout(niv) ?? 0.286);
     const sv = mode==='ouverture' && estSurvole(s.sur, s.i, s.seg);
 
     if(vueEpaisse && niv.ferme){
@@ -2136,7 +2227,7 @@ function rendreSceneBase(){
 
     // cote de la baie, rejetee du cote exterieur
     const nOut = s.sur==='mur'&&niv.ferme ? normaleExterieure(niv,s) : {x:-s.dy,y:s.dx};
-    g+=`<text x="${c.x+nOut.x*po*1.25}" y="${-(c.y+nOut.y*po*1.25)}" font-size="${po*.62}"
+    if((s.sur==='mur'&&mode!=='piece') || mode==='ouverture') g+=`<text x="${c.x+nOut.x*po*1.25}" y="${-(c.y+nOut.y*po*1.25)}" font-size="${po*.62}"
           font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle"
           dominant-baseline="middle">${etiquetteOuv(o)}</text>`;
     if(mode==='ouverture' && niv.ouvertures[ouvSel]===o)
@@ -2212,8 +2303,16 @@ function rendreSceneBase(){
     g+=`<text x="${cx}" y="${-cy}" font-size="${po*0.7}" font-family="IBM Plex Sans,sans-serif" fill="#2C4A6E" text-anchor="middle">plancher · entraxe 0,60</text>`;
   }
 
-  if(voirPortees&&!horsEcran&&mode!=='plancher'&&niv.ferme) g+=dessinPortees(niv, po, tr);
-  if(niv.ferme&&pts.length>3&&!horsEcran){
+  if(voirPortees&&!horsEcran&&mode!=='plancher'&&mode!=='piece'&&niv.ferme) g+=dessinPortees(niv, po, tr);
+  if(niv.ferme&&piecesDe(niv).length){
+    piecesDe(niv).forEach((pc,i)=>{
+      const a=surfacePiece(niv,pc), sel=mode==='piece'&&i===pieceSel;
+      const fz = pc.nom.length>12 ? po*.78 : pc.nom.length>8 ? po*.9 : po*1.05;
+      g+=`<g style="pointer-events:none"><text x="${pc.x}" y="${-pc.y}" font-size="${fz}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="${sel?'#B3261E':'#2E4F37'}" text-anchor="middle">${pc.nom}</text>`
+        +`<text x="${pc.x}" y="${-pc.y+po*1.1}" font-size="${po*.9}" font-family="IBM Plex Mono,monospace" fill="${sel?'#B3261E':'#3F6B4A'}" text-anchor="middle">${a?a.toFixed(1).replace('.',',')+' m²':'hors pièce'}</text></g>`;
+    });
+  }
+  if(niv.ferme&&pts.length>3&&!horsEcran&&!piecesDe(niv).length){
     const sh=surfaceHabitable(niv), sr=surfaceRefends(niv);
     if(sh>0){
       // point d'ancrage : centre de gravite, ou a defaut le milieu le plus a l'interieur
@@ -2240,7 +2339,7 @@ function rendreOnglets(){
   let h='';
   for(let i=niveaux.length-1;i>=0;i--){
     const n=niveaux[i];
-    const e=n.ferme?`${perimetre(n).toFixed(1)} m · ${surfaceHabitable(n).toFixed(1).replace('.',',')} m²`:(n.murs.length?'en cours':'vide');
+    const e=n.ferme?(n.hauteur>=1.8?`${perimetre(n).toFixed(1)} m · ${surfaceHabitable(n).toFixed(1).replace('.',',')} m²`:`${perimetre(n).toFixed(1)} m`):(n.murs.length?'en cours':'vide');
     h+=`<button class="onglet ${i===iNiveau?'actif':''}" onclick="allerNiveau(${i})">${n.nom}<span class="etat">${e}</span></button>`;
   }
   h+=`<button class="onglet-plus" onclick="ajouterNiveau()" title="Ajouter un niveau au-dessus">+</button>`;
@@ -2465,7 +2564,8 @@ function rendrePanneaux(){
 }
 
 function recalcul(){
-  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); majInfoPortee(); rendreEditOuv();
+  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); majInfoPortee(); rendreEditOuv(); rendreEditPiece();
+  try{ (window.apresRecalcul||[]).forEach(f=>f()); }catch(e){ console.error(e); }
   try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }catch(e){}
 }
 
@@ -2502,7 +2602,7 @@ function ciblesCloison(niv=N(), exclure=-1, type=mode){
   if(poly) for(let i=0;i<poly.length;i++) c.push([poly[i],poly[(i+1)%poly.length]]);
   const decal=(a,b,d)=>{ const l=Math.hypot(b.x-a.x,b.y-a.y); if(!l) return []; const n={x:-(b.y-a.y)/l*d,y:(b.x-a.x)/l*d};
     return [[{x:a.x+n.x,y:a.y+n.y},{x:b.x+n.x,y:b.y+n.y}],[{x:a.x-n.x,y:a.y-n.y},{x:b.x-n.x,y:b.y-n.y}]]; };
-  const ep=(HORS_TOUT[niv.epaisseur]??0.286)/2;
+  const ep=(horsTout(niv)??0.286)/2;
   niv.refends.forEach((r,ri)=>{ if(type==='refend'&&ri===exclure) return; for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],ep)); });
   if(type==='refend'){
     // un refend d'etage se cale sur celui du dessous
@@ -2633,6 +2733,7 @@ function survolScene(e){
   if(pince) return;
   const p=versMetres(e);
   if(calage){ curseur=null; scene.style.cursor='crosshair'; return; }
+  if(mode==='piece'){ curseur=null; scene.style.cursor=pieceSous(p)!==null?'pointer':'cell'; return; }
   if(mode==='contour'&&N().ferme){
     const s=segmentSousCurseur(p); scene.style.cursor=(s&&s.sur==='mur')?'pointer':'';
   }
@@ -2668,6 +2769,8 @@ function survolScene(e){
       let r=e.shiftKey?p:q;
       if(!e.shiftKey&&voisin){ if(Math.abs(r.x-voisin.x)<Math.abs(r.y-voisin.y)) r={x:voisin.x,y:r.y}; else r={x:r.x,y:voisin.y}; }
       pts[prise.k] = e.shiftKey ? r : accrocherCloison(r, voisin||null, prise.ri, 'refend');
+    } else if(prise.type==='piece'){
+      const pc=piecesDe(niv)[prise.pi]; pc.x=p.x; pc.y=p.y;
     } else if(prise.type==='cloison'){
       const pts=cloisonsDe(niv)[prise.ci].pts, voisin=pts[prise.k===0?1:prise.k-1];
       let r=e.shiftKey?p:q;
@@ -2728,6 +2831,13 @@ function actionClic(e){
     recalcul(); return;
   }
 
+  if(mode==='piece'){
+    const ex=pieceSous(brut);
+    if(ex!==null){ pieceSel=ex; recalcul(); return; }
+    if(!surfacePiece(niv,brut)) return;
+    piecesDe(niv).push({x:brut.x,y:brut.y,nom:nomParDefaut()});
+    pieceSel=piecesDe(niv).length-1; recalcul(); return;
+  }
   if(mode==='ouverture'){
     const ex=ouvertureSous(brut);
     if(ex!==null){ ouvSel=ex; recalcul(); return; }
@@ -2777,6 +2887,7 @@ scene.addEventListener('dblclick', e=>{
     if(h.type==='sommet')        supprimerMur((h.i - 1 + N().murs.length) % N().murs.length);
     else if(h.type==='refend')   { N().refends.splice(h.ri,1); recalcul(); }
     else if(h.type==='cloison'||h.type==='cloisonEntiere') { cloisonsDe().splice(h.ci,1); recalcul(); }
+    else if(h.type==='piece') { piecesDe().splice(h.pi,1); recalcul(); }
     else if(h.type==='ouverture'){ N().ouvertures.splice(h.oi,1); recalcul(); }
   }
 });
@@ -3006,6 +3117,9 @@ function poigneeSous(p){
       const q = niv.refends[ri].pts[k];
       if(Math.hypot(q.x-p.x, q.y-p.y) < tol) return { type:'refend', ri, k };
     }
+  const pcs = piecesDe(niv);
+  for(let pi=0; pi<pcs.length; pi++)
+    if(Math.hypot(pcs[pi].x-p.x, pcs[pi].y-p.y) < 0.5) return { type:'piece', pi };
   const cl = cloisonsDe(niv);
   for(let ci=0; ci<cl.length; ci++)
     for(let k=0; k<cl[ci].pts.length; k++){
@@ -3046,7 +3160,7 @@ function poserPlancherNiveau(){
     return;
   }
   const pts=sommetsDe(niv).slice(0,-1);
-  const ep=(typeof HORS_TOUT!=='undefined'&&HORS_TOUT[niv.epaisseur])||0.286;
+  const ep=(typeof HORS_TOUT!=='undefined'&&horsTout(niv))||0.286;
   const inter=versInterieur(pts, ep, aireSignee(niv)>0);
   const horizontal=(document.getElementById('sensPlancher')||{value:'x'}).value!=='y';
   const ys=inter.map(p=>horizontal?p.y:p.x);
@@ -3125,7 +3239,7 @@ function limitePortee(niv){ return LIMITE_PORTEE[niv.isoltop] || 6.0; }
 function analysePortees(niv){
   if(!niv.ferme||niv.murs.length<3) return null;
   const pts=sommetsDe(niv).slice(0,-1); if(pts.length<3) return null;
-  const ep=HORS_TOUT[niv.epaisseur]||0.286;
+  const ep=horsTout(niv)||0.286;
   const inter=versInterieur(pts, ep, aireSignee(niv)>0);
   const lim=limitePortee(niv);
   let sens=[true,false];
@@ -3239,16 +3353,17 @@ function voirResultats(){
 }
 
 function setMode(m){
-  if((m==='refend'||m==='cloison'||m==='ouverture'||m==='deplacer')&&!N().ferme){
+  if((m==='refend'||m==='cloison'||m==='ouverture'||m==='deplacer'||m==='piece')&&!N().ferme){
     const vd=document.getElementById('verdict');
     vd.className='verdict ko'; vd.textContent="Refermez d'abord le contour de ce niveau.";
     return;
   }
   if(traceLigne()&&m!==mode) validerRefend();
-  mode=m; curseur=null; survol=null; murSel=null; frappe=''; ouvSel=null;
+  mode=m; curseur=null; survol=null; murSel=null; frappe=''; ouvSel=null; pieceSel=null;
   document.getElementById('mContour').classList.toggle('actif',m==='contour');
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mCloison').classList.toggle('actif-cloison',m==='cloison');
+  document.getElementById('mPiece').classList.toggle('actif-piece',m==='piece');
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
   const bp=document.getElementById('mPlancher');
@@ -3290,6 +3405,8 @@ function majAide(){
   document.getElementById('aide').innerHTML = mode==='contour'
     ? (tactile ? `Posez le doigt et glissez : la longueur s'affiche, levez pour poser l'angle. Deux doigts pour zoomer.` : (frappe ? `Longueur tapée : <span class="frappe">${frappe} m</span> — <kbd>Entrée</kbd> pose le mur dans la direction de la souris, <kbd>Échap</kbd> efface.` : N().ferme ? `Contour fermé. Cliquez sur un mur pour corriger sa longueur ou le supprimer.` : `Visez avec la souris la direction du mur, tapez sa longueur au clavier (ex. 8,50) puis <kbd>Entrée</kbd>. Ou cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Échap</kbd> annule.`))
       + (tactile ? ` Plus simple : tapez la longueur de chaque mur ci-dessous et choisissez sa direction, ou partez d'un rectangle.` : '')
+    : mode==='piece'
+    ? `Cliquez dans une pièce pour la nommer : sa surface se calcule entre les murs et les cloisons. Cliquez un nom pour le changer.`
     : mode==='cloison'
     ? `Tracez une cloison (non porteuse) d'un mur à l'autre : cliquez chaque point, ou visez et tapez la longueur + <kbd>Entrée</kbd>. <kbd>Entrée</kbd> ou « Terminer le mur » la valide. Elle ne porte pas le plancher.`
     : mode==='refend'
@@ -3396,7 +3513,7 @@ function fermerTrace(){
 
 function effacerNiveau(){
   const niv=N();
-  niv.murs=[]; niv.refends=[]; niv.cloisons=[]; niv.ouvertures=[]; niv.poutres=[]; niv.ferme=false;
+  niv.murs=[]; niv.refends=[]; niv.cloisons=[]; niv.pieces=[]; niv.ouvertures=[]; niv.poutres=[]; niv.ferme=false;
   refEnCours=null; curseur=null; murSel=null; setMode('contour');
 }
 
@@ -3487,5 +3604,7 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="/isoltop-plancher.js"></script>
+<script src="/parcours.js"></script>
+<script src="/maison3d.js"></script>
 </body>
 </html>
