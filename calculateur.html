@@ -2492,7 +2492,56 @@ function accrocher(p,seulementDessous){
   return best||p;
 }
 
+/* Cloisons : posees librement, au pas de 5 cm, et accrochees au NU INTERIEUR
+   des murs (et aux faces des refends et des autres cloisons), jamais au nu
+   exterieur du contour. Maj : aucun pas, aucun accrochage. */
+function ciblesCloison(niv=N(), exclure=-1){
+  const c=[], poly=interieurDe(niv);
+  if(poly) for(let i=0;i<poly.length;i++) c.push([poly[i],poly[(i+1)%poly.length]]);
+  const decal=(a,b,d)=>{ const l=Math.hypot(b.x-a.x,b.y-a.y); if(!l) return []; const n={x:-(b.y-a.y)/l*d,y:(b.x-a.x)/l*d};
+    return [[{x:a.x+n.x,y:a.y+n.y},{x:b.x+n.x,y:b.y+n.y}],[{x:a.x-n.x,y:a.y-n.y},{x:b.x-n.x,y:b.y-n.y}]]; };
+  const ep=(HORS_TOUT[niv.epaisseur]??0.286)/2;
+  niv.refends.forEach(r=>{ for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],ep)); });
+  cloisonsDe(niv).forEach((r,ci)=>{ if(ci===exclure) return; for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],EP_CLOISON/2)); });
+  return { segs:c, coins: poly||[] };
+}
+function accrocherCloison(p, depart, exclure=-1){
+  const {segs, coins}=ciblesCloison(N(), exclure); let best=null, dmin=0.35;
+  if(depart){
+    const vx=p.x-depart.x, vy=p.y-depart.y, L=Math.hypot(vx,vy);
+    if(L>1e-6){
+      const ux=vx/L, uy=vy/L;
+      segs.forEach(([a,b])=>{
+        const wx=b.x-a.x, wy=b.y-a.y, d=ux*wy-uy*wx; if(Math.abs(d)<1e-9) return;
+        const s=((a.x-depart.x)*wy-(a.y-depart.y)*wx)/d, u=((a.x-depart.x)*uy-(a.y-depart.y)*ux)/d;
+        if(s<=0.05||u<-0.01||u>1.01) return;
+        const q={x:depart.x+ux*s,y:depart.y+uy*s}, dd=Math.hypot(q.x-p.x,q.y-p.y);
+        if(dd<dmin){ dmin=dd; best=q; }
+      });
+    }
+    return best||p;
+  }
+  p={x:Math.round(p.x*20)/20, y:Math.round(p.y*20)/20};
+  coins.forEach(q=>{ const d=Math.hypot(q.x-p.x,q.y-p.y); if(d<0.45&&d<dmin+0.1){ dmin=d; best={...q}; } });
+  if(!best) segs.forEach(([a,b])=>{
+    const vx=b.x-a.x, vy=b.y-a.y, l2=vx*vx+vy*vy; if(!l2) return;
+    let t=((p.x-a.x)*vx+(p.y-a.y)*vy)/l2; t=Math.max(0,Math.min(1,t));
+    const q={x:a.x+t*vx,y:a.y+t*vy}, d=Math.hypot(p.x-q.x,p.y-q.y);
+    if(d<dmin){ dmin=d; best=q; }
+  });
+  return best||{x:Math.round(p.x*20)/20, y:Math.round(p.y*20)/20};
+}
+
 function contraindre(p,libre,depart){
+  if(mode==='cloison'){
+    if(!depart) return libre ? p : accrocherCloison(p, null);
+    let dx=p.x-depart.x, dy=p.y-depart.y;
+    if(ortho&&!libre){ if(Math.abs(dx)>=Math.abs(dy)) dy=0; else dx=0; }
+    const l=Math.hypot(dx,dy);
+    if(libre) return {x:depart.x+dx,y:depart.y+dy};
+    if(l>0){ const s=Math.max(0.05,Math.round(l*20)/20); dx=dx/l*s; dy=dy/l*s; }
+    return accrocherCloison({x:depart.x+dx,y:depart.y+dy}, depart);
+  }
   if(!depart) return accrocher(p, mode==='contour');
   let dx=p.x-depart.x, dy=p.y-depart.y;
   if(ortho&&!libre){ if(Math.abs(dx)>=Math.abs(dy)) dy=0; else dx=0; }
@@ -2609,6 +2658,15 @@ function survolScene(e){
       murisDepuisPoints(niv, pts);
     } else if(prise.type==='refend'){
       niv.refends[prise.ri].pts[prise.k] = q;
+    } else if(prise.type==='cloison'){
+      const pts=cloisonsDe(niv)[prise.ci].pts, voisin=pts[prise.k===0?1:prise.k-1];
+      let r=e.shiftKey?p:q;
+      // garde l'equerre avec le point voisin, puis accroche au nu interieur
+      if(!e.shiftKey&&voisin){ if(Math.abs(r.x-voisin.x)<Math.abs(r.y-voisin.y)) r={x:voisin.x,y:r.y}; else r={x:r.x,y:voisin.y}; }
+      pts[prise.k]= e.shiftKey ? r : accrocherCloison(r, voisin||null, prise.ci);
+    } else if(prise.type==='cloisonEntiere'){
+      const dx=q.x-Math.round(prise.x0*20)/20, dy=q.y-Math.round(prise.y0*20)/20;
+      cloisonsDe(niv)[prise.ci].pts=prise.pts0.map(o=>({x:o.x+dx,y:o.y+dy}));
     } else if(prise.type==='ouverture'){
       const o = niv.ouvertures[prise.oi], sp = supportDe(niv, o);
       if(sp){
@@ -2708,6 +2766,7 @@ scene.addEventListener('dblclick', e=>{
     if(!h) return;
     if(h.type==='sommet')        supprimerMur((h.i - 1 + N().murs.length) % N().murs.length);
     else if(h.type==='refend')   { N().refends.splice(h.ri,1); recalcul(); }
+    else if(h.type==='cloison'||h.type==='cloisonEntiere') { cloisonsDe().splice(h.ci,1); recalcul(); }
     else if(h.type==='ouverture'){ N().ouvertures.splice(h.oi,1); recalcul(); }
   }
 });
@@ -2937,6 +2996,17 @@ function poigneeSous(p){
       const q = niv.refends[ri].pts[k];
       if(Math.hypot(q.x-p.x, q.y-p.y) < tol) return { type:'refend', ri, k };
     }
+  const cl = cloisonsDe(niv);
+  for(let ci=0; ci<cl.length; ci++)
+    for(let k=0; k<cl[ci].pts.length; k++){
+      const q = cl[ci].pts[k];
+      if(Math.hypot(q.x-p.x, q.y-p.y) < tol) return { type:'cloison', ci, k };
+    }
+  // une cloison saisie par son milieu se deplace d'un bloc, parallelement a elle-meme
+  for(let ci=0; ci<cl.length; ci++)
+    for(let k=1; k<cl[ci].pts.length; k++)
+      if(distSegment(p, cl[ci].pts[k-1], cl[ci].pts[k]) < 0.2)
+        return { type:'cloisonEntiere', ci, x0:p.x, y0:p.y, pts0:cl[ci].pts.map(q=>({...q})) };
   for(let oi=0; oi<niv.ouvertures.length; oi++){
     const s = supportDe(niv, niv.ouvertures[oi]); if(!s) continue;
     const c = { x:s.a.x+(s.b.x-s.a.x)*niv.ouvertures[oi].t,
