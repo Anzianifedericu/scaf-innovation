@@ -100,6 +100,7 @@ button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
 button.actif-ciel{background:var(--ciel);border-color:var(--ciel);color:#fff}
 .actif-ocre{background:var(--ocre);border-color:var(--ocre);color:#fff}
+.actif-cloison{background:#8A8478;border-color:#8A8478;color:#fff}
 .actif-plancher{background:#1F3A5F;border-color:#1F3A5F;color:#fff}
 .actif-terre{background:var(--terre);border-color:var(--terre);color:#fff}
 button:focus-visible{outline:2px solid var(--vert);outline-offset:2px}
@@ -358,7 +359,8 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <div class="modes">
           <button id="mContour" class="actif" onclick="setMode('contour')">1 · Contour</button>
           <button id="mRefend" onclick="setMode('refend')">2 · Refends</button>
-          <button id="mOuv" onclick="setMode('ouverture')">3 · Ouvertures</button>
+          <button id="mCloison" onclick="setMode('cloison')">3 · Cloisons</button>
+          <button id="mOuv" onclick="setMode('ouverture')">4 · Ouvertures</button>
           <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
           <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
         </div>
@@ -480,6 +482,14 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <span style="font-size:11.5px;color:var(--beton)" id="nbRefends"></span>
       </div>
       <div id="tableRefends"></div>
+    </div>
+
+    <div class="panneau" style="margin-bottom:16px" id="blocCloisons" hidden>
+      <div class="panneau-tete">
+        <span class="panneau-titre">Cloisons</span>
+        <span style="font-size:11.5px;color:var(--beton)" id="nbCloisons"></span>
+      </div>
+      <div id="tableCloisons"></div>
     </div>
 
     <div class="panneau" style="margin-bottom:16px" id="blocOuv" hidden>
@@ -688,6 +698,39 @@ const angles=()=>anglesDe(N());
 
 const longueurPoly=(pts)=>{let l=0;for(let i=1;i<pts.length;i++)l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return l;};
 const totalRefends=(niv=N())=>niv.refends.reduce((s,r)=>s+longueurPoly(r.pts),0);
+/* Cloisons : murs interieurs non porteurs (plaque de platre 72/48 par defaut).
+   Elles ne portent pas le plancher et ne comptent pas dans les blocs Nudura. */
+const EP_CLOISON = 0.07;
+const cloisonsDe=(niv=N())=> niv.cloisons || (niv.cloisons=[]);
+/* Longueur reelle d'une cloison : seulement la partie dans la piece, au nu
+   interieur des murs (le trace s'accroche au nu exterieur du contour). */
+function interieurDe(niv){
+  if(!niv.ferme||niv.murs.length<3) return null;
+  const pts=sommetsDe(niv).slice(0,-1);
+  return versInterieur(pts, HORS_TOUT[niv.epaisseur]??0.286, aireSignee(niv)>0);
+}
+function longueurDans(a,b,poly){
+  const L=Math.hypot(b.x-a.x,b.y-a.y); if(!poly||!L) return L;
+  const ts=[0,1];
+  for(let i=0;i<poly.length;i++){
+    const p=poly[i], q=poly[(i+1)%poly.length];
+    const d=(b.x-a.x)*(q.y-p.y)-(b.y-a.y)*(q.x-p.x); if(Math.abs(d)<1e-12) continue;
+    const t=((p.x-a.x)*(q.y-p.y)-(p.y-a.y)*(q.x-p.x))/d, u=((p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x))/d;
+    if(t>0&&t<1&&u>=0&&u<=1) ts.push(t);
+  }
+  ts.sort((x,y)=>x-y);
+  const dans=m=>{ let x=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const P=poly[i],Q=poly[j]; if((P.y>m.y)!==(Q.y>m.y)&&m.x<(Q.x-P.x)*(m.y-P.y)/(Q.y-P.y)+P.x) x=!x; } return x; };
+  let l=0;
+  for(let k=1;k<ts.length;k++){ const t=(ts[k-1]+ts[k])/2; if(dans({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t})) l+=(ts[k]-ts[k-1])*L; }
+  return l;
+}
+function longueurCloison(r,niv=N()){
+  const poly=interieurDe(niv); let l=0;
+  for(let i=1;i<r.pts.length;i++) l+=longueurDans(r.pts[i-1],r.pts[i],poly);
+  return l;
+}
+const totalCloisons=(niv=N())=>cloisonsDe(niv).reduce((s,r)=>s+longueurCloison(r,niv),0);
+const traceLigne=()=> mode==='refend'||mode==='cloison';
 
 function anglesRefends(niv=N()){
   let n90=0,n45=0;
@@ -861,7 +904,7 @@ function traduirePourParticulier(){
   if(vuePro()) return;
   const t = {
     mRefend:   '2 · Murs porteurs',
-    mOuv:      '3 · Portes et fenêtres',
+    mOuv:      '4 · Portes et fenêtres',
     mDep:      'Déplacer',
     bEpais:    'Épaisseur',
     titreRefends: 'Murs porteurs intérieurs',
@@ -1948,7 +1991,16 @@ function rendreSceneBase(){
     r.pts.forEach(p=>g+=`<circle cx="${p.x}" cy="${-p.y}" r="${ra*.8}" fill="${couleur}"/>`);
   };
   niv.refends.forEach((r,ri)=>traceRefend(r,'var(--bleu)',ri));
-  if(refEnCours) traceRefend(refEnCours,'var(--ocre)');
+  cloisonsDe(niv).forEach(r=>{
+    for(let i=1;i<r.pts.length;i++){
+      const a=r.pts[i-1], b=r.pts[i], lt=Math.hypot(b.x-a.x,b.y-a.y); if(!lt) continue;
+      const l=longueurDans(a,b,interieurDe(niv));
+      g+=`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}" stroke="#8A8478" stroke-width="${Math.max(EP_CLOISON,tr*1.6)}" stroke-linecap="square"/>`;
+      const mx=a.x+(b.x-a.x)*.3, my=a.y+(b.y-a.y)*.3, dx=(b.x-a.x)/lt, dy=(b.y-a.y)/lt;
+      g+=`<text x="${mx-dy*po*.7}" y="${-(my+dx*po*.7)}" font-size="${po*.75}" font-family="IBM Plex Mono,monospace" fill="#6E685C" text-anchor="middle" dominant-baseline="middle">${l.toFixed(2).replace('.',',')}</text>`;
+    }
+  });
+  if(refEnCours) traceRefend(refEnCours, mode==='cloison'?'#8A8478':'var(--ocre)');
 
   // ---- ouvertures dessinees comme sur un plan ----
   // Le mur est reellement interrompu sur la largeur de la baie, les tableaux
@@ -2009,7 +2061,7 @@ function rendreSceneBase(){
   if(curseur&&mode!=='ouverture'){
     let dep=null;
     if(mode==='contour'&&!niv.ferme&&pts.length) dep=pts[pts.length-1];
-    if(mode==='refend'&&refEnCours) dep=refEnCours.pts[refEnCours.pts.length-1];
+    if(traceLigne()&&refEnCours) dep=refEnCours.pts[refEnCours.pts.length-1];
     if(dep){
       const d=Math.hypot(curseur.x-dep.x,curseur.y-dep.y);
       g+=`<line x1="${dep.x}" y1="${-dep.y}" x2="${curseur.x}" y2="${-curseur.y}" stroke="var(--ocre)" stroke-width="${tr*2}" stroke-dasharray="${u/90} ${u/140}"/>`;
@@ -2032,7 +2084,7 @@ function rendreSceneBase(){
         }
       }
     }
-    if(mode==='refend'&&!refEnCours) g+=`<circle cx="${curseur.x}" cy="${-curseur.y}" r="${ra}" fill="var(--ocre)"/>`;
+    if(traceLigne()&&!refEnCours) g+=`<circle cx="${curseur.x}" cy="${-curseur.y}" r="${ra}" fill="var(--ocre)"/>`;
   }
 
   const a=angles();
@@ -2090,7 +2142,8 @@ function rendreSceneBase(){
         if(best) c=best; }
       const f=v=>v.toFixed(1).replace('.',',');
       g+=`<text x="${c.x}" y="${-c.y}" font-size="${po*1.5}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">${f(sh)} m²</text>`;
-      g+=`<text x="${c.x}" y="${-c.y+po*1.2}" font-size="${po*.8}" font-family="IBM Plex Sans,sans-serif" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">intérieurs${sr>0.05?` · ≈ ${f(Math.max(0,sh-sr))} m² hors murs porteurs`:''}</text>`;
+      const sc=totalCloisons(niv)*EP_CLOISON, ded=sr+sc, quoi=sr>0.05&&sc>0.01?'murs porteurs et cloisons':sr>0.05?'murs porteurs':'cloisons';
+      g+=`<text x="${c.x}" y="${-c.y+po*1.2}" font-size="${po*.8}" font-family="IBM Plex Sans,sans-serif" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">intérieurs${ded>0.01?` · ≈ ${f(Math.max(0,sh-ded))} m² hors ${quoi}`:''}</text>`;
     }
   }
   scene.innerHTML=g;
@@ -2289,6 +2342,20 @@ function rendrePanneaux(){
       }).join('')+`</tbody></table>`;
   }
 
+  // cloisons
+  const bc=document.getElementById('blocCloisons'), cl=cloisonsDe(niv);
+  bc.hidden=!cl.length;
+  if(cl.length){
+    const lc=totalCloisons(niv);
+    document.getElementById('nbCloisons').textContent=`${lc.toFixed(2)} ml · ${(lc*niv.hauteur).toFixed(1).replace('.',',')} m² (h ${niv.hauteur.toFixed(2).replace('.',',')} m)`;
+    document.getElementById('tableCloisons').innerHTML=
+      `<table><thead><tr><th></th><th>Longueur</th><th>Surface</th><th></th></tr></thead><tbody>`+
+      cl.map((r,i)=>`<tr><td class="num">${i+1}</td>
+        <td><span class="stat-val" style="font-size:13px">${longueurCloison(r,niv).toFixed(2)} m</span></td>
+        <td style="font-size:12px;color:var(--beton)">${(longueurCloison(r,niv)*niv.hauteur).toFixed(1).replace('.',',')} m²</td>
+        <td><button class="rm" onclick="cloisonsDe().splice(${i},1);recalcul()">✕</button></td></tr>`).join('')+`</tbody></table>`;
+  }
+
   // ouvertures
   const bo=document.getElementById('blocOuv');
   bo.hidden=!niv.ouvertures.length;
@@ -2356,7 +2423,7 @@ function contraindre(p,libre,depart){
 const departCourant=()=> mode==='plancher' ? tracePoutre
   : mode==='contour'
   ? (N().ferme?null:sommets().slice(-1)[0])
-  : (mode==='refend'&&refEnCours?refEnCours.pts[refEnCours.pts.length-1]:null);
+  : (traceLigne()&&refEnCours?refEnCours.pts[refEnCours.pts.length-1]:null);
 
 /* Quel segment — mur ou refend — se trouve sous le curseur ? */
 function segmentSousCurseur(p){
@@ -2550,7 +2617,7 @@ scene.addEventListener('dblclick', e=>{
     if(i===null){ return; }
     N().poutres.splice(i,1); poutreSel=null; tracePoutre=null; recalcul(); return;
   }
-  if(mode==='refend') validerRefend();
+  if(traceLigne()) validerRefend();
   // En mode Deplacer, un double-clic retire ce qui est sous le curseur.
   if(mode==='deplacer'){
     const h = poigneeSous(versMetres(e));
@@ -2578,7 +2645,7 @@ document.addEventListener('keydown', e=>{
     e.preventDefault();
     N().poutres.splice(poutreSel,1); poutreSel=null; recalcul();
   }
-  if(e.key==='Enter'&&mode==='refend') validerRefend();
+  if(e.key==='Enter'&&traceLigne()) validerRefend();
 });
 
 /* ---- Tactile ---- */
@@ -2626,7 +2693,7 @@ scene.addEventListener('pointercancel', e=>finDoigt(e,true));
 
 /* ---- Saisie clavier pendant le trace : viser a la souris, taper la cote, Entree ---- */
 let frappe='', horsEcran=false;
-const frappeActive=()=> (mode==='contour'&&!N().ferme) || (mode==='refend'&&refEnCours);
+const frappeActive=()=> (mode==='contour'&&!N().ferme) || (traceLigne()&&refEnCours);
 const valeurFrappe=()=>{ const v=parseFloat(frappe.replace(',','.')); return v>0?v:null; };
 function appliquerFrappe(){
   const L=valeurFrappe(), dep=departCourant();
@@ -2739,7 +2806,7 @@ function poserCote(dx,dy){
     const d=sommets().slice(-1)[0];
     if(niv.murs.length>2 && Math.hypot(d.x,d.y)<0.02){ niv.ferme=true; messageCote('Contour fermé.'); }
     else messageCote('');
-  } else if(mode==='refend'){
+  } else if(traceLigne()){
     if(!refEnCours){ messageCote('Touchez d’abord le point de départ du mur sur le plan.'); return; }
     const d=refEnCours.pts[refEnCours.pts.length-1];
     refEnCours.pts.push({x:d.x+dx*L, y:d.y+dy*L}); messageCote('');
@@ -2761,7 +2828,7 @@ document.getElementById('coteL').addEventListener('keydown', e=>{
 });
 
 function validerRefend(){
-  if(refEnCours&&refEnCours.pts.length>1) N().refends.push(refEnCours);
+  if(refEnCours&&refEnCours.pts.length>1) (mode==='cloison'?cloisonsDe(N()):N().refends).push(refEnCours);
   refEnCours=null; curseur=null; recalcul();
 }
 
@@ -3008,15 +3075,16 @@ function voirResultats(){
 }
 
 function setMode(m){
-  if((m==='refend'||m==='ouverture'||m==='deplacer')&&!N().ferme){
+  if((m==='refend'||m==='cloison'||m==='ouverture'||m==='deplacer')&&!N().ferme){
     const vd=document.getElementById('verdict');
     vd.className='verdict ko'; vd.textContent="Refermez d'abord le contour de ce niveau.";
     return;
   }
-  if(mode==='refend'&&m!=='refend') validerRefend();
+  if(traceLigne()&&m!==mode) validerRefend();
   mode=m; curseur=null; survol=null; murSel=null; frappe='';
   document.getElementById('mContour').classList.toggle('actif',m==='contour');
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
+  document.getElementById('mCloison').classList.toggle('actif-cloison',m==='cloison');
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
   const bp=document.getElementById('mPlancher');
@@ -3058,6 +3126,8 @@ function majAide(){
   document.getElementById('aide').innerHTML = mode==='contour'
     ? (tactile ? `Posez le doigt et glissez : la longueur s'affiche, levez pour poser l'angle. Deux doigts pour zoomer.` : (frappe ? `Longueur tapée : <span class="frappe">${frappe} m</span> — <kbd>Entrée</kbd> pose le mur dans la direction de la souris, <kbd>Échap</kbd> efface.` : N().ferme ? `Contour fermé. Cliquez sur un mur pour corriger sa longueur ou le supprimer.` : `Visez avec la souris la direction du mur, tapez sa longueur au clavier (ex. 8,50) puis <kbd>Entrée</kbd>. Ou cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Échap</kbd> annule.`))
       + (tactile ? ` Plus simple : tapez la longueur de chaque mur ci-dessous et choisissez sa direction, ou partez d'un rectangle.` : '')
+    : mode==='cloison'
+    ? `Tracez une cloison (non porteuse) d'un mur à l'autre : cliquez chaque point, ou visez et tapez la longueur + <kbd>Entrée</kbd>. <kbd>Entrée</kbd> ou « Terminer le mur » la valide. Elle ne porte pas le plancher.`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd>, double-clic ou « Terminer le mur » le termine. Ses angles sont comptés.` : `Touchez le point de départ du mur, puis le point d'arrivée — ou tapez sa longueur ci-dessous et choisissez la direction. « Terminer le mur » le valide.`)
     : mode==='plancher'
@@ -3141,8 +3211,9 @@ function annuler(){
     else if(niv.poutres&&niv.poutres.length) niv.poutres.pop();
     poutreSel=null;
   } else if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
-  else if(mode==='refend'){
+  else if(mode==='refend'||mode==='cloison'){
     if(refEnCours){ refEnCours.pts.pop(); if(!refEnCours.pts.length) refEnCours=null; }
+    else if(mode==='cloison'){ cloisonsDe(niv).pop(); }
     else if(niv.refends.length) supprimerRefend(niv.refends.length-1);
   } else {
     if(niv.ferme) niv.ferme=false; else if(niv.murs.length) niv.murs.pop();
@@ -3160,7 +3231,7 @@ function fermerTrace(){
 
 function effacerNiveau(){
   const niv=N();
-  niv.murs=[]; niv.refends=[]; niv.ouvertures=[]; niv.poutres=[]; niv.ferme=false;
+  niv.murs=[]; niv.refends=[]; niv.cloisons=[]; niv.ouvertures=[]; niv.poutres=[]; niv.ferme=false;
   refEnCours=null; curseur=null; murSel=null; setMode('contour');
 }
 
@@ -3198,9 +3269,9 @@ function majBoutons(){
   const pb=document.querySelector('.plancher-barre'); if(pb) pb.hidden = mode!=='plancher';
   const cb=document.getElementById('cotesBarre');
   if(cb){
-    cb.hidden = !((mode==='contour'&&!niv.ferme)||mode==='refend');
+    cb.hidden = !((mode==='contour'&&!niv.ferme)||traceLigne());
     document.getElementById('grpRect').hidden = !(mode==='contour'&&!niv.murs.length);
-    document.getElementById('bFinRefend').hidden = mode!=='refend';
+    document.getElementById('bFinRefend').hidden = !traceLigne();
     document.getElementById('bFinRefend').disabled = !(refEnCours&&refEnCours.pts.length>1);
   }
 }
