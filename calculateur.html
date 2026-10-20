@@ -364,7 +364,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mCloison" onclick="setMode('cloison')">3 · Cloisons</button>
           <button id="mOuv" onclick="setMode('ouverture')">4 · Ouvertures</button>
           <button id="mPiece" onclick="setMode('piece')">5 · Pièces</button>
-          <button id="mDep" onclick="setMode('deplacer')">Déplacer</button>
+          <button id="mDep" onclick="setMode('deplacer')" title="Cliquer un élément pour le régler, le glisser pour le déplacer">Sélection</button>
           <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
         </div>
         <div class="barre">
@@ -397,6 +397,16 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <button type="button" id="bRecaler" onclick="demarrerCalage()">Recaler l'échelle</button>
         <label style="font-size:12.5px;display:flex;gap:6px;align-items:center">Opacité <input type="range" min="10" max="100" value="45" oninput="opaciteFond(this.value)"></label>
         <button type="button" onclick="retirerFond()">Retirer le fond</button>
+      </div>
+      <div class="edit-mur" id="editSel" hidden>
+        <b id="esTitre">Élément</b>
+        <span>Longueur <input id="esL" type="text" inputmode="decimal"> m</span>
+        <span id="esHBloc">Hauteur <input id="esH" type="text" inputmode="decimal" placeholder="du niveau"> m</span>
+        <button type="button" class="actif" onclick="appliquerSel()">Appliquer</button>
+        <button type="button" id="esConv" onclick="convertirSel()"></button>
+        <button type="button" onclick="supprimerSel()">Supprimer</button>
+        <button type="button" onclick="viderSel()">Fermer</button>
+        <span class="msg" id="esMsg" style="font-size:12px;color:var(--terre)"></span>
       </div>
       <div class="edit-mur" id="editPiece" hidden>
         <b>Pièce</b>
@@ -951,7 +961,7 @@ function ouvertureSous(p){
 function rendreEditOuv(){
   const bar=document.getElementById('editOuv'), niv=N(), o=niv.ouvertures[ouvSel];
   if(!bar) return;
-  if(mode!=='ouverture'||!o){ bar.hidden=true; return; }
+  if((mode!=='ouverture'&&mode!=='deplacer')||!o){ bar.hidden=true; return; }
   bar.hidden=false;
   const vs=estVS(niv), t=typeOuv(o);
   const types=Object.entries(TYPES_OUV).filter(([k])=> vs ? k==='passage' : k!=='passage' );
@@ -1032,7 +1042,7 @@ function pieceSous(p){
 function rendreEditPiece(){
   const bar=document.getElementById('editPiece'); if(!bar) return;
   const pc=piecesDe()[pieceSel];
-  if(mode!=='piece'||!pc){ bar.hidden=true; return; }
+  if((mode!=='piece'&&mode!=='deplacer')||!pc){ bar.hidden=true; return; }
   bar.hidden=false;
   const sel=document.getElementById('epNom');
   const liste=NOMS_PIECES.includes(pc.nom)?NOMS_PIECES:[pc.nom,...NOMS_PIECES];
@@ -1045,6 +1055,83 @@ function nomParDefaut(){
   const n=piecesDe(), nb=k=>n.filter(p=>p.nom.startsWith(k)).length;
   if(!n.length) return 'Séjour-cuisine';
   return 'Chambre'+(nb('Chambre')?` ${nb('Chambre')+1}`:'');
+}
+
+/* ---- Outil Selection : un clic sur un element l'entoure et ouvre ses reglages ---- */
+let sel = null, glisseSel = false;   // sel = {type:'mur'|'refend'|'cloison', i, seg}
+function viderSel(){ sel=null; ouvSel=null; pieceSel=null; recalcul(); }
+function selectionnerA(p){
+  const el=elementSous(p);
+  sel=null; ouvSel=null; pieceSel=null;
+  if(el){ if(el.type==='ouverture') ouvSel=el.i; else if(el.type==='piece') pieceSel=el.i; else sel={type:el.type,i:el.i,seg:el.seg}; }
+  recalcul();
+}
+// Au relachement plutot qu'au clic : le dessin est redessine pendant la saisie,
+// et le navigateur n'emet alors pas toujours de clic.
+scene.addEventListener('pointerup', e=>{
+  if(mode!=='deplacer' || e.button!==0 || pince) return;
+  if(!glisseSel) selectionnerA(versMetres(e));
+  glisseSel=false;
+});
+function elementSous(p){
+  const o=ouvertureSous(p); if(o!==null) return {type:'ouverture', i:o};
+  const pc=pieceSous(p); if(pc!==null) return {type:'piece', i:pc};
+  const s=segmentSousCurseur(p); if(s) return {type:s.sur, i:s.i, seg:s.seg||1};
+  return null;
+}
+function segSel(niv=N()){ return sel ? segmentsPorteurs(niv).find(s=>s.sur===sel.type&&s.i===sel.i&&(s.sur==='mur'||(s.seg||1)===sel.seg)) : null; }
+function rendreEditSel(){
+  const bar=document.getElementById('editSel'); if(!bar) return;
+  const niv=N(), s=(mode==='deplacer')?segSel(niv):null;
+  if(!s){ bar.hidden=true; return; }
+  bar.hidden=false;
+  const noms={mur:'Mur extérieur', refend:vuePro()?'Refend':'Mur porteur', cloison:'Cloison'};
+  document.getElementById('esTitre').textContent=`${noms[s.sur]} ${s.i+1}`;
+  const L = s.sur==='cloison' ? longueurDans(s.a,s.b,interieurDe(niv)) : s.sur==='refend' ? longueurDans(s.a,s.b,interieurDe(niv)) : s.longueur;
+  const champ=document.getElementById('esL'); if(document.activeElement!==champ) champ.value=L.toFixed(2).replace('.',',');
+  const hb=document.getElementById('esHBloc'); hb.hidden = s.sur!=='mur';
+  if(s.sur==='mur'){ const h=niv.murs[s.i].hauteur; const ch=document.getElementById('esH'); if(document.activeElement!==ch) ch.value = h ? String(h).replace('.',',') : ''; }
+  const conv=document.getElementById('esConv');
+  conv.hidden = s.sur==='mur';
+  conv.textContent = s.sur==='refend' ? 'Transformer en cloison' : (vuePro()?'Transformer en refend':'Transformer en mur porteur');
+}
+function appliquerSel(){
+  const niv=N(), s=segSel(niv), msg=document.getElementById('esMsg'); if(!s) return;
+  const v=parseFloat(String(document.getElementById('esL').value).replace(',','.'));
+  msg.textContent='';
+  if(s.sur==='mur'){
+    if(v>0 && Math.abs(v-s.longueur)>1e-4){ const j=changerLongueurMur(s.i,v); if(j===null) msg.textContent='Aucun mur opposé ne peut compenser : vérifiez la fermeture.'; }
+    const h=parseFloat(String(document.getElementById('esH').value).replace(',','.'));
+    niv.murs[s.i].hauteur = h>0 ? h : null;
+  } else if(v>0){
+    // longueur utile visee : on deplace le bout du segment, les segments suivants suivent
+    const lst = s.sur==='refend' ? niv.refends : cloisonsDe(niv), pts=lst[s.i].pts, k=s.seg;
+    const actuel = longueurDans(pts[k-1],pts[k],interieurDe(niv)), d=v-actuel;
+    const L=Math.hypot(pts[k].x-pts[k-1].x, pts[k].y-pts[k-1].y), ux=(pts[k].x-pts[k-1].x)/L, uy=(pts[k].y-pts[k-1].y)/L;
+    for(let j=k;j<pts.length;j++){ pts[j]={x:pts[j].x+ux*d, y:pts[j].y+uy*d}; }
+  }
+  recalcul();
+}
+function supprimerSel(){
+  const niv=N(), s=segSel(niv); if(!s) return;
+  const t=sel.type, i=sel.i; sel=null;
+  if(t==='mur') supprimerMur(i);
+  else if(t==='refend') supprimerRefend(i);
+  else supprimerCloison(i);
+}
+/* Refend <-> cloison : la ligne change de liste, ses portes la suivent. */
+function convertirSel(){
+  const niv=N(), s=segSel(niv); if(!s||s.sur==='mur') return;
+  const de = s.sur, i=s.i;
+  const src = de==='refend' ? niv.refends : cloisonsDe(niv), dst = de==='refend' ? cloisonsDe(niv) : niv.refends;
+  const ligne = src.splice(i,1)[0]; dst.push({pts:ligne.pts});
+  const vers = de==='refend' ? 'cloison' : 'refend', ni = dst.length-1;
+  niv.ouvertures.forEach(o=>{
+    if(o.sur===de && o.i===i){ o.sur=vers; o.i=ni; }
+    else if(o.sur===de && o.i>i) o.i--;
+  });
+  sel = {type:vers, i:ni, seg:s.seg};
+  recalcul();
 }
 
 let prixParRef = null, tarifs = null;
@@ -1955,6 +2042,8 @@ function rendreEnveloppe(){
 
 function rendreScene(){
   rendreSceneBase();
+  if(!horsEcran && mode==='deplacer'){ const s=segSel(); if(s){ const c=cadre||cadreAuto, u=Math.max(c.w,c.h);
+    scene.insertAdjacentHTML('beforeend',`<line x1="${s.a.x}" y1="${-s.a.y}" x2="${s.b.x}" y2="${-s.b.y}" stroke="#C0392B" stroke-width="${u/80}" stroke-opacity=".5" stroke-linecap="round" style="pointer-events:none"/>`); } }
   if(!horsEcran && murSel!==null && N().murs[murSel]){
     const p=sommets(), a=p[murSel], b=p[murSel+1]; const c=cadre||cadreAuto, u=Math.max(c.w,c.h);
     scene.insertAdjacentHTML('beforeend',`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}" stroke="#C0392B" stroke-width="${u/90}" stroke-opacity=".55" stroke-linecap="round" style="pointer-events:none"/>`);
@@ -2252,7 +2341,7 @@ function rendreSceneBase(){
     if((s.sur==='mur'&&mode!=='piece') || mode==='ouverture') g+=`<text x="${c.x+nOut.x*po*1.25}" y="${-(c.y+nOut.y*po*1.25)}" font-size="${po*.62}"
           font-family="IBM Plex Mono,monospace" fill="${coul}" text-anchor="middle"
           dominant-baseline="middle">${etiquetteOuv(o)}</text>`;
-    if(mode==='ouverture' && niv.ouvertures[ouvSel]===o)
+    if((mode==='ouverture'||mode==='deplacer') && niv.ouvertures[ouvSel]===o)
       g+=`<circle cx="${c.x}" cy="${-c.y}" r="${o.largeur/2+0.15}" fill="none" stroke="#C0392B" stroke-width="${tr*1.4}" stroke-dasharray="${u/120} ${u/160}"/>`;
   });
 
@@ -2328,7 +2417,7 @@ function rendreSceneBase(){
   if(voirPortees&&!horsEcran&&mode!=='plancher'&&mode!=='piece'&&niv.ferme) g+=dessinPortees(niv, po, tr);
   if(niv.ferme&&piecesDe(niv).length){
     piecesDe(niv).forEach((pc,i)=>{
-      const a=surfacePiece(niv,pc), sel=mode==='piece'&&i===pieceSel;
+      const a=surfacePiece(niv,pc), sel=(mode==='piece'||mode==='deplacer')&&i===pieceSel;
       const fz = pc.nom.length>12 ? po*.78 : pc.nom.length>8 ? po*.9 : po*1.05;
       g+=`<g style="pointer-events:none"><text x="${pc.x}" y="${-pc.y}" font-size="${fz}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="${sel?'#B3261E':'#2E4F37'}" text-anchor="middle">${pc.nom}</text>`
         +`<text x="${pc.x}" y="${-pc.y+po*1.1}" font-size="${po*.9}" font-family="IBM Plex Mono,monospace" fill="${sel?'#B3261E':'#3F6B4A'}" text-anchor="middle">${a?a.toFixed(1).replace('.',',')+' m²':'hors pièce'}</text></g>`;
@@ -2587,7 +2676,7 @@ function rendrePanneaux(){
 }
 
 function recalcul(){
-  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); majInfoPortee(); rendreEditOuv(); rendreEditPiece();
+  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); majInfoPortee(); rendreEditOuv(); rendreEditPiece(); rendreEditSel();
   try{ (window.apresRecalcul||[]).forEach(f=>f()); }catch(e){ console.error(e); }
   try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }catch(e){}
 }
@@ -2730,6 +2819,7 @@ scene.addEventListener('pointerdown', e=>{
     }
   }
   if(e.button===0 && mode==='deplacer'){
+    glisseSel = false;
     const h = poigneeSous(versMetres(e));
     if(h){ prise = h; e.preventDefault(); scene.style.cursor='grabbing'; }
     return;
@@ -2778,6 +2868,7 @@ function survolScene(e){
       return;
     }
     const niv = N();
+    glisseSel = true;
     // pas de 5 cm, sauf touche Maj enfoncee
     const q = e.shiftKey ? p : { x:Math.round(p.x/0.05)*0.05, y:Math.round(p.y/0.05)*0.05 };
 
@@ -2832,7 +2923,7 @@ scene.addEventListener('pointerleave',()=>{ if(pince) return; curseur=null; surv
 scene.addEventListener('click', e=>{ if(Date.now()<ignorerClic) return; actionClic(e); });
 function actionClic(e){
   if(calage){ clicCalage(versMetres(e)); return; }
-  if(mode==='deplacer') return;
+  if(mode==='deplacer') return;   // la selection se fait au relachement (voir selectionnerA)
   const niv=N(), brut=versMetres(e);
   if(mode==='contour'&&niv.ferme){
     const s=segmentSousCurseur(brut);
@@ -2919,6 +3010,11 @@ document.addEventListener('keydown', e=>{
   const tg=document.activeElement&&document.activeElement.tagName;
   if(tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA') return;
   if(calage && e.key==='Escape'){ arreterCalage(); return; }
+  if(mode==='deplacer' && (sel||ouvSel!==null||pieceSel!==null)){
+    if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault();
+      if(sel) supprimerSel(); else if(ouvSel!==null) supprimerOuvSel(); else supprimerPieceSel(); return; }
+    if(e.key==='Escape'){ viderSel(); return; }
+  }
   if(frappeActive()){
     if(/^[0-9]$/.test(e.key)||((e.key===','||e.key==='.')&&!/[.,]/.test(frappe))){ e.preventDefault(); frappe+=e.key; appliquerFrappe(); rendreScene(); majAide(); return; }
     if(e.key==='Backspace'&&frappe){ e.preventDefault(); frappe=frappe.slice(0,-1); appliquerFrappe(); rendreScene(); majAide(); return; }
@@ -3392,7 +3488,7 @@ function setMode(m){
     return;
   }
   if(traceLigne()&&m!==mode) validerRefend();
-  mode=m; curseur=null; survol=null; murSel=null; frappe=''; ouvSel=null; pieceSel=null;
+  mode=m; curseur=null; survol=null; murSel=null; frappe=''; ouvSel=null; pieceSel=null; sel=null;
   document.getElementById('mContour').classList.toggle('actif',m==='contour');
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mCloison').classList.toggle('actif-cloison',m==='cloison');
@@ -3449,7 +3545,7 @@ function majAide(){
     : mode==='plancher'
     ? `Deux clics posent une poutrelle. Cliquez-la pour la déplacer, double-clic ou Suppr pour l'enlever. Les murs, eux, se tracent avec Contour.`
     : mode==='deplacer'
-    ? `Glissez un sommet, un bout de refend ou une ouverture. <kbd>Maj</kbd> libère le pas de 5 cm, un double-clic supprime.`
+    ? `Cliquez un mur, une cloison, une ouverture ou une pièce pour le régler ; glissez un point pour le déplacer. <kbd>Suppr</kbd> efface l'élément sélectionné, <kbd>Maj</kbd> libère le pas de 5 cm.`
     : estVS() ? `Vide sanitaire : cliquez sur un mur pour y poser un passage, puis réglez ses dimensions sous le plan. Cliquez un passage existant pour le modifier.`
     : `Cliquez sur un mur pour poser une ouverture, puis choisissez sous le plan son type, ses dimensions, la menuiserie (PVC, alu, bois) et le volet roulant. Cliquez une ouverture existante pour la modifier.`;
 }
