@@ -23,9 +23,9 @@ body.plein header{margin:0;padding:8px 14px;display:flex;align-items:center;just
 body.plein h1{font-size:18px}
 body.plein .sub{display:none}
 body.plein .grid{flex:1;min-height:0;display:flex;grid-template-columns:none}
-body.plein #vue-plan{flex:1;min-width:0;display:flex;flex-direction:column}
+body.plein #vue-plan{flex:1;min-width:0;min-height:0;align-self:stretch;display:flex;flex-direction:column}
 body.plein #vue-plan > .panneau{flex:1;display:flex;flex-direction:column;min-height:0;border-radius:0;border-left:0;border-right:0}
-body.plein #scene{flex:1;height:auto;min-height:0}
+body.plein #scene{flex:1 1 0;height:0;min-height:0}
 body.plein #vue-resultats{display:none}
 body.resultats #vue-plan{display:none}
 body.resultats .grid{display:block;max-width:920px;margin:0 auto}
@@ -1715,7 +1715,6 @@ function rendreSceneBase(){
   const tous=[...pts];
   niv.refends.forEach(r=>tous.push(...r.pts));
   if(refEnCours) tous.push(...refEnCours.pts);
-  if(curseur) tous.push(curseur);
   const bas=dessous(); if(bas) tous.push(...sommetsDe(bas));
   const ht=dessus();   if(ht)  tous.push(...sommetsDe(ht));
   const fd=horsEcran?null:fonds.get(niv);
@@ -1724,13 +1723,15 @@ function rendreSceneBase(){
   const xs=tous.map(p=>p.x), ys=tous.map(p=>p.y);
   const minX=Math.min(0,...xs), maxX=Math.max(0,...xs);
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
-  const w=Math.max(6,maxX-minX), hh=Math.max(4,maxY-minY);
+  const w=Math.max(12,maxX-minX), hh=Math.max(8,maxY-minY);
   const pad=Math.max(w,hh)*0.32+1.6;
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
   const c = cadre || cadreAuto;
   scene.setAttribute('viewBox',`${c.x} ${c.y} ${c.w} ${c.h}`);
   const vbW=c.w, vbH=c.h;
-  const u=Math.max(vbW,vbH), tr=u/300, po=u/48, ra=u/140, dec=po*1.55;
+  const rr=scene.getBoundingClientRect();
+  const kEc=(rr.width&&rr.height)?Math.min(rr.width/vbW, rr.height/vbH):0;
+  const u=(!horsEcran&&kEc)?620/kEc:Math.max(vbW,vbH), tr=u/300, po=u/48, ra=u/140, dec=po*1.55;
 
   let g='';
   const g0=Math.floor(minX-pad), g1=Math.ceil(maxX+pad);
