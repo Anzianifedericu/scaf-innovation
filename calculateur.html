@@ -69,6 +69,10 @@ body.plein .enveloppe,body.plein .legende{display:none}
 .plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
 .plancher-barre button.poser{background:#1F3A5F;color:#fff;border-color:#1F3A5F}
 [hidden]{display:none!important}
+.portee-info{padding:8px 12px;border-top:1px solid var(--trait);font-size:13px;line-height:1.45}
+.portee-info.ok{background:#EEF5EE;color:#2E5236}
+.portee-info.etai{background:#FFF4E0;color:#7A4A06}
+.portee-info.ko{background:#FCEBEA;color:#8A1C16}
 .barre{display:flex;gap:6px;flex-wrap:wrap}
 .cotes-barre{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--trait);background:#F3F7F1}
 .cotes-barre .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -368,6 +372,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
               <button id="bEpais" class="actif" onclick="basculerEpaisseur()" title="Dessiner le mur a son epaisseur reelle">Épaisseur</button>
               <button id="bAiles" onclick="basculerAiles()" title="Tracer les ailes A1 et A2 des blocs d angle a leur longueur reelle">Ailes A1/A2</button>
               <button id="bRang" onclick="inverserAiles()" hidden title="Basculer entre rang impair et rang pair">Rang pair</button>
+              <button id="bPortees" class="actif" onclick="basculerPortees()">Afficher les portées</button>
               <button id="bReporter" onclick="reporterDepuisDessus()">Reporter du dessus</button>
               <button onclick="exemple()">Charger l'exemple</button>
               <button onclick="effacerNiveau()">Tout effacer sur ce niveau</button>
@@ -378,6 +383,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
       <input type="file" id="fichierFond" accept="image/*,application/pdf" hidden onchange="chargerFond(this.files[0]);this.value=''">
+      <div class="portee-info" id="porteeInfo" hidden></div>
       <div class="fond-barre" id="fondBarre" hidden>
         <b>Fond de plan</b>
         <span class="etape" id="fondEtape"></span>
@@ -2069,6 +2075,7 @@ function rendreSceneBase(){
     g+=`<text x="${cx}" y="${-cy}" font-size="${po*0.7}" font-family="IBM Plex Sans,sans-serif" fill="#2C4A6E" text-anchor="middle">plancher · entraxe 0,60</text>`;
   }
 
+  if(voirPortees&&!horsEcran&&mode!=='plancher'&&niv.ferme) g+=dessinPortees(niv, po, tr);
   if(niv.ferme&&pts.length>3&&!horsEcran){
     const sh=surfaceHabitable(niv), sr=surfaceRefends(niv);
     if(sh>0){
@@ -2308,7 +2315,7 @@ function rendrePanneaux(){
 }
 
 function recalcul(){
-  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons();
+  rendreOnglets(); rendreEnveloppe(); rendreScene(); traduirePourParticulier(); rendrePanneaux(); majAide(); majBoutons(); majInfoPortee();
   try{ if(window.rendrePlancherIsoltop) rendrePlancherIsoltop(); }catch(e){}
 }
 
@@ -2874,6 +2881,104 @@ function trousRefend(niv, horizontal, coord, ep){
   });
   return iv;
 }
+/* ---- Portees du plancher porte par ce niveau ----
+   Le particulier regarde ses pieces ; le macon regarde la portee : la plus
+   grande distance libre que les poutrelles doivent franchir entre deux murs
+   porteurs (murs exterieurs et refends). On cherche le sens de pose qui donne
+   la plus petite portee maxi, puis on la compare aux limites Isoltop. */
+const LIMITE_PORTEE = { "elitech-r4":5.8, "elitech-r5":5.8, "elitech-r6":5.8,
+  "hourdinov-12":5.1, "hourdinov-15":6.0, "hourdinov-20":6.0, "hourdinov-25":8.1 };
+const SEUIL_ETAIEMENT = 5.0;
+let voirPortees = true;
+function limitePortee(niv){ return LIMITE_PORTEE[niv.isoltop] || 6.0; }
+function analysePortees(niv){
+  if(!niv.ferme||niv.murs.length<3) return null;
+  const pts=sommetsDe(niv).slice(0,-1); if(pts.length<3) return null;
+  const ep=HORS_TOUT[niv.epaisseur]||0.286;
+  const inter=versInterieur(pts, ep, aireSignee(niv)>0);
+  const lim=limitePortee(niv);
+  let sens=[true,false];
+  if(niv.poutres&&niv.poutres.length){ const b=niv.poutres[0]; sens=[Math.abs(b.b.x-b.a.x)>=Math.abs(b.b.y-b.a.y)]; }
+  // portees libres de chaque ligne de poutrelle (pas de 10 cm)
+  const lignes=horizontal=>{
+    const ts=inter.map(p=>horizontal?p.y:p.x), min=Math.min(...ts), max=Math.max(...ts), out=[];
+    for(let c=min+0.05;c<max-0.04;c+=0.1){
+      const segs=[];
+      coupePoly(inter,horizontal,c).forEach(([a,b])=>segs.push(...soustraire(a,b,trousRefend(niv,horizontal,c,ep))));
+      out.push({c,segs});
+    }
+    return out;
+  };
+  let best=null;
+  sens.forEach(horizontal=>{
+    const L=lignes(horizontal); let pire=null;
+    L.forEach(r=>r.segs.forEach(([u,v])=>{ if(!pire||v-u>pire.l+0.02) pire={l:v-u,u,v,c:r.c,horizontal,L}; }));
+    if(pire&&(!best||pire.l<best.l-1e-6)) best=pire;
+  });
+  if(!best) return null;
+  const L=best.L; delete best.L;
+  // lignes voisines de meme portee : on place la fleche au milieu de ce groupe,
+  // ou au quart s'il tombe sur l'etiquette de surface (centre de la piece)
+  const egal=r=>r.segs.some(([u,v])=>Math.abs(v-u-best.l)<=0.02&&u<best.v&&v>best.u);
+  let i0=L.findIndex(r=>Math.abs(r.c-best.c)<1e-9), i1=i0;
+  while(i0>0&&egal(L[i0-1])) i0--; while(i1<L.length-1&&egal(L[i1+1])) i1++;
+  const ts=pts.map(p=>best.horizontal?p.y:p.x), centre=(Math.min(...ts)+Math.max(...ts))/2;
+  let c=(L[i0].c+L[i1].c)/2;
+  if(Math.abs(c-centre)<1.2) c=L[i0].c+(L[i1].c-L[i0].c)*0.25;
+  const r=L.reduce((m,x)=>Math.abs(x.c-c)<Math.abs(m.c-c)?x:m,L[i0]);
+  const sg=r.segs.find(([u,v])=>Math.abs(v-u-best.l)<=0.02)||[best.u,best.v];
+  best.c=r.c; best.u=sg[0]; best.v=sg[1];
+  best.limite=lim;
+  best.etat = best.l>lim+0.05 ? 'ko' : best.l>SEUIL_ETAIEMENT+0.05 ? 'etai' : 'ok';
+  // refend propose : a mi-portee, seulement la ou la portee depasse la limite
+  if(best.etat==='ko'){
+    const mid=(best.u+best.v)/2;
+    const trop=x=>x.segs.some(([u,v])=>u<mid&&v>mid&&v-u>lim+0.05);
+    let j0=L.indexOf(r), j1=j0;
+    while(j0>0&&trop(L[j0-1])) j0--; while(j1<L.length-1&&trop(L[j1+1])) j1++;
+    best.refend={mid, a:L[j0].c-0.05, b:L[j1].c+0.05};
+  }
+  return best;
+}
+function dessinPortees(niv, po, tr){
+  const a=analysePortees(niv); if(!a) return '';
+  const col = a.etat==='ko' ? '#B3261E' : a.etat==='etai' ? '#C77C0E' : '#3F6B4A';
+  const P=(u,t)=> a.horizontal ? {x:u,y:t} : {x:t,y:u};
+  const p1=P(a.u,a.c), p2=P(a.v,a.c), m=P((a.u+a.v)/2,a.c);
+  const f=v=>v.toFixed(2).replace('.',',');
+  let g=`<g style="pointer-events:none">`;
+  g+=`<defs><marker id="flP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${col}"/></marker></defs>`;
+  g+=`<line x1="${p1.x}" y1="${-p1.y}" x2="${p2.x}" y2="${-p2.y}" stroke="${col}" stroke-width="${tr*2.2}" marker-start="url(#flP)" marker-end="url(#flP)"/>`;
+  const rot = a.horizontal ? 0 : -90;
+  g+=`<text x="${m.x}" y="${-m.y-po*0.45}" transform="rotate(${rot} ${m.x} ${-m.y})" font-size="${po*0.95}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="${col}" text-anchor="middle">portée ${f(a.l)} m</text>`;
+  if(a.etat==='ko'&&a.refend){
+    const r1=a.horizontal?{x:a.refend.mid,y:a.refend.a}:{x:a.refend.a,y:a.refend.mid};
+    const r2=a.horizontal?{x:a.refend.mid,y:a.refend.b}:{x:a.refend.b,y:a.refend.mid};
+    g+=`<line x1="${r1.x}" y1="${-r1.y}" x2="${r2.x}" y2="${-r2.y}" stroke="${col}" stroke-width="${tr*3}" stroke-dasharray="${po*0.6} ${po*0.35}" opacity=".8"/>`;
+    const rm={x:r1.x+(r2.x-r1.x)*0.8,y:r1.y+(r2.y-r1.y)*0.8};
+    g+=`<text x="${rm.x}" y="${-rm.y}" transform="rotate(${a.horizontal?-90:0} ${rm.x} ${-rm.y})" dy="${-po*0.5}" font-size="${po*0.75}" font-family="IBM Plex Sans,sans-serif" fill="${col}" text-anchor="middle">${vuePro()?'refend conseillé':'mur porteur conseillé'}</text>`;
+  }
+  return g+'</g>';
+}
+function majInfoPortee(){
+  const el=document.getElementById('porteeInfo'); if(!el) return;
+  const niv=N(), a=(voirPortees&&mode!=='plancher')?analysePortees(niv):null;
+  if(!a){ el.hidden=true; return; }
+  const f=v=>v.toFixed(2).replace('.',','), lim=f(a.limite).replace(/0$/,'');
+  const quoi = niv.nom==='Vide sanitaire' ? 'Plancher bas (posé sur le vide sanitaire)' : `Plancher posé sur les murs du ${niv.nom}`;
+  const pro=vuePro();
+  el.className='portee-info '+a.etat; el.hidden=false;
+  el.innerHTML = `<b>${quoi}</b> — plus grande portée <b>${f(a.l)} m</b> (poutrelles ${a.horizontal?'horizontales':'verticales'} sur le plan). `
+   + (a.etat==='ko'
+      ? (pro ? `Au-delà de ${lim} m pour ce montage : prévoir un refend (proposé en pointillé) ou un montage plus fort.`
+             : `C'est trop long pour un plancher sans appui : il faut un mur porteur au milieu (proposé en pointillé). Ajoutez-le avec « 2 · Murs porteurs ».`)
+      : a.etat==='etai'
+      ? (pro ? `Au-delà de ${f(SEUIL_ETAIEMENT)} m : étaiement à prévoir (limite du montage ${lim} m).` : `Portée possible, avec un étaiement provisoire pendant le chantier.`)
+      : `Portée courante, pas de mur porteur supplémentaire nécessaire.`);
+}
+function basculerPortees(){ voirPortees=!voirPortees;
+  const b=document.getElementById('bPortees'); if(b) b.classList.toggle('actif',voirPortees); recalcul(); }
+
 function soustraire(a,b,iv){
   let segs=[[a,b]];
   iv.forEach(([c,d])=>{
