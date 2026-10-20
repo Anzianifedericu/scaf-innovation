@@ -383,7 +383,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
               <button onclick="effacerNiveau()">Tout effacer sur ce niveau</button>
             </div>
           </details>
-          <button type="button" onclick="voirResultats()">Résultats</button>
+          <button type="button" id="bResultatsBarre" onclick="voirResultats()">Résultats</button>
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
@@ -1129,9 +1129,7 @@ function bandeauMode(){
     document.body.insertBefore(b, document.body.firstChild);
     return;
   }
-  b.textContent = MODE === 'etude'
-    ? "Vous obtenez ici la liste des matériaux de votre projet. Les tarifs figureront dans le devis que nous préparons."
-    : "Quantités indicatives. Les tarifs sont réservés aux professionnels identifiés — connectez-vous à l'espace pro.";
+  b.textContent = "Créez votre maison Nudura, visitez-la en 3D et envoyez-la nous : étude personnalisée, sans engagement.";
   document.body.insertBefore(b, document.body.firstChild);
 }
 let resultat = null;      // derniere reponse du serveur
@@ -1352,6 +1350,7 @@ async function envoyerPlan(){
 
   const b = document.getElementById('bEnvoyer');
   b.disabled = true; b.textContent = 'Envoi en cours…';
+  if(!resultat || !resultat.length){ try{ await calculer(); }catch(e){} }
 
   // On joint le dessin de chaque niveau : sans lui, le plan reçu se lit
   // en colonnes de chiffres et ne se comprend pas.
@@ -3378,6 +3377,8 @@ function voirPlan(){
   requestAnimationFrame(()=>{ if(typeof rendreScene==='function') rendreScene(); });
 }
 function voirResultats(){
+  // les resultats (quantites, chiffrage) sont pour SCAF, pas pour le client
+  if(!vuePro()) return voirPlan();
   document.body.classList.remove('plein');
   document.body.classList.add('resultats');
   document.getElementById('bVueResultats').classList.add('actif');
@@ -3618,6 +3619,10 @@ determinerMode().then(()=>{
   if(!vuePro()){
     const b = document.getElementById('bCalculer');
     if(b) b.textContent = 'Voir mon projet';
+    ['bResultatsBarre'].forEach(id=>{ const e=document.getElementById(id); if(e) e.hidden=true; });
+    const nav=document.querySelector('header .vues'); if(nav) nav.hidden=true;
+    const h1=document.querySelector('header h1'); if(h1) h1.textContent='Ma maison Nudura';
+    const sub=document.querySelector('header .sub'); if(sub) sub.textContent="Dessinez votre maison, voyez-la en 3D et recevez une étude personnalisée de SCAF Innovation.";
     // Reperes de pose : ils n'ont de sens que pour qui monte les blocs.
     ['bAiles','bRang'].forEach(id=>{
       const e = document.getElementById(id); if(e) e.hidden = true;
@@ -3638,6 +3643,20 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="/isoltop-plancher.js"></script>
+<script>
+(function(){
+  const v=document.getElementById('verdict'); if(!v) return;
+  let toast=null, minuterie=0;
+  new MutationObserver(()=>{
+    if(!document.body.classList.contains('plein') || !v.classList.contains('ko') || !v.textContent.trim()) return;
+    if(!toast){ toast=document.createElement('div');
+      toast.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1200;background:#8A1C16;color:#fff;padding:10px 16px;border-radius:8px;font:500 13.5px "IBM Plex Sans",sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:90vw';
+      document.body.appendChild(toast); }
+    toast.textContent=v.textContent; toast.hidden=false;
+    clearTimeout(minuterie); minuterie=setTimeout(()=>toast.hidden=true, 4000);
+  }).observe(v,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class']});
+})();
+</script>
 <script src="/parcours.js"></script>
 <script src="/maison3d.js"></script>
 </body>
