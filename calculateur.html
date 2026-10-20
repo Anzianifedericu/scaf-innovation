@@ -804,6 +804,13 @@ function surfaceHabitable(niv){
   }
   return Math.abs(a/2);
 }
+/* Surface au sol occupee par les murs porteurs interieurs : chaque refend
+   prend son epaisseur hors tout, moins la demi-epaisseur du mur exterieur
+   ou il s'accroche a chaque bout. Approximation suffisante pour un affichage. */
+function surfaceRefends(niv){
+  const ep = HORS_TOUT[niv.epaisseur] ?? 0.286;
+  return niv.refends.reduce((t,r)=>t + Math.max(0, longueurPoly(r.pts) - ep)*ep, 0);
+}
 let prixParRef = null, tarifs = null;
 
 async function determinerMode(){
@@ -2062,6 +2069,23 @@ function rendreSceneBase(){
     g+=`<text x="${cx}" y="${-cy}" font-size="${po*0.7}" font-family="IBM Plex Sans,sans-serif" fill="#2C4A6E" text-anchor="middle">plancher · entraxe 0,60</text>`;
   }
 
+  if(niv.ferme&&pts.length>3&&!horsEcran){
+    const sh=surfaceHabitable(niv), sr=surfaceRefends(niv);
+    if(sh>0){
+      // point d'ancrage : centre de gravite, ou a defaut le milieu le plus a l'interieur
+      const P=pts.slice(0,-1); let A=0,cx=0,cy=0;
+      for(let i=0;i<P.length;i++){ const a=P[i],b=P[(i+1)%P.length],k=a.x*b.y-b.x*a.y; A+=k; cx+=(a.x+b.x)*k; cy+=(a.y+b.y)*k; }
+      let c={x:cx/(3*A), y:cy/(3*A)};
+      const dans=q=>{ let x=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[i],b=P[j]; if((a.y>q.y)!==(b.y>q.y) && q.x<(b.x-a.x)*(q.y-a.y)/(b.y-a.y)+a.x) x=!x; } return x; };
+      if(!dans(c)){ const xs=P.map(p=>p.x).sort((a,b)=>a-b); let best=null;
+        for(let yi=1;yi<12&&!best;yi++){ const y=Math.min(...P.map(p=>p.y))+(Math.max(...P.map(p=>p.y))-Math.min(...P.map(p=>p.y)))*yi/12;
+          for(let xi=1;xi<12;xi++){ const q={x:xs[0]+(xs[xs.length-1]-xs[0])*xi/12,y}; if(dans(q)){best=q;break;} } }
+        if(best) c=best; }
+      const f=v=>v.toFixed(1).replace('.',',');
+      g+=`<text x="${c.x}" y="${-c.y}" font-size="${po*1.5}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">${f(sh)} m²</text>`;
+      g+=`<text x="${c.x}" y="${-c.y+po*1.2}" font-size="${po*.8}" font-family="IBM Plex Sans,sans-serif" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">intérieurs${sr>0.05?` · ≈ ${f(Math.max(0,sh-sr))} m² hors murs porteurs`:''}</text>`;
+    }
+  }
   scene.innerHTML=g;
 }
 
@@ -2071,7 +2095,7 @@ function rendreOnglets(){
   let h='';
   for(let i=niveaux.length-1;i>=0;i--){
     const n=niveaux[i];
-    const e=n.ferme?`${perimetre(n).toFixed(1)} m`:(n.murs.length?'en cours':'vide');
+    const e=n.ferme?`${perimetre(n).toFixed(1)} m · ${surfaceHabitable(n).toFixed(1).replace('.',',')} m²`:(n.murs.length?'en cours':'vide');
     h+=`<button class="onglet ${i===iNiveau?'actif':''}" onclick="allerNiveau(${i})">${n.nom}<span class="etat">${e}</span></button>`;
   }
   h+=`<button class="onglet-plus" onclick="ajouterNiveau()" title="Ajouter un niveau au-dessus">+</button>`;
