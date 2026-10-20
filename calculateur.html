@@ -95,7 +95,7 @@ details.plus .menu button{text-align:left}
 .frappe{display:inline-block;min-width:60px;padding:2px 8px;border-radius:5px;background:var(--ocre);color:#fff;font:600 13px 'IBM Plex Mono',monospace}
 button{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:6px;
   border:1px solid var(--trait);background:var(--paper);color:var(--encre);cursor:pointer}
-button:hover:not(:disabled){background:var(--paper-dim)}
+button:hover:not(:disabled):not([class*=actif]){background:var(--paper-dim)}
 button:disabled{opacity:.4;cursor:not-allowed}
 button.actif{background:var(--vert);border-color:var(--vert);color:#fff}
 button.actif-bleu{background:var(--bleu);border-color:var(--bleu);color:#fff}
@@ -710,7 +710,7 @@ function anglesDe(niv){
 const angles=()=>anglesDe(N());
 
 const longueurPoly=(pts)=>{let l=0;for(let i=1;i<pts.length;i++)l+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return l;};
-const totalRefends=(niv=N())=>niv.refends.reduce((s,r)=>s+longueurPoly(r.pts),0);
+const totalRefends=(niv=N())=>niv.refends.reduce((s,r)=>s+longueurRefend(r,niv),0);
 /* Cloisons : murs interieurs non porteurs (plaque de platre 72/48 par defaut).
    Elles ne portent pas le plancher et ne comptent pas dans les blocs Nudura. */
 const EP_CLOISON = 0.07;
@@ -737,6 +737,7 @@ function longueurDans(a,b,poly){
   for(let k=1;k<ts.length;k++){ const t=(ts[k-1]+ts[k])/2; if(dans({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t})) l+=(ts[k]-ts[k-1])*L; }
   return l;
 }
+function longueurRefend(r,niv=N()){ return longueurCloison(r,niv); }
 function longueurCloison(r,niv=N()){
   const poly=interieurDe(niv); let l=0;
   for(let i=1;i<r.pts.length;i++) l+=longueurDans(r.pts[i-1],r.pts[i],poly);
@@ -871,7 +872,7 @@ function surfaceHabitable(niv){
    ou il s'accroche a chaque bout. Approximation suffisante pour un affichage. */
 function surfaceRefends(niv){
   const ep = HORS_TOUT[niv.epaisseur] ?? 0.286;
-  return niv.refends.reduce((t,r)=>t + Math.max(0, longueurPoly(r.pts) - ep)*ep, 0);
+  return niv.refends.reduce((t,r)=>t + longueurRefend(r,niv)*ep, 0);
 }
 /* ---- Types d'ouverture ----
    moteur : comment le moteur de metre Nudura la traite (Porte = sans allege).
@@ -1036,13 +1037,14 @@ const typeExtremite = t =>
 // Nombre d'extremites de ce refend qui butent sur un mur ou un autre refend.
 function jonctionsDuRefend(niv, ri){
   const r = niv.refends[ri];
+  const ep = HORS_TOUT[niv.epaisseur] ?? 0.286;
   const autres = [], p = sommetsDe(niv);
-  for(let i=0;i<niv.murs.length;i++) autres.push([p[i], p[i+1]]);
+  for(let i=0;i<niv.murs.length;i++) autres.push([p[i], p[i+1], ep + 0.12]);
   niv.refends.forEach((o,oi)=>{ if(oi!==ri)
-    for(let i=1;i<o.pts.length;i++) autres.push([o.pts[i-1], o.pts[i]]); });
+    for(let i=1;i<o.pts.length;i++) autres.push([o.pts[i-1], o.pts[i], ep/2 + 0.12]); });
   let n = 0;
   [r.pts[0], r.pts[r.pts.length-1]].forEach(bout=>{
-    if(autres.some(([a,b])=>distSegment(bout,a,b) < 0.12)) n++;
+    if(autres.some(([a,b,tol])=>distSegment(bout,a,b) < tol)) n++;
   });
   return Math.max(1, n);
 }
@@ -1097,7 +1099,7 @@ function niveauPourServeur(niv){
     const ang = anglesDuRefend(r);
     return {
       nom: 'Refend ' + (ri+1),
-      longueur_m: Number(longueurPoly(r.pts).toFixed(3)),
+      longueur_m: Number(longueurRefend(r,niv).toFixed(3)),
       jonctions: jonctionsDuRefend(niv, ri),
       angles90: ang.n90, angles45: ang.n45,
     };
@@ -1106,10 +1108,10 @@ function niveauPourServeur(niv){
   // Le moteur raisonne en quantites : on regroupe les ouvertures identiques.
   const paquets = {};
   niv.ouvertures.forEach(o=>{
-    const nom = typeOuv(o).moteur;
-    const cle = `${nom}|${o.largeur.toFixed(2)}|${o.hauteur.toFixed(2)}`;
+    const nom = typeOuv(o).moteur, vr = !!(typeOuv(o).vr && o.volet);
+    const cle = `${nom}|${o.largeur.toFixed(2)}|${o.hauteur.toFixed(2)}|${vr}`;
     if(!paquets[cle]) paquets[cle] = {
-      nom,
+      nom, volet_roulant: vr,
       largeur: o.largeur, hauteur: o.hauteur, nb: 0,
     };
     paquets[cle].nb++;
@@ -1260,7 +1262,7 @@ async function envoyerPlan(){
       // Chaque refend avec ses points : l'estimateur les compte en m² de
       // Nudura et le tracé pourra être rechargé tel quel.
       refends: n.refends.map(r=>({
-        longueur: Number(longueurPoly(r.pts).toFixed(3)),
+        longueur: Number(longueurRefend(r,n).toFixed(3)),
         pts: r.pts.map(p=>({ x: Number(p.x.toFixed(3)), y: Number(p.y.toFixed(3)) })),
       })),
       ouvertures: n.ouvertures.map(o=>({
@@ -2419,7 +2421,7 @@ function rendrePanneaux(){
             if(Math.abs(Math.round(Math.acos(c)*180/Math.PI)-90)<=3) n90++; }
         }
         return `<tr><td class="num">${i+1}</td>
-          <td><span class="stat-val" style="font-size:13px">${longueurPoly(r.pts).toFixed(2)} m</span></td>
+          <td><span class="stat-val" style="font-size:13px">${longueurRefend(r,niv).toFixed(2)} m</span></td>
           <td style="font-size:12px;color:var(--beton)">${n90||'—'}</td>
           <td><button class="rm" onclick="supprimerRefend(${i})">✕</button></td></tr>`;
       }).join('')+`</tbody></table>`;
@@ -2495,18 +2497,23 @@ function accrocher(p,seulementDessous){
 /* Cloisons : posees librement, au pas de 5 cm, et accrochees au NU INTERIEUR
    des murs (et aux faces des refends et des autres cloisons), jamais au nu
    exterieur du contour. Maj : aucun pas, aucun accrochage. */
-function ciblesCloison(niv=N(), exclure=-1){
+function ciblesCloison(niv=N(), exclure=-1, type=mode){
   const c=[], poly=interieurDe(niv);
   if(poly) for(let i=0;i<poly.length;i++) c.push([poly[i],poly[(i+1)%poly.length]]);
   const decal=(a,b,d)=>{ const l=Math.hypot(b.x-a.x,b.y-a.y); if(!l) return []; const n={x:-(b.y-a.y)/l*d,y:(b.x-a.x)/l*d};
     return [[{x:a.x+n.x,y:a.y+n.y},{x:b.x+n.x,y:b.y+n.y}],[{x:a.x-n.x,y:a.y-n.y},{x:b.x-n.x,y:b.y-n.y}]]; };
   const ep=(HORS_TOUT[niv.epaisseur]??0.286)/2;
-  niv.refends.forEach(r=>{ for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],ep)); });
+  niv.refends.forEach((r,ri)=>{ if(type==='refend'&&ri===exclure) return; for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],ep)); });
+  if(type==='refend'){
+    // un refend d'etage se cale sur celui du dessous
+    const bas=dessous(); if(bas) bas.refends.forEach(r=>{ for(let i=1;i<r.pts.length;i++) c.push([r.pts[i-1],r.pts[i]]); });
+    return { segs:c, coins: poly||[] };
+  }
   cloisonsDe(niv).forEach((r,ci)=>{ if(ci===exclure) return; for(let i=1;i<r.pts.length;i++) c.push(...decal(r.pts[i-1],r.pts[i],EP_CLOISON/2)); });
   return { segs:c, coins: poly||[] };
 }
-function accrocherCloison(p, depart, exclure=-1){
-  const {segs, coins}=ciblesCloison(N(), exclure); let best=null, dmin=0.35;
+function accrocherCloison(p, depart, exclure=-1, type=mode){
+  const {segs, coins}=ciblesCloison(N(), exclure, type); let best=null, dmin=0.35;
   if(depart){
     const vx=p.x-depart.x, vy=p.y-depart.y, L=Math.hypot(vx,vy);
     if(L>1e-6){
@@ -2533,7 +2540,7 @@ function accrocherCloison(p, depart, exclure=-1){
 }
 
 function contraindre(p,libre,depart){
-  if(mode==='cloison'){
+  if(mode==='cloison'||(mode==='refend'&&N().ferme)){
     if(!depart) return libre ? p : accrocherCloison(p, null);
     let dx=p.x-depart.x, dy=p.y-depart.y;
     if(ortho&&!libre){ if(Math.abs(dx)>=Math.abs(dy)) dy=0; else dx=0; }
@@ -2657,7 +2664,10 @@ function survolScene(e){
       // le polygone se recale tout seul, meme si l'on bouge le premier point.
       murisDepuisPoints(niv, pts);
     } else if(prise.type==='refend'){
-      niv.refends[prise.ri].pts[prise.k] = q;
+      const pts=niv.refends[prise.ri].pts, voisin=pts[prise.k===0?1:prise.k-1];
+      let r=e.shiftKey?p:q;
+      if(!e.shiftKey&&voisin){ if(Math.abs(r.x-voisin.x)<Math.abs(r.y-voisin.y)) r={x:voisin.x,y:r.y}; else r={x:r.x,y:voisin.y}; }
+      pts[prise.k] = e.shiftKey ? r : accrocherCloison(r, voisin||null, prise.ri, 'refend');
     } else if(prise.type==='cloison'){
       const pts=cloisonsDe(niv)[prise.ci].pts, voisin=pts[prise.k===0?1:prise.k-1];
       let r=e.shiftKey?p:q;
