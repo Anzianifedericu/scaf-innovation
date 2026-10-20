@@ -164,14 +164,192 @@
     },
   };
 
+  /* ---------------- catalogue elargi ----------------
+     Conventions : contour donne par ses sommets (premier en 0,0, sens horaire),
+     mur de 152 mm (nu interieur a 0,286 m), refends seulement sous un plancher
+     (vide sanitaire, ou niveau qui porte un etage) ; au dernier niveau les
+     refends deviennent des cloisons, sauf un mur separatif de logement. */
+  const E = 0.286, D = E/2;
+  const F  = (L=1.0,H=1.2,vr=true)=>({largeur:L,hauteur:H,nature:'fenetre',materiau:'pvc',volet:vr});
+  const PETITE = ()=>F(0.6,0.75,false);
+  const ENTREE = ()=>({largeur:1.0,hauteur:2.15,nature:'porte-entree',materiau:'alu'});
+  const BAIE = (L=2.4)=>({largeur:L,hauteur:2.15,nature:'baie',materiau:'alu',volet:true});
+  const PF = ()=>({largeur:0.9,hauteur:2.15,nature:'porte-fenetre',materiau:'pvc',volet:true});
+  const GARAGE = ()=>({largeur:2.4,hauteur:2.0,nature:'porte-garage',materiau:'alu'});
+  const PASSAGE = ()=>({largeur:0.8,hauteur:0.6,nature:'passage'});
+  // position le long d'un segment a->b, par la coordonnee qui varie
+  const tSur = (a,b,pos)=> Math.abs(b[0]-a[0])>1e-9 ? (pos-a[0])/(b[0]-a[0]) : (pos-a[1])/(b[1]-a[1]);
+  const surMur = (pts,i,pos,o)=>({sur:'mur',i,t:tSur(pts[i],pts[(i+1)%pts.length],pos),...o});
+  const surLigne = (sur,i,l,pos,o)=>({sur,i,seg:1,t:tSur(l[0],l[1],pos),largeur:0.83,hauteur:2.04,nature:'porte',materiau:'bois',...(o||{})});
+  const L2 = l=>({pts:[P(l[0][0],l[0][1]),P(l[1][0],l[1][1])]});
+  const mk = (nom,h,pts,o={})=>niveau(nom,h,pts,{...o, refends:(o.refends||[]).map(r=>{ const x=L2(r.l||r); if(r.separatif) x.separatif=true; return x; }), cloisons:(o.cloisons||[]).map(L2)});
+  const pc = (x,y,nom)=>({x,y,nom});
+
+  Object.assign(MODELES, {
+    /* ---------- petites maisons ---------- */
+    'pp2': { cat:'petites', nom:'Plain-pied 2 chambres', desc:'10 × 8 m · environ 70 m² : séjour-cuisine, 2 chambres, salle de bain, WC',
+      construire(){
+        const pts=[[0,0],[10,0],[10,-8],[0,-8]], ry=-4, R=[[[E,ry],[10-E,ry]]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:R, ouvertures:[surMur(pts,3,-4,PASSAGE()), surLigne('refend',0,R[0],5,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:R,
+          cloisons:[3.6,5.6,6.8].map(x=>[[x,-E],[x,ry+D]]),
+          ouvertures:[ surMur(pts,0,1.9,F()), surMur(pts,0,4.6,PETITE()), surMur(pts,0,8.2,F()),
+            surMur(pts,2,4,BAIE()), surMur(pts,2,8.5,ENTREE()), surMur(pts,2,1.5,F(1.2,1.2)),
+            ...[2.4,4.6,6.2,8.0].map(x=>surLigne('refend',0,R[0],x)) ],
+          pieces:[pc(1.9,-2,'Chambre parentale'),pc(4.6,-2,'Salle de bain'),pc(6.2,-2,'WC'),pc(8.3,-2,'Chambre 2'),pc(5,-6,'Séjour-cuisine')] });
+        return [vs,rdc];
+      }},
+    'village': { cat:'petites', nom:'Maison de village à étage', desc:'6 × 10 m sur deux niveaux · façades avant et arrière, idéale en centre ancien',
+      construire(){
+        const pts=[[0,0],[6,0],[6,-10],[0,-10]], ry=-5, R=()=>[[[E,ry],[6-E,ry]]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:R(), ouvertures:[surMur(pts,3,-2.5,PASSAGE()), surLigne('refend',0,R()[0],3,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:R(),
+          cloisons:[[[2.4,-E],[2.4,ry+D]]],
+          ouvertures:[ surMur(pts,2,1.4,ENTREE()), surMur(pts,2,4.0,F(1.2,1.4)), surMur(pts,0,4.0,F()),
+            surLigne('refend',0,R()[0],1.4), surLigne('refend',0,R()[0],4.0) ],
+          pieces:[pc(1.3,-2.5,'Entrée'),pc(4,-2.5,'Cuisine'),pc(3,-7.5,'Séjour')] });
+        const r1=mk('R+1',2.5,pts,{refends:R(),
+          cloisons:[[[3.4,-E],[3.4,ry+D]],[[3.4,ry-D],[3.4,-10+E]]],
+          ouvertures:[ surMur(pts,0,1.8,F()), surMur(pts,0,4.6,PETITE()), surMur(pts,2,1.8,F()), surMur(pts,2,4.5,F()),
+            surLigne('refend',0,R()[0],4.6) ],
+          pieces:[pc(1.8,-2.5,'Chambre 1'),pc(4.6,-2.5,'Salle de bain'),pc(1.8,-7.5,'Chambre 2'),pc(4.6,-7.5,'Bureau')] });
+        return [vs,rdc,r1];
+      }},
+    'studio': { cat:'petites', nom:'Studio ou annexe', desc:'7 × 5,5 m · environ 30 m² : pièce de vie et salle d\'eau, pour un jardin ou un locatif',
+      construire(){
+        const pts=[[0,0],[7,0],[7,-5.5],[0,-5.5]];
+        const vs=mk('Vide sanitaire',1.2,pts,{ouvertures:[surMur(pts,3,-2.75,PASSAGE())]});
+        const rdc=mk('RDC',2.6,pts,{
+          cloisons:[[[5,-E],[5,-2.4]],[[5,-2.4],[7-E,-2.4]]],
+          ouvertures:[ surMur(pts,2,2.5,PF()), surMur(pts,2,4.6,F()), surMur(pts,0,6,PETITE()), surMur(pts,3,-2.75,ENTREE()) ],
+          pieces:[pc(2.5,-2.7,'Pièce de vie'),pc(5.9,-1.3,"Salle d'eau")] });
+        rdc.ouvertures.push({sur:'cloison',i:1,seg:1,t:0.5,largeur:0.73,hauteur:2.04,nature:'porte',materiau:'bois'});
+        return [vs,rdc];
+      }},
+
+    /* ---------- grandes villas ---------- */
+    'villa4': { cat:'villas', nom:'Villa plain-pied 4 chambres', desc:'17 × 9,5 m · environ 140 m² : grand séjour, 4 chambres dont une suite, 2 salles d\'eau',
+      construire(){
+        const W=17, pts=[[0,0],[W,0],[W,-9.5],[0,-9.5]], ry=-4.6, R=[[[E,ry],[W-E,ry]]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:R, ouvertures:[surMur(pts,3,-4.75,PASSAGE()), surLigne('refend',0,R[0],8.5,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:R,
+          cloisons:[4.2,6.0,9.0,11.0,13.9].map(x=>[[x,-E],[x,ry+D]]).concat([[[11.8,ry-D],[11.8,-9.5+E]],[[15.4,-6.9],[15.4,-9.5+E]],[[15.4,-6.9],[W-E,-6.9]]]),
+          ouvertures:[ surMur(pts,0,2.2,F(1.2,1.2)), surMur(pts,0,5.1,PETITE()), surMur(pts,0,7.5,F()), surMur(pts,0,10,PETITE()), surMur(pts,0,12.45,F()), surMur(pts,0,15.3,F()),
+            surMur(pts,2,4,BAIE()), surMur(pts,2,8,BAIE(3.0)), surMur(pts,2,11,F(1.2,1.2)), surMur(pts,2,13.5,ENTREE()), surMur(pts,3,-7,F(1.2,1.2)),
+            ...[2.2,5.1,7.5,10.0,12.6,15.0].map(x=>surLigne('refend',0,R[0],x)),
+            {sur:'cloison',i:7,seg:1,t:0.5,largeur:0.73,hauteur:2.04,nature:'porte',materiau:'bois'} ],
+          pieces:[pc(2.2,-2.4,'Chambre parentale'),pc(5.1,-2.4,"Salle d'eau"),pc(7.5,-2.4,'Chambre 2'),pc(10,-2.4,'Salle de bain'),
+            pc(12.45,-2.4,'Chambre 3'),pc(15.3,-2.4,'Chambre 4'),pc(6,-7,'Séjour-cuisine'),pc(13.6,-6,'Entrée'),pc(16.05,-8.2,'WC')] });
+        return [vs,rdc];
+      }},
+    'villa-u': { cat:'villas', nom:'Villa en U avec patio', desc:'16 × 14 m · séjour ouvert sur un patio, 2 ailes : suite parentale et chambres',
+      construire(){
+        const pts=[[0,0],[16,0],[16,-14],[10.5,-14],[10.5,-6],[5.5,-6],[5.5,-14],[0,-14]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:[[[5.5,-E],[5.5,-6+E]],[[10.5,-E],[10.5,-6+E]]], ouvertures:[surMur(pts,7,-10,PASSAGE()), surMur(pts,1,-10,PASSAGE())]});
+        const C=[ [[4.0,-E],[4.0,-6]], [[12.0,-E],[12.0,-6]], [[E,-6],[5.5-E,-6]], [[10.5+E,-6],[16-E,-6]], [[E,-10.2],[5.5-E,-10.2]], [[10.5+E,-10.2],[16-E,-10.2]] ];
+        const rdc=mk('RDC',2.7,pts,{
+          cloisons:C,
+          ouvertures:[ surMur(pts,0,8,ENTREE()), surMur(pts,0,2.1,F()), surMur(pts,0,13.9,F()),
+            surMur(pts,4,8,BAIE(3.0)), surMur(pts,3,-8,PF()), surMur(pts,5,-8,PF()),
+            surMur(pts,1,-12,PETITE()), surMur(pts,1,-8,F()), surMur(pts,7,-8,F()), surMur(pts,7,-12,PETITE()),
+            surLigne('cloison',0,C[0],-3), surLigne('cloison',1,C[1],-3), surLigne('cloison',2,C[2],4.6), surLigne('cloison',3,C[3],11.4),
+            surLigne('cloison',4,C[4],2.75), surLigne('cloison',5,C[5],13.25) ],
+          pieces:[pc(2.1,-3,'Chambre 3'),pc(8,-3,'Séjour-cuisine'),pc(13.9,-3,'Bureau'),pc(2.75,-8,'Chambre 2'),pc(2.75,-12,"Salle d'eau"),
+            pc(13.25,-8,'Suite parentale'),pc(13.25,-12,'Salle de bain')] });
+        return [vs,rdc];
+      }},
+    'villa-etage': { cat:'villas', nom:'Villa à étage avec suite', desc:'12 × 9 m sur deux niveaux · chambre au rez-de-chaussée, suite parentale à l\'étage',
+      construire(){
+        const pts=[[0,0],[12,0],[12,-9],[0,-9]], ry=-4.5, R=()=>[[[E,ry],[12-E,ry]]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:R(), ouvertures:[surMur(pts,3,-4.5,PASSAGE()), surLigne('refend',0,R()[0],6,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:R(),
+          cloisons:[3.5,4.7,6.6].map(x=>[[x,-E],[x,ry+D]]),
+          ouvertures:[ surMur(pts,0,1.9,ENTREE()), surMur(pts,0,4.1,PETITE()), surMur(pts,0,9.2,F()),
+            surMur(pts,2,3,BAIE(3.0)), surMur(pts,2,8,BAIE()), surMur(pts,3,-6.5,F(1.2,1.2)),
+            ...[1.9,4.1,5.6,9.2].map(x=>surLigne('refend',0,R()[0],x)) ],
+          pieces:[pc(1.9,-2.3,'Entrée'),pc(4.1,-2.3,'WC'),pc(5.65,-2.3,'Buanderie'),pc(9.2,-2.3,'Chambre 4'),pc(6,-6.7,'Séjour-cuisine')] });
+        const r1=mk('R+1',2.5,pts,{refends:R(),
+          cloisons:[2.4,5.6,7.6].map(x=>[[x,-E],[x,ry+D]]).concat([7.0,8.8].map(x=>[[x,ry-D],[x,-9+E]])),
+          ouvertures:[ surMur(pts,0,4,F()), surMur(pts,0,6.6,PETITE()), surMur(pts,0,9.7,F()),
+            surMur(pts,2,3.5,PF()), surMur(pts,2,10.3,PETITE()), surMur(pts,1,-6.7,F()),
+            surLigne('refend',0,R()[0],1.3), surLigne('cloison',0,[[2.4,-E],[2.4,ry+D]],-2.4), surLigne('refend',0,R()[0],6.6) ],
+          pieces:[pc(1.3,-2.3,'Dégagement'),pc(4,-2.3,'Chambre 2'),pc(6.6,-2.3,'Salle de bain'),pc(9.7,-2.3,'Chambre 3'),
+            pc(3.6,-6.7,'Suite parentale'),pc(7.9,-6.7,'Dressing'),pc(10.4,-6.7,"Salle d'eau")] });
+        return [vs,rdc,r1];
+      }},
+
+    /* ---------- terrain en pente ---------- */
+    'pente': { cat:'pente', nom:'Maison sur terrain en pente', desc:'12 × 9 m · garage et cave semi-enterrés, maison de plain-pied au-dessus côté route',
+      construire(){
+        const pts=[[0,0],[12,0],[12,-9],[0,-9]], rx=6, R=()=>[[[rx,-E],[rx,-9+E]]];
+        const ss=mk('Garage et cave',2.5,pts,{refends:R(),
+          cloisons:[[[rx+D,-4.5],[12-E,-4.5]]],
+          ouvertures:[ surMur(pts,2,3.2,GARAGE()), surMur(pts,1,-2.3,PETITE()), surLigne('refend',0,R()[0],-6.7), surLigne('cloison',0,[[rx+D,-4.5],[12-E,-4.5]],9) ],
+          pieces:[pc(3,-4.5,'Garage'),pc(9,-2.4,'Cave'),pc(9,-6.7,'Buanderie')] });
+        ss.enterre = true;
+        const rdc=mk('RDC',2.7,pts,{refends:R(),
+          cloisons:[-3.5,-5.5].map(y=>[[rx+D,y],[12-E,y]]),
+          ouvertures:[ surMur(pts,0,3,ENTREE()), surMur(pts,2,3,BAIE(3.0)), surMur(pts,3,-2,F(1.2,1.2)), surMur(pts,0,9,F()), surMur(pts,2,9,F()), surMur(pts,1,-4.5,PETITE()),
+            ...[-1.9,-4.5,-7.1].map(y=>surLigne('refend',0,R()[0],y)) ],
+          pieces:[pc(3,-4.5,'Séjour-cuisine'),pc(9,-1.9,'Chambre 1'),pc(9,-4.5,'Salle de bain'),pc(9,-7.1,'Chambre 2')] });
+        return [ss,rdc];
+      }},
+
+    /* ---------- locatif et bi-famille ---------- */
+    'maison-t2': { cat:'locatif', nom:'Maison + T2 indépendant', desc:'16 × 9 m · maison 2 chambres et T2 locatif séparés par un mur séparatif',
+      construire(){
+        const pts=[[0,0],[16,0],[16,-9],[0,-9]], ry=-4.5, sep={l:[[10,-E],[10,-9+E]],separatif:true};
+        const lm=[[E,ry],[10-D,ry]], lt=[[10+D,ry],[16-E,ry]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:[sep,lm,lt], ouvertures:[surMur(pts,3,-4.5,PASSAGE()), surLigne('refend',0,sep.l,-2.3,PASSAGE()), surLigne('refend',1,lm,5,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:[sep,lm],
+          cloisons:[ [[3.6,-E],[3.6,ry+D]], [[5.6,-E],[5.6,ry+D]], lt, [[13.2,-E],[13.2,ry+D]] ],
+          ouvertures:[ surMur(pts,0,1.9,F()), surMur(pts,0,4.6,PETITE()), surMur(pts,0,7.8,F()), surMur(pts,2,3,BAIE()), surMur(pts,2,7.5,ENTREE()),
+            surMur(pts,0,11.6,F()), surMur(pts,0,14.5,PETITE()), surMur(pts,2,12,PF()), surMur(pts,2,14.6,ENTREE()),
+            surLigne('refend',1,lm,1.9), surLigne('refend',1,lm,4.6), surLigne('refend',1,lm,7.8),
+            surLigne('cloison',2,lt,11.6), surLigne('cloison',2,lt,14.5) ],
+          pieces:[pc(1.9,-2.3,'Chambre 1'),pc(4.6,-2.3,'Salle de bain'),pc(7.8,-2.3,'Chambre 2'),pc(5,-6.7,'Séjour-cuisine'),
+            pc(11.6,-2.3,'T2 · Chambre'),pc(14.5,-2.3,"T2 · Salle d'eau"),pc(13,-6.7,'T2 · Séjour')] });
+        return [vs,rdc];
+      }},
+    'jumelees': { cat:'locatif', nom:'Maisons jumelées', desc:'2 × 7 × 9 m · deux maisons de 2 chambres côte à côte, mur séparatif commun',
+      construire(){
+        const pts=[[0,0],[14,0],[14,-9],[0,-9]], ry=-4.5, sep={l:[[7,-E],[7,-9+E]],separatif:true};
+        const la=[[E,ry],[7-D,ry]], lb=[[7+D,ry],[14-E,ry]];
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:[sep,la,lb], ouvertures:[surMur(pts,3,-4.5,PASSAGE()), surMur(pts,1,-4.5,PASSAGE())]});
+        const rdc=mk('RDC',2.7,pts,{refends:[sep,la,lb],
+          cloisons:[2.9,4.4,9.6,11.1].map(x=>[[x,-E],[x,ry+D]]),
+          ouvertures:[ surMur(pts,0,1.6,F()), surMur(pts,0,3.65,PETITE()), surMur(pts,0,5.7,F()), surMur(pts,2,2.3,BAIE()), surMur(pts,2,5.6,ENTREE()),
+            surMur(pts,0,8.3,F()), surMur(pts,0,10.35,PETITE()), surMur(pts,0,12.4,F()), surMur(pts,2,11.7,BAIE()), surMur(pts,2,8.4,ENTREE()),
+            ...[1.6,3.65,5.7].map(x=>surLigne('refend',1,la,x)), ...[8.3,10.35,12.4].map(x=>surLigne('refend',2,lb,x)) ],
+          pieces:[pc(1.6,-2.3,'A · Chambre 1'),pc(3.65,-2.3,'A · SdB'),pc(5.7,-2.3,'A · Chambre 2'),pc(3.5,-6.7,'A · Séjour-cuisine'),
+            pc(8.3,-2.3,'B · Chambre 2'),pc(10.35,-2.3,'B · SdB'),pc(12.4,-2.3,'B · Chambre 1'),pc(10.5,-6.7,'B · Séjour-cuisine')] });
+        return [vs,rdc];
+      }},
+    'collectif': { cat:'locatif', nom:'Petit collectif R+1', desc:'12 × 9 m · deux T3 superposés, un par niveau',
+      construire(){
+        const pts=[[0,0],[12,0],[12,-9],[0,-9]], ry=-4.5, R=()=>[[[E,ry],[12-E,ry]]];
+        const plan=(nom,h,suffixe,entree)=>mk(nom,h,pts,{refends:R(),
+          cloisons:[3.8,5.8,8.6].map(x=>[[x,-E],[x,ry+D]]),
+          ouvertures:[ surMur(pts,0,2,F()), surMur(pts,0,4.8,PETITE()), surMur(pts,0,7.2,F()), surMur(pts,2,3,BAIE()), surMur(pts,2,8,F(1.2,1.2)),
+            ...(entree?[surMur(pts,1,-2.3,ENTREE())]:[surMur(pts,1,-2.3,PETITE())]),
+            ...[2.0,4.8,7.2,10.1].map(x=>surLigne('refend',0,R()[0],x)) ],
+          pieces:[pc(2,-2.3,`${suffixe} · Chambre 1`),pc(4.8,-2.3,`${suffixe} · SdB`),pc(7.2,-2.3,`${suffixe} · Chambre 2`),pc(10.1,-2.3,`${suffixe} · Entrée`),pc(6,-6.7,`${suffixe} · Séjour-cuisine`)] });
+        const vs=mk('Vide sanitaire',1.2,pts,{refends:R(), ouvertures:[surMur(pts,3,-4.5,PASSAGE()), surLigne('refend',0,R()[0],6,PASSAGE())]});
+        return [vs, plan('RDC',2.7,'T3 RDC',true), plan('R+1',2.5,'T3 étage',false)];
+      }},
+  });
+  MODELES['plain-pied'].cat = 'villas'; MODELES['etage'].cat = 'villas'; MODELES['villa-l'].cat = 'villas';
+  const CATEGORIES = { petites:'Petites maisons', villas:'Maisons et villas', pente:'Terrain en pente', locatif:'Locatif et bi-famille' };
+
   /* Sous la toiture, les fermettes portent d'un mur exterieur a l'autre : le
      dernier niveau n'a pas de refend, ses murs interieurs sont des cloisons.
      Les refends ne restent que sous un plancher (vide sanitaire, ou niveau
      qui porte un etage). */
   function sousToiture(niv){
-    const nR = niv.refends.length; if(!nR) return;
+    const garde = niv.refends.filter(r=>r.separatif), conv = niv.refends.filter(r=>!r.separatif);
+    if(!conv.length) return;
     const ep = horsTout(niv)/2, ec = EP_CLOISON/2;
-    const lignes = niv.refends.map(r=>({pts:r.pts.map(p=>({...p}))}));
+    const lignes = conv.map(r=>({pts:r.pts.map(p=>({...p}))}));
     // les cloisons qui butaient sur la face d'un refend butent sur la face de la nouvelle cloison
     (niv.cloisons||[]).forEach(c=>c.pts.forEach(p=>{
       lignes.forEach(({pts:[a,b]})=>{
@@ -182,12 +360,14 @@
         }
       });
     }));
-    niv.cloisons = lignes.concat(niv.cloisons||[]);
+    // renumerotation : refend garde -> nouvel indice de refend, refend converti -> indice de cloison
+    const vers = niv.refends.map(r=> r.separatif ? {sur:'refend', i:garde.indexOf(r)} : {sur:'cloison', i:conv.indexOf(r)});
     niv.ouvertures.forEach(o=>{
-      if(o.sur==='refend'){ o.sur='cloison'; }
-      else if(o.sur==='cloison'){ o.i += nR; }
+      if(o.sur==='refend'){ const v=vers[o.i]; o.sur=v.sur; o.i=v.i; }
+      else if(o.sur==='cloison'){ o.i += conv.length; }
     });
-    niv.refends = [];
+    niv.cloisons = lignes.concat(niv.cloisons||[]);
+    niv.refends = garde;
   }
   function appliquerToiture(liste){
     liste.forEach((n,k)=>{ if(n.hauteur>=1.8 && !liste.slice(k+1).some(m=>m.murs.length)) sousToiture(n); });
@@ -198,7 +378,7 @@
     const m = MODELES[cle]; if(!m) return;
     if(niveaux.some(n=>n.murs.length) && !confirm('Remplacer votre tracé actuel par ce modèle ?')) return;
     niveaux = appliquerToiture(m.construire());
-    iNiveau = niveaux.findIndex(n=>n.nom==='RDC'); if(iNiveau<0) iNiveau = 0;
+    iNiveau = niveaux.findIndex(n=>n.nom==='RDC'); if(iNiveau<0) iNiveau = Math.max(0, niveaux.length-1);
     projet.modele = m.nom;
     const s = SOLUTIONS[projet.solution]; niveaux.forEach(n=>{ if(n.hauteur>=1.8) changerMur(n, s.gamme, s.ep); });
     cadre = null; refEnCours = null; curseur = null;
@@ -278,7 +458,7 @@
 
   // apercu d'un modele : son contour, ses refends et ses cloisons
   function vignette(m){
-    const nv = appliquerToiture(m.construire()).find(n=>n.nom==='RDC');
+    const lv = appliquerToiture(m.construire()), nv = lv.find(n=>n.nom==='RDC') || lv.filter(n=>n.hauteur>=1.8).pop();
     let x=0,y=0; const pts=[{x,y}];
     nv.murs.forEach(w=>{ x+=w.dx*w.longueur; y+=w.dy*w.longueur; pts.push({x,y}); });
     const xs=pts.map(p=>p.x), ys=pts.map(p=>-p.y);
@@ -296,7 +476,7 @@
            Vous nous l'envoyez ensuite en un clic : nous vous répondons avec une étude personnalisée, sans engagement.</p></div>
       <div class="pm-grille">
         <button class="pm-carte" data-a="modeles"><span class="ico">🏡</span><h3>Partir d'un modèle</h3>
-          <p>Trois maisons SCAF prêtes à adapter : plain-pied, étage, villa avec garage.</p></button>
+          <p>Une douzaine de maisons prêtes à adapter : petites maisons, villas, terrain en pente, locatif.</p></button>
         <button class="pm-carte" data-a="dessiner"><span class="ico">✏️</span><h3>Dessiner mon plan</h3>
           <p>Tapez les longueurs de vos murs ou partez d'un rectangle. Simple et précis.</p></button>
         <button class="pm-carte" data-a="fond"><span class="ico">📐</span><h3>J'ai le plan de mon architecte</h3>
@@ -311,9 +491,11 @@
     const b = boite(`
       <div class="pm-tete"><h2>Choisissez un modèle</h2>
         <p>Un point de départ : vous pourrez tout modifier ensuite — murs, pièces, fenêtres.</p></div>
-      <div class="pm-grille">${Object.entries(MODELES).map(([k,m])=>`
-        <button class="pm-carte" data-m="${k}">${vignette(m)}<h3>${m.nom}</h3><p>${m.desc}</p></button>`).join('')}
-      </div>`);
+      ${Object.entries(CATEGORIES).map(([c,titre])=>`
+        <div class="pm-section"><h4 style="margin-top:6px">${titre}</h4></div>
+        <div class="pm-grille" style="padding-top:4px">${Object.entries(MODELES).filter(([,m])=>m.cat===c).map(([k,m])=>`
+          <button class="pm-carte" data-m="${k}">${vignette(m)}<h3>${m.nom}</h3><p>${m.desc}</p></button>`).join('')}
+        </div>`).join('')}`, true);
     b.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>chargerModele(el.dataset.m));
   }
 
@@ -372,7 +554,7 @@
     return lignes.filter(Boolean).join('\n');
   }
   window.resumeProjetMaison = resume;
-  const horsHabitable = nom => /garage|terrasse/i.test(nom);
+  const horsHabitable = nom => /garage|terrasse|cave/i.test(nom);
   function habitableDe(n){
     const ex = (n.pieces||[]).filter(p=>horsHabitable(p.nom)).reduce((t,p)=>t+surfacePiece(n,p),0);
     return Math.max(0, surfaceHabitable(n) - ex);

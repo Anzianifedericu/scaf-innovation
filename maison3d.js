@@ -285,7 +285,16 @@
       rectangles(sommet.pts).forEach(R=>toit(R, yT+0.22, mTuile));
     }
 
-    etat.sol.position.y = (solY ?? 0) - 0.01;
+    // terrain en pente : le niveau du bas est enterre cote amont (nord, haut du plan)
+    const bas0 = prets[0];
+    if(bas0 && bas0.enterre){
+      const prof = Math.max(1, maxY-minY), h0 = bas0.hauteur, th = Math.atan(h0/prof);
+      etat.sol.rotation.set(-Math.PI/2 + th, 0, 0);
+      etat.sol.position.set((minX+maxX)/2, h0/2 - 0.02, -(minY+maxY)/2);
+    } else {
+      etat.sol.rotation.set(-Math.PI/2, 0, 0);
+      etat.sol.position.set(0, (solY ?? 0) - 0.01, 0);
+    }
     const c = new THREE.Vector3((minX+maxX)/2, (solY??0)+2, -(minY+maxY)/2);
     etat.centre = c;
     if(premier){
