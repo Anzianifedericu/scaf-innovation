@@ -164,10 +164,40 @@
     },
   };
 
+  /* Sous la toiture, les fermettes portent d'un mur exterieur a l'autre : le
+     dernier niveau n'a pas de refend, ses murs interieurs sont des cloisons.
+     Les refends ne restent que sous un plancher (vide sanitaire, ou niveau
+     qui porte un etage). */
+  function sousToiture(niv){
+    const nR = niv.refends.length; if(!nR) return;
+    const ep = horsTout(niv)/2, ec = EP_CLOISON/2;
+    const lignes = niv.refends.map(r=>({pts:r.pts.map(p=>({...p}))}));
+    // les cloisons qui butaient sur la face d'un refend butent sur la face de la nouvelle cloison
+    (niv.cloisons||[]).forEach(c=>c.pts.forEach(p=>{
+      lignes.forEach(({pts:[a,b]})=>{
+        const L=Math.hypot(b.x-a.x,b.y-a.y), ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+        const t=(p.x-a.x)*ux+(p.y-a.y)*uy, d=-(p.x-a.x)*uy+(p.y-a.y)*ux;
+        if(t>-0.05&&t<L+0.05&&Math.abs(Math.abs(d)-ep)<0.03){
+          const s=Math.sign(d); p.x=a.x+ux*t-uy*s*ec; p.y=a.y+uy*t+ux*s*ec;
+        }
+      });
+    }));
+    niv.cloisons = lignes.concat(niv.cloisons||[]);
+    niv.ouvertures.forEach(o=>{
+      if(o.sur==='refend'){ o.sur='cloison'; }
+      else if(o.sur==='cloison'){ o.i += nR; }
+    });
+    niv.refends = [];
+  }
+  function appliquerToiture(liste){
+    liste.forEach((n,k)=>{ if(n.hauteur>=1.8 && !liste.slice(k+1).some(m=>m.murs.length)) sousToiture(n); });
+    return liste;
+  }
+
   function chargerModele(cle){
     const m = MODELES[cle]; if(!m) return;
     if(niveaux.some(n=>n.murs.length) && !confirm('Remplacer votre tracé actuel par ce modèle ?')) return;
-    niveaux = m.construire();
+    niveaux = appliquerToiture(m.construire());
     iNiveau = niveaux.findIndex(n=>n.nom==='RDC'); if(iNiveau<0) iNiveau = 0;
     projet.modele = m.nom;
     const s = SOLUTIONS[projet.solution]; niveaux.forEach(n=>{ if(n.hauteur>=1.8) changerMur(n, s.gamme, s.ep); });
@@ -248,7 +278,7 @@
 
   // apercu d'un modele : son contour, ses refends et ses cloisons
   function vignette(m){
-    const nv = m.construire().find(n=>n.nom==='RDC');
+    const nv = appliquerToiture(m.construire()).find(n=>n.nom==='RDC');
     let x=0,y=0; const pts=[{x,y}];
     nv.murs.forEach(w=>{ x+=w.dx*w.longueur; y+=w.dy*w.longueur; pts.push({x,y}); });
     const xs=pts.map(p=>p.x), ys=pts.map(p=>-p.y);

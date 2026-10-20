@@ -204,7 +204,7 @@
       if(o.nature==='passage') return;
       const ep=0.07, recul=Math.min(0.12, e/3);
       if(o.nature==='porte'||o.nature==='porte-entree'||o.nature==='porte-garage'){
-        pave(a,b,n,ep,y0,y1, o.nature==='porte'&&o.sur==='refend' ? new THREE.MeshStandardMaterial({color:C('#B98E5E'),roughness:.7}) : mMenu, recul);
+        pave(a,b,n,Math.min(ep,e),y0,y1, o.nature==='porte'&&o.sur!=='mur' ? new THREE.MeshStandardMaterial({color:C('#B98E5E'),roughness:.7}) : mMenu, recul);
         return;
       }
       // cadre et vitrage
@@ -262,10 +262,11 @@
         const a2={x:a.x-n.x*e/2,y:a.y-n.y*e/2}, b2={x:b.x-n.x*e/2,y:b.y-n.y*e/2};
         murPerce(a2,b2,n,e,base,h,niv.ouvertures.filter(o=>o.sur==='refend'&&o.i===ri&&(o.seg??1)===s), vs?mVS:mInt);
       }});
-      if(!vs) (niv.cloisons||[]).forEach(r=>{ for(let s=1;s<r.pts.length;s++){
+      if(!vs) (niv.cloisons||[]).forEach((r,ci)=>{ for(let s=1;s<r.pts.length;s++){
         const a=r.pts[s-1], b=r.pts[s], L=Math.hypot(b.x-a.x,b.y-a.y); if(L<0.05) continue;
         const n={x:-(b.y-a.y)/L,y:(b.x-a.x)/L};
-        pave({x:a.x-n.x*0.035,y:a.y-n.y*0.035},{x:b.x-n.x*0.035,y:b.y-n.y*0.035},n,0.07,base,base+Math.min(h,2.5),mCloison);
+        murPerce({x:a.x-n.x*0.035,y:a.y-n.y*0.035},{x:b.x-n.x*0.035,y:b.y-n.y*0.035},n,0.07,base,Math.min(h,2.5),
+          niv.ouvertures.filter(o=>o.sur==='cloison'&&o.i===ci&&(o.seg??1)===s), mCloison);
       }});
       // pieces nommees, en vue interieure
       if(!vs && reglages.vue==='interieur' && (iMax<0 || k===iMax)) (niv.pieces||[]).forEach(pc=>{

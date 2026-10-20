@@ -806,9 +806,30 @@ function segmentsPorteurs(niv=N()){
       if(l>0) out.push({ sur:'refend', i:ri, seg:k, a, b, longueur:l, dx:(b.x-a.x)/l, dy:(b.y-a.y)/l });
     }
   });
+  (niv.cloisons||[]).forEach((r,ci)=>{
+    for(let k=1;k<r.pts.length;k++){
+      const a=r.pts[k-1], b=r.pts[k], l=Math.hypot(b.x-a.x,b.y-a.y);
+      if(l>0) out.push({ sur:'cloison', i:ci, seg:k, a, b, longueur:l, dx:(b.x-a.x)/l, dy:(b.y-a.y)/l });
+    }
+  });
   return out;
 }
-const memeSupport=(o,s)=> o.sur===s.sur && o.i===s.i && (s.sur==='mur' || o.seg===s.seg);
+/* Supprime une cloison et les portes qu'elle portait ; les suivantes se decalent. */
+function supprimerCloison(i, niv=N()){
+  cloisonsDe(niv).splice(i,1);
+  niv.ouvertures = niv.ouvertures.filter(o=>!(o.sur==='cloison'&&o.i===i));
+  niv.ouvertures.forEach(o=>{ if(o.sur==='cloison'&&o.i>i) o.i--; });
+  recalcul();
+}
+/* Un niveau porte un plancher s'il est un vide sanitaire ou s'il a un etage
+   au-dessus. Sinon il est sous la toiture : les fermettes portent d'un mur
+   exterieur a l'autre, et les murs interieurs sont des cloisons. */
+function portePlancher(niv=N()){
+  if(estVS(niv)) return true;
+  const i = niveaux.indexOf(niv);
+  return niveaux.slice(i+1).some(n=>n.murs.length);
+}
+const memeSupport=(o,s)=> o.sur===s.sur && o.i===s.i && (s.sur==='mur' || (o.seg??1)===s.seg);
 const supportDe=(niv,o)=> segmentsPorteurs(niv).find(s=>memeSupport(o,s));
 
 function jonctionsT(niv=N()){
@@ -941,7 +962,7 @@ function rendreEditOuv(){
   document.getElementById('eoMat').value=o.materiau||'pvc';
   document.getElementById('eoVrBloc').hidden=!t.vr;
   document.getElementById('eoVr').checked=!!o.volet;
-  document.getElementById('eoTitre').textContent=`Ouverture ${ouvSel+1}`+(o.sur==='refend'?' (mur intérieur)':'');
+  document.getElementById('eoTitre').textContent=`Ouverture ${ouvSel+1}`+(o.sur==='refend'?' (mur porteur)':o.sur==='cloison'?' (cloison)':'');
 }
 function majEditOuv(champ, v){
   const o=N().ouvertures[ouvSel]; if(!o) return;
@@ -949,7 +970,7 @@ function majEditOuv(champ, v){
     o.nature=v; const t=typeOuv(o);
     o.largeur=t.L; o.hauteur=t.H;
     if(!t.vr) o.volet=false;
-    if(t.mat&&!o.materiau) o.materiau = o.sur==='refend' ? 'bois' : 'pvc';
+    if(t.mat&&!o.materiau) o.materiau = o.sur!=='mur' ? 'bois' : 'pvc';
     if(!t.mat) delete o.materiau;
   } else if(champ==='largeur'||champ==='hauteur'){
     const x=parseFloat(String(v).replace(',','.')); if(x>0) o[champ]=x;
@@ -1194,7 +1215,7 @@ function niveauPourServeur(niv){
 
   // Le moteur raisonne en quantites : on regroupe les ouvertures identiques.
   const paquets = {};
-  niv.ouvertures.forEach(o=>{
+  niv.ouvertures.filter(o=>o.sur!=='cloison').forEach(o=>{
     const nom = typeOuv(o).moteur, vr = !!(typeOuv(o).vr && o.volet);
     const cle = `${nom}|${o.largeur.toFixed(2)}|${o.hauteur.toFixed(2)}|${vr}`;
     if(!paquets[cle]) paquets[cle] = {
@@ -1356,7 +1377,7 @@ async function envoyerPlan(){
         pts: r.pts.map(p=>({ x: Number(p.x.toFixed(3)), y: Number(p.y.toFixed(3)) })),
       })),
       ouvertures: n.ouvertures.map(o=>({
-        type: sansAllege(o) ? 'porte' : 'fenetre',
+        type: sansAllege(o) ? 'porte' : 'fenetre', sur: o.sur,
         nature: o.nature, menuiserie: typeOuv(o).mat ? (o.materiau||'pvc') : null,
         volet_roulant: !!(typeOuv(o).vr && o.volet),
         largeur: o.largeur, hauteur: o.hauteur, qte: 1,
@@ -2189,17 +2210,19 @@ function rendreSceneBase(){
     const anti = niv.ferme ? aireSignee(niv) > 0 : true;
     const sg = anti ? -1 : 1;
     const nIn = { x: sg*s.dy, y: -sg*s.dx };
-    const e = s.sur==='mur' ? (horsTout(niv) ?? 0.286) : (horsTout(niv) ?? 0.286);
+    const e = s.sur==='cloison' ? EP_CLOISON : (horsTout(niv) ?? 0.286);
     const sv = mode==='ouverture' && estSurvole(s.sur, s.i, s.seg);
 
     if(vueEpaisse && niv.ferme){
       // on evide le mur sur la largeur de la baie
-      const q = [[x1,y1],[x2,y2],[x2+nIn.x*e, y2+nIn.y*e],[x1+nIn.x*e, y1+nIn.y*e]];
+      // un mur exterieur part de son nu exterieur ; un refend ou une cloison est centre sur son axe
+      const k0 = s.sur==='mur' ? 0 : -0.5, k1 = s.sur==='mur' ? 1 : 0.5, ex = s.sur==='cloison' ? e*1.6 : e;
+      const q = [[x1+nIn.x*ex*k0,y1+nIn.y*ex*k0],[x2+nIn.x*ex*k0,y2+nIn.y*ex*k0],[x2+nIn.x*ex*k1, y2+nIn.y*ex*k1],[x1+nIn.x*ex*k1, y1+nIn.y*ex*k1]];
       g+=`<polygon points="${q.map(([px,py])=>`${px},${-py}`).join(' ')}"
             fill="#FCFAF5" stroke="none"/>`;
       // tableaux : les deux joues de l'ouverture
       [[x1,y1],[x2,y2]].forEach(([px,py])=>{
-        g+=`<line x1="${px}" y1="${-py}" x2="${px+nIn.x*e}" y2="${-(py+nIn.y*e)}"
+        g+=`<line x1="${px+nIn.x*ex*k0}" y1="${-(py+nIn.y*ex*k0)}" x2="${px+nIn.x*ex*k1}" y2="${-(py+nIn.y*ex*k1)}"
               stroke="var(--encre)" stroke-width="${tr*0.9}"/>`; });
     } else {
       g+=`<line x1="${x1}" y1="${-y1}" x2="${x2}" y2="${-y2}" stroke="#FCFAF5"
@@ -2392,9 +2415,10 @@ function rendrePanneaux(){
     if(ar.n90+ar.n45) L.push(['Angles de refend',ar.n90+ar.n45,'']);
     L.push(['Jonctions en T',jonctionsT(),'']);
   }
-  if(niv.ouvertures.length){
-    const s=niv.ouvertures.reduce((t,o)=>t+o.largeur*o.hauteur,0);
-    L.push(['Ouvertures',niv.ouvertures.length,'']);
+  const ouvN = niv.ouvertures.filter(o=>o.sur!=='cloison');
+  if(ouvN.length){
+    const s=ouvN.reduce((t,o)=>t+o.largeur*o.hauteur,0);
+    L.push(['Ouvertures',ouvN.length,'']);
     L.push(['Surface percée',s.toFixed(2),'m²']);
   }
   // --- controle de la hauteur saisie -----------------------------------
@@ -2416,7 +2440,7 @@ function rendrePanneaux(){
 
   // --- metre instantane -------------------------------------------------
   if(niv.ferme){
-    const perc  = niv.ouvertures.reduce((t,o)=>t+o.largeur*o.hauteur,0);
+    const perc  = niv.ouvertures.filter(o=>o.sur!=='cloison').reduce((t,o)=>t+o.largeur*o.hauteur,0);
     const brute = perimetre()*niv.hauteur + totalRefends()*niv.hauteur;
     const nette = Math.max(0, brute - perc);
     const ratio = BETON_PAR_M2[Number(niv.epaisseur)] ?? 0.156;
@@ -2537,7 +2561,7 @@ function rendrePanneaux(){
       cl.map((r,i)=>`<tr><td class="num">${i+1}</td>
         <td><span class="stat-val" style="font-size:13px">${longueurCloison(r,niv).toFixed(2)} m</span></td>
         <td style="font-size:12px;color:var(--beton)">${(longueurCloison(r,niv)*niv.hauteur).toFixed(1).replace('.',',')} m²</td>
-        <td><button class="rm" onclick="cloisonsDe().splice(${i},1);recalcul()">✕</button></td></tr>`).join('')+`</tbody></table>`;
+        <td><button class="rm" onclick="supprimerCloison(${i})">✕</button></td></tr>`).join('')+`</tbody></table>`;
   }
 
   // ouvertures
@@ -2546,11 +2570,11 @@ function rendrePanneaux(){
   if(niv.ouvertures.length){
     const surMur=niv.ouvertures.filter(o=>o.sur==='mur').length;
     document.getElementById('nbOuv').textContent =
-      `${surMur} en façade${niv.ouvertures.length-surMur?` · ${niv.ouvertures.length-surMur} en refend`:''}`;
+      `${surMur} en façade${niv.ouvertures.length-surMur?` · ${niv.ouvertures.length-surMur} à l'intérieur`:''}`;
     document.getElementById('tableOuv').innerHTML=
       `<table><thead><tr><th>Sur</th><th>Type</th><th>Larg.</th><th>Haut.</th><th></th></tr></thead><tbody>`+
       niv.ouvertures.map((o,i)=>`<tr>
-        <td class="num" style="color:${o.sur==='refend'?'var(--bleu)':'var(--beton)'}">${o.sur==='mur'?'M':'R'}${o.i+1}</td>
+        <td class="num" style="color:${o.sur==='refend'?'var(--bleu)':'var(--beton)'}">${o.sur==='mur'?'M':o.sur==='cloison'?'C':'R'}${o.i+1}</td>
         <td><select onchange="ouvSel=${i};majEditOuv('nature',this.value)" style="max-width:118px">
           ${Object.entries(TYPES_OUV).filter(([k])=>estVS(niv)?k==='passage':k!=='passage').map(([k,v])=>`<option value="${k}" ${o.nature===k?'selected':''}>${v.l}</option>`).join('')}
         </select><div style="font-size:11px;color:var(--beton)">${typeOuv(o).mat&&o.materiau?MATERIAUX[o.materiau]:''}${typeOuv(o).vr&&o.volet?' · VR':''}</div></td>
@@ -2844,11 +2868,11 @@ function actionClic(e){
     const s=segmentSousCurseur(brut); if(!s) return;
     const reste=s.longueur-largeurOccupee(niv,s);
     if(reste<0.5) return;
-    const nature = estVS(niv) ? 'passage' : s.sur==='refend' ? 'porte' : 'fenetre';
+    const nature = estVS(niv) ? 'passage' : s.sur!=='mur' ? 'porte' : 'fenetre';
     const t=TYPES_OUV[nature];
     const o={ sur:s.sur, i:s.i, seg:s.seg, t:s.t,
       largeur:Math.min(t.L, Math.max(0.5,reste-0.2)), hauteur:t.H, nature };
-    if(t.mat) o.materiau = s.sur==='refend' ? 'bois' : 'pvc';
+    if(t.mat) o.materiau = s.sur!=='mur' ? 'bois' : 'pvc';
     niv.ouvertures.push(o);
     ouvSel=niv.ouvertures.length-1;
     recalcul(); return;
@@ -2886,7 +2910,7 @@ scene.addEventListener('dblclick', e=>{
     if(!h) return;
     if(h.type==='sommet')        supprimerMur((h.i - 1 + N().murs.length) % N().murs.length);
     else if(h.type==='refend')   { N().refends.splice(h.ri,1); recalcul(); }
-    else if(h.type==='cloison'||h.type==='cloisonEntiere') { cloisonsDe().splice(h.ci,1); recalcul(); }
+    else if(h.type==='cloison'||h.type==='cloisonEntiere') { supprimerCloison(h.ci); }
     else if(h.type==='piece') { piecesDe().splice(h.pi,1); recalcul(); }
     else if(h.type==='ouverture'){ N().ouvertures.splice(h.oi,1); recalcul(); }
   }
@@ -3286,6 +3310,7 @@ function analysePortees(niv){
   return best;
 }
 function dessinPortees(niv, po, tr){
+  if(!portePlancher(niv)) return '';
   const a=analysePortees(niv); if(!a) return '';
   const col = a.etat==='ko' ? '#B3261E' : a.etat==='etai' ? '#C77C0E' : '#3F6B4A';
   const P=(u,t)=> a.horizontal ? {x:u,y:t} : {x:t,y:u};
@@ -3307,7 +3332,14 @@ function dessinPortees(niv, po, tr){
 }
 function majInfoPortee(){
   const el=document.getElementById('porteeInfo'); if(!el) return;
-  const niv=N(), a=(voirPortees&&mode!=='plancher')?analysePortees(niv):null;
+  const niv=N();
+  if(voirPortees&&mode!=='plancher'&&niv.ferme&&!portePlancher(niv)){
+    el.className='portee-info ok'; el.hidden=false;
+    el.innerHTML = `<b>${niv.nom} sous la toiture</b> — la charpente en fermettes porte d'un mur extérieur à l'autre : `
+      + (vuePro() ? `pas de refend nécessaire, les murs intérieurs sont des cloisons.` : `pas de mur porteur à prévoir, vos murs intérieurs sont des cloisons.`);
+    return;
+  }
+  const a=(voirPortees&&mode!=='plancher')?analysePortees(niv):null;
   if(!a){ el.hidden=true; return; }
   const f=v=>v.toFixed(2).replace('.',','), lim=f(a.limite).replace(/0$/,'');
   const quoi = niv.nom==='Vide sanitaire' ? 'Plancher bas (posé sur le vide sanitaire)' : `Plancher posé sur les murs du ${niv.nom}`;
@@ -3409,6 +3441,8 @@ function majAide(){
     ? `Cliquez dans une pièce pour la nommer : sa surface se calcule entre les murs et les cloisons. Cliquez un nom pour le changer.`
     : mode==='cloison'
     ? `Tracez une cloison (non porteuse) d'un mur à l'autre : cliquez chaque point, ou visez et tapez la longueur + <kbd>Entrée</kbd>. <kbd>Entrée</kbd> ou « Terminer le mur » la valide. Elle ne porte pas le plancher.`
+    : mode==='refend'&&N().ferme&&!portePlancher()
+    ? `Ce niveau est sous la toiture en fermettes : un refend n'y est pas nécessaire. Tracez plutôt vos murs intérieurs en <b>3 · Cloisons</b>. Un refend ne sert que sous un plancher (vide sanitaire ou étage).`
     : mode==='refend'
     ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd>, double-clic ou « Terminer le mur » le termine. Ses angles sont comptés.` : `Touchez le point de départ du mur, puis le point d'arrivée — ou tapez sa longueur ci-dessous et choisissez la direction. « Terminer le mur » le valide.`)
     : mode==='plancher'
@@ -3495,7 +3529,7 @@ function annuler(){
   } else if(mode==='ouverture'){ if(niv.ouvertures.length) niv.ouvertures.pop(); }
   else if(mode==='refend'||mode==='cloison'){
     if(refEnCours){ refEnCours.pts.pop(); if(!refEnCours.pts.length) refEnCours=null; }
-    else if(mode==='cloison'){ cloisonsDe(niv).pop(); }
+    else if(mode==='cloison'){ if(cloisonsDe(niv).length) supprimerCloison(cloisonsDe(niv).length-1, niv); }
     else if(niv.refends.length) supprimerRefend(niv.refends.length-1);
   } else {
     if(niv.ferme) niv.ferme=false; else if(niv.murs.length) niv.murs.pop();
