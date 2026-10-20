@@ -69,6 +69,12 @@ body.plein .enveloppe,body.plein .legende{display:none}
 .plancher-barre select{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
 .plancher-barre button.poser{background:#1F3A5F;color:#fff;border-color:#1F3A5F}
 .barre{display:flex;gap:6px;flex-wrap:wrap}
+.cotes-barre{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--trait);background:#F3F7F1}
+.cotes-barre .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cotes-barre b{font-size:12.5px}
+.cotes-barre input{width:84px;font:500 16px 'IBM Plex Mono',monospace;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
+.cotes-barre .fl{min-width:44px;min-height:40px;font:600 18px system-ui,sans-serif;padding:4px 8px}
+.cotes-barre .msg{font-size:12px;color:var(--terre)}
 button{font:500 12.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:6px;
   border:1px solid var(--trait);background:var(--paper);color:var(--encre);cursor:pointer}
 button:hover:not(:disabled){background:var(--paper-dim)}
@@ -353,6 +359,25 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         </div>
       </div>
       <svg id="scene" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="cotes-barre" id="cotesBarre">
+        <div class="grp">
+          <b>Longueur</b>
+          <input id="coteL" type="text" inputmode="decimal" placeholder="ex. 8,50" autocomplete="off"> m
+          <button type="button" class="fl" onclick="poserCote(1,0)" title="Vers la droite">→</button>
+          <button type="button" class="fl" onclick="poserCote(0,-1)" title="Vers le bas">↓</button>
+          <button type="button" class="fl" onclick="poserCote(-1,0)" title="Vers la gauche">←</button>
+          <button type="button" class="fl" onclick="poserCote(0,1)" title="Vers le haut">↑</button>
+          <button type="button" id="bFinRefend" onclick="validerRefend()">Terminer le mur</button>
+        </div>
+        <div class="grp" id="grpRect">
+          <b>ou un rectangle</b>
+          <input id="rectL" type="text" inputmode="decimal" placeholder="long." autocomplete="off"> ×
+          <input id="rectP" type="text" inputmode="decimal" placeholder="larg." autocomplete="off"> m
+          <button type="button" onclick="tracerRectangle()">Tracer</button>
+        </div>
+        <button type="button" onclick="cadre=null;rendreScene()">Recentrer</button>
+        <span class="msg" id="coteMsg"></span>
+      </div>
       <div class="plancher-barre">
         <label>Sens des poutrelles
           <select id="sensPlancher">
@@ -2284,7 +2309,8 @@ scene.addEventListener('wheel', e=>{
 // Deplacement au clic droit ou au bouton du milieu.
 let glisse=null;
 scene.addEventListener('contextmenu', e=>e.preventDefault());
-scene.addEventListener('mousedown', e=>{
+scene.addEventListener('pointerdown', e=>{
+  if(pince) return;
   // Bouton gauche en mode Deplacer : on saisit une poignee.
   if(e.button===0 && mode==='plancher'){
     const p0=versMetres(e);
@@ -2307,11 +2333,11 @@ scene.addEventListener('mousedown', e=>{
   glisse = { xs:e.clientX, ys:e.clientY, cadre:{...c} };
   scene.style.cursor='grabbing';
 });
-window.addEventListener('mouseup', ()=>{
+window.addEventListener('pointerup', ()=>{
   if(glisse){ glisse=null; scene.style.cursor=''; }
   if(prise){ prise=null; scene.style.cursor=''; recalcul(); }
 });
-window.addEventListener('mousemove', e=>{
+window.addEventListener('pointermove', e=>{
   if(!glisse) return;
   const r=scene.getBoundingClientRect(), c=glisse.cadre;
   const k=Math.min(r.width/c.w, r.height/c.h);
@@ -2319,7 +2345,8 @@ window.addEventListener('mousemove', e=>{
   rendreScene();
 });
 
-scene.addEventListener('mousemove', e=>{
+function survolScene(e){
+  if(pince) return;
   const p=versMetres(e);
 
   if(mode==='plancher' && prise && prise.type==='poutre'){
@@ -2371,10 +2398,13 @@ scene.addEventListener('mousemove', e=>{
   if(mode==='contour'&&N().ferme){ curseur=null; return rendreScene(); }
   curseur=contraindre(p,e.shiftKey,departCourant());
   rendreScene();
-});
-scene.addEventListener('mouseleave',()=>{ curseur=null; survol=null; rendreScene(); });
+}
+scene.addEventListener('pointermove', survolScene);
+scene.addEventListener('pointerleave',()=>{ if(pince) return; curseur=null; survol=null; rendreScene(); });
 
-scene.addEventListener('click', e=>{
+scene.addEventListener('click', e=>{ if(Date.now()<ignorerClic) return; actionClic(e); });
+function actionClic(e){
+  if(mode==='deplacer') return;
   const niv=N(), brut=versMetres(e);
 
   if(mode==='plancher'){
@@ -2419,7 +2449,7 @@ scene.addEventListener('click', e=>{
     }
   }
   recalcul();
-});
+}
 
 scene.addEventListener('dblclick', e=>{
   if(mode==='plancher'){
@@ -2438,6 +2468,7 @@ scene.addEventListener('dblclick', e=>{
   }
 });
 document.addEventListener('keydown', e=>{
+  if(e.target && e.target.closest && e.target.closest('.cotes-barre')) return;
   if(e.key==='Escape') annuler();
   if((e.key==='Delete'||e.key==='Backspace') && mode==='plancher' && poutreSel!==null && N().poutres){
     const tag=document.activeElement && document.activeElement.tagName;
@@ -2446,6 +2477,85 @@ document.addEventListener('keydown', e=>{
     N().poutres.splice(poutreSel,1); poutreSel=null; recalcul();
   }
   if(e.key==='Enter'&&mode==='refend') validerRefend();
+});
+
+/* ---- Tactile ---- */
+let pince=null, ignorerClic=0, toucheAnnulee=false;
+const doigts=new Map();
+const ecart=()=>{ const [a,b]=[...doigts.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y)||1, x:(a.x+b.x)/2, y:(a.y+b.y)/2}; };
+scene.addEventListener('pointerdown', e=>{
+  if(e.pointerType!=='touch') return;
+  doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(doigts.size===2){
+    const c=cadre||cadreAuto; if(!c) return;
+    pince={ c:{...c}, ...ecart() }; toucheAnnulee=true;
+    prise=null; curseur=null; survol=null; rendreScene(); return;
+  }
+  if(doigts.size===1 && mode!=='deplacer') survolScene(e);
+});
+scene.addEventListener('pointermove', e=>{
+  if(e.pointerType!=='touch'||!doigts.has(e.pointerId)) return;
+  doigts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(!pince||doigts.size<2) return;
+  const r=scene.getBoundingClientRect(), c0=pince.c, m=ecart();
+  const s=Math.max(0.05,Math.min(20,pince.d/m.d));
+  const k0=Math.min(r.width/c0.w, r.height/c0.h);
+  const ox=(r.width-c0.w*k0)/2, oy=(r.height-c0.h*k0)/2;
+  const w=Math.max(2,Math.min(400,c0.w*s)), sc=w/c0.w, h=c0.h*sc;
+  cadre={ x:c0.x+(pince.x-r.left-ox)/k0-(m.x-r.left-ox)*sc/k0,
+          y:c0.y+(pince.y-r.top -oy)/k0-(m.y-r.top -oy)*sc/k0, w, h };
+  rendreScene();
+});
+function finDoigt(e, annule){
+  if(e.pointerType!=='touch') return;
+  doigts.delete(e.pointerId);
+  if(pince||toucheAnnulee||annule){
+    if(doigts.size<2) pince=null;
+    if(!doigts.size) toucheAnnulee=false;
+    ignorerClic=Date.now()+700; curseur=null; rendreScene(); return;
+  }
+  ignorerClic=Date.now()+700;
+  if(mode==='deplacer') return;
+  if(mode==='plancher' && saisiePoutre){ saisiePoutre=false; recalcul(); return; }
+  actionClic(e);
+}
+scene.addEventListener('pointerup', e=>finDoigt(e,false));
+scene.addEventListener('pointercancel', e=>finDoigt(e,true));
+
+/* ---- Saisie au metre : longueur tapee + direction ---- */
+function lireCote(id){
+  const v=parseFloat(String(document.getElementById(id).value).replace(',','.').trim());
+  return v>0&&v<300 ? v : null;
+}
+function messageCote(t){ const m=document.getElementById('coteMsg'); if(m) m.textContent=t||''; }
+function poserCote(dx,dy){
+  const L=lireCote('coteL'), niv=N();
+  if(!L){ messageCote('Tapez d’abord une longueur en mètres.'); document.getElementById('coteL').focus(); return; }
+  if(mode==='contour'){
+    if(niv.ferme){ messageCote('Ce contour est déjà fermé.'); return; }
+    niv.murs.push({dx,dy,longueur:L});
+    const d=sommets().slice(-1)[0];
+    if(niv.murs.length>2 && Math.hypot(d.x,d.y)<0.02){ niv.ferme=true; messageCote('Contour fermé.'); }
+    else messageCote('');
+  } else if(mode==='refend'){
+    if(!refEnCours){ messageCote('Touchez d’abord le point de départ du mur sur le plan.'); return; }
+    const d=refEnCours.pts[refEnCours.pts.length-1];
+    refEnCours.pts.push({x:d.x+dx*L, y:d.y+dy*L}); messageCote('');
+  } else return;
+  curseur=null; cadre=null; recalcul();
+  const i=document.getElementById('coteL'); i.value=''; i.focus();
+}
+function tracerRectangle(){
+  const L=lireCote('rectL'), P=lireCote('rectP'), niv=N();
+  if(!L||!P){ messageCote('Indiquez la longueur et la largeur.'); return; }
+  if(niv.murs.length && !confirm('Remplacer le tracé de ce niveau par ce rectangle ?')) return;
+  niv.murs=[{dx:1,dy:0,longueur:L},{dx:0,dy:-1,longueur:P},{dx:-1,dy:0,longueur:L},{dx:0,dy:1,longueur:P}];
+  niv.refends=[]; niv.ouvertures=[]; niv.ferme=true; refEnCours=null;
+  cadre=null; curseur=null; messageCote(''); recalcul();
+}
+document.getElementById('coteL').addEventListener('keydown', e=>{
+  const dirs={ArrowRight:[1,0],ArrowDown:[0,-1],ArrowLeft:[-1,0],ArrowUp:[0,1]};
+  if(dirs[e.key]){ e.preventDefault(); e.stopPropagation(); poserCote(...dirs[e.key]); }
 });
 
 function validerRefend(){
@@ -2643,11 +2753,13 @@ function reporterDepuisDessus(){
 }
 
 function majAide(){
+  const tactile = matchMedia('(pointer:coarse)').matches;
   const bas=dessous();
   document.getElementById('aide').innerHTML = mode==='contour'
-    ? `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`
+    ? (tactile ? `Posez le doigt et glissez : la longueur s'affiche, levez pour poser l'angle. Deux doigts pour zoomer.` : `Cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Maj</kbd> libère l'angle droit, <kbd>Échap</kbd> annule.`)
+      + ` Plus simple : tapez la longueur de chaque mur ci-dessous et choisissez sa direction, ou partez d'un rectangle.`
     : mode==='refend'
-    ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine. Ses angles sont comptés.` : `Tracez un mur porteur d'un mur à l'autre. <kbd>Entrée</kbd> ou double-clic le termine.`)
+    ? (vuePro() ? `Tracez un refend d'un mur à l'autre. <kbd>Entrée</kbd>, double-clic ou « Terminer le mur » le termine. Ses angles sont comptés.` : `Touchez le point de départ du mur, puis le point d'arrivée — ou tapez sa longueur ci-dessous et choisissez la direction. « Terminer le mur » le valide.`)
     : mode==='plancher'
     ? `Deux clics posent une poutrelle. Cliquez-la pour la déplacer, double-clic ou Suppr pour l'enlever. Les murs, eux, se tracent avec Contour.`
     : mode==='deplacer'
@@ -2775,6 +2887,13 @@ function majBoutons(){
   document.getElementById('bAnnuler').disabled=!niv.murs.length&&!niv.refends.length&&!niv.ouvertures.length&&!refEnCours;
   document.getElementById('bFermer').disabled=mode!=='contour'||niv.ferme||niv.murs.length<3;
   document.getElementById('bReporter').disabled=!dessus()||!dessus().murs.length;
+  const cb=document.getElementById('cotesBarre');
+  if(cb){
+    cb.hidden = !((mode==='contour'&&!niv.ferme)||mode==='refend');
+    document.getElementById('grpRect').hidden = !(mode==='contour'&&!niv.murs.length);
+    document.getElementById('bFinRefend').hidden = mode!=='refend';
+    document.getElementById('bFinRefend').disabled = !(refEnCours&&refEnCours.pts.length>1);
+  }
 }
 
 /* Exemple : le RDC relevé sur plan et le vide sanitaire qui le porte. */
