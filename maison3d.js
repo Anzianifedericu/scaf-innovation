@@ -225,7 +225,8 @@
       x.beginPath(); x.moveTo(r,0); x.arcTo(512,0,512,160,r); x.arcTo(512,160,0,160,r); x.arcTo(0,160,0,0,r); x.arcTo(0,0,512,0,r); x.fill();
       x.fillStyle='#2E4F37'; x.textAlign='center'; x.font='600 54px "IBM Plex Sans", sans-serif'; x.fillText(t,256,70);
       x.font='500 44px "IBM Plex Mono", monospace'; x.fillStyle='#3F6B4A'; x.fillText(sous,256,130);
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(cv), depthTest:false }));
+      const tx=new THREE.CanvasTexture(cv); tx.encoding=THREE.sRGBEncoding;
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, depthTest:false }));
       sp.scale.set(2.4,0.75,1); sp.renderOrder=10; return sp;
     }
 

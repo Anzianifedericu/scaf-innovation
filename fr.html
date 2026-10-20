@@ -583,6 +583,19 @@
   .hero-photo img{width:100%; max-width:420px; height:auto; display:block; border:1px solid var(--ligne);}
   .hero-photo-caption{margin-top:14px; font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:#6B675C; text-align:center;}
 
+  /* parcours Ma maison */
+  .maison3d{background:#F3EEE3;border-bottom:1px solid var(--ligne);}
+  .m3-grid{display:grid; grid-template-columns:1fr 1.05fr; gap:48px; align-items:center;}
+  .m3-lede{font-size:1.02rem; color:#4B453B; max-width:52ch; margin-bottom:20px;}
+  .m3-etapes{list-style:none; counter-reset:e; margin:0 0 28px; padding:0; display:grid; gap:12px;}
+  .m3-etapes li{counter-increment:e; position:relative; padding-left:42px; font-size:0.97rem; color:#4B453B; line-height:1.5;}
+  .m3-etapes li::before{content:counter(e); position:absolute; left:0; top:-1px; width:28px; height:28px; display:grid; place-items:center; border-radius:50%; background:var(--terracotta); color:var(--blanc-mur); font:600 0.85rem 'IBM Plex Sans',sans-serif;}
+  .m3-etapes b{color:var(--nuit);}
+  .m3-visuel{margin:0;}
+  .m3-visuel img{width:100%; height:auto; display:block; border:1px solid var(--ligne); box-shadow:0 18px 40px rgba(0,0,0,.12);}
+  .m3-visuel figcaption{margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:#6B675C; text-align:center;}
+  @media (max-width:860px){ .m3-grid{grid-template-columns:1fr; gap:28px;} }
+
   /* trust strip */
   .trust{border-top:1px solid var(--ligne); border-bottom:1px solid var(--ligne); margin-top:56px;}
   .trust-grid{display:grid; grid-template-columns:repeat(3,1fr); padding:28px 0;}
@@ -689,6 +702,7 @@
   <nav>
     <a href="#top" class="logo">SCAF <span>Innovation</span></a>
     <ul class="nav-links">
+      <li><a href="/calculateur?parcours=1">Créer ma maison</a></li>
       <li><a href="/realisations-fr">Réalisations</a></li>
       <li><a href="#chantier">Le chantier</a></li>
       <li><a href="#scaf">Pourquoi SCAF</a></li>
@@ -714,6 +728,7 @@
       <a href="/" hreflang="co" lang="co">CO</a>
       <a href="/fr" hreflang="fr" lang="fr" class="active" aria-current="page">FR</a>
     </div>
+      <a href="/calculateur?parcours=1">Créer ma maison en 3D</a>
       <a href="/realisations-fr">Réalisations</a>
       <a href="#chantier">Le chantier</a>
       <a href="#scaf">Pourquoi SCAF</a>
@@ -733,8 +748,8 @@
         <h1>La maison de vos rêves.<br>Bâti pour durer. Conçu pour vivre.</h1>
         <p class="lede">SCAF Innovation accompagne les particuliers en Corse qui veulent construire avec le système Nudura&nbsp;: un mur en béton armé et isolant haute densité, coulé en un seul geste, pensé pour le climat et les sols de l'île.</p>
         <div class="hero-ctas">
-          <a href="/demande-etude-nudura" class="btn">Demander un devis</a>
-          <a href="#pourquoi" class="btn btn-ghost">Découvrir le système</a>
+          <a href="/calculateur?parcours=1" class="btn">Créer ma maison en 3D</a>
+          <a href="/demande-etude-nudura" class="btn btn-ghost">Demander un devis</a>
         </div>
       </div>
       <div class="reveal is-visible hero-photo">
@@ -749,6 +764,29 @@
         <div class="trust-item"><span class="num">Zone&nbsp;2</span><span class="label">conçu pour la sismicité de la Corse</span></div>
         <div class="trust-item"><span class="num">RE2020</span><span class="label">conformité thermique native</span></div>
       </div>
+    </div>
+  </section>
+
+  <!-- MA MAISON NUDURA : le parcours de creation -->
+  <section class="section maison3d" id="ma-maison">
+    <div class="wrap m3-grid">
+      <div>
+        <span class="eyebrow">Nouveau — gratuit et sans inscription</span>
+        <h2>Imaginez-vous déjà chez vous</h2>
+        <p class="m3-lede">Dessinez votre future maison en quelques minutes, nommez vos pièces, choisissez vos murs Nudura
+           et visitez-la en 3D. Quand elle vous plaît, envoyez-la nous : nous vous répondons avec une étude personnalisée.</p>
+        <ol class="m3-etapes">
+          <li><b>Partez d'un modèle</b> ou dessinez votre plan — même celui de votre architecte.</li>
+          <li><b>Nommez vos pièces</b> : leur surface se calcule toute seule.</li>
+          <li><b>Choisissez vos murs Nudura</b> : Essentiel, Renforcé ou Haute isolation.</li>
+          <li><b>Visitez-la en 3D</b> : couleur de façade, menuiseries, tuiles, soleil.</li>
+        </ol>
+        <a href="/calculateur?parcours=1" class="btn">Créer ma maison en 3D</a>
+      </div>
+      <figure class="m3-visuel">
+        <img src="/assets/maison-3d-interieur.webp" alt="Maquette 3D d'une villa en L créée avec l'outil SCAF : séjour-cuisine, chambres, salles d'eau et garage, chaque pièce avec sa surface" width="920" height="780" loading="lazy" decoding="async">
+        <figcaption>Une villa en L créée en quelques clics, vue de l'intérieur</figcaption>
+      </figure>
     </div>
   </section>
 
