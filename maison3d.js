@@ -233,6 +233,7 @@
     // empilement des niveaux : le vide sanitaire est a demi enterre
     const prets = niveaux.filter(n=>n.ferme&&n.murs.length);
     const iMax = prets.findIndex(n=>n.nom===reglages.niveauMax);
+    const aToit = [];
     let base = 0, solY = null, sommet = null, minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
     prets.forEach((niv, k)=>{
       const vs = niv.hauteur < 1.8;
@@ -292,15 +293,81 @@
         const sp = texte(pc.nom, s.toFixed(1).replace('.',',')+' m²'); sp.position.set(pc.x, base+1.1, -pc.y); maison.add(sp);
       });
       sommet = { niv, base, h, pts };
+      if(!vs) aToit.push({ niv, base, h, e });
       base += h + 0.22;
     });
 
-    // toiture : quatre pans sur chaque rectangle de l'emprise du dernier niveau
-    if(sommet && reglages.vue==='exterieur'){
-      const yT = sommet.base + sommet.h;
-      const plafond = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape(sommet.pts.map(p=>new THREE.Vector2(p.x,p.y))),{depth:0.22,bevelEnabled:false}), [mDalle,mFacade]);
-      plafond.rotation.x=-Math.PI/2; plafond.position.y=yT; maison.add(ombre(plafond));
-      rectangles(sommet.pts).forEach(R=>toit(R, yT+0.22, mTuile));
+    // toiture : chaque partie non couverte par un etage recoit la forme choisie
+    if(reglages.vue==='exterieur'){
+      const mEtanch = new THREE.MeshStandardMaterial({ color:C('#7E7A72'), roughness:0.9 });
+      aToit.forEach(({niv, base:b0, h:hN, e})=>{
+        const yT = b0 + hN;
+        (window.zonesToiture ? zonesToiture(niv) : []).forEach(z=>{
+          const r = reglageToiture(niv, z);
+          const W=z.x1-z.x0, D=z.y1-z.y0;
+          const pl=new THREE.Mesh(new THREE.BoxGeometry(W,0.22,D), [mFacade,mFacade,mDalle,mDalle,mFacade,mFacade]);
+          pl.position.set((z.x0+z.x1)/2, yT+0.11, -(z.y0+z.y1)/2); maison.add(ombre(pl));
+          toitZone(z, yT+0.22, r, niv, e);
+        });
+      });
+      // toit plat : etancheite et acrotere sur les aretes de facade
+      function toitPlat(z, y, r, niv, e){
+        const W=z.x1-z.x0, D=z.y1-z.y0;
+        const s=new THREE.Mesh(new THREE.BoxGeometry(W-0.02,0.04,D-0.02), mEtanch); s.position.set((z.x0+z.x1)/2, y+0.02, -(z.y0+z.y1)/2); maison.add(ombre(s));
+        const ha=Math.max(0.05, r.acrotere);
+        (window.aretesToitPlat ? aretesToitPlat(niv,z) : []).forEach(([a,b])=>{
+          const L=Math.hypot(b.x-a.x,b.y-a.y), ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+          // normale vers l'interieur de la partie
+          let n={x:-uy,y:ux}; const cx=(z.x0+z.x1)/2, cy=(z.y0+z.y1)/2, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+          if((cx-mx)*n.x+(cy-my)*n.y<0) n={x:-n.x,y:-n.y};
+          pave(a,b,n,e,y-0.22,y+ha,mFacade);
+        });
+      }
+      function toitZone(z, y, r, niv, e){
+        if(r.type==='plat') return toitPlat(z, y, r, niv, e);
+        const d=r.debord, p=r.pente/100;
+        const x0=z.x0-d, x1=z.x1+d, z0=-(z.y1+d), z1=-(z.y0-d);
+        const W=x1-x0, D=z1-z0, tri=[], pig=[];
+        const T=(a,b,c,arr=tri)=>arr.push(...a,...b,...c);
+        const c00=[x0,y,z0], c10=[x1,y,z0], c11=[x1,y,z1], c01=[x0,y,z1];
+        if(r.type==='4pans'){
+          const hR=Math.min(W,D)/2*p; let A,B;
+          if(W>=D){ A=[x0+D/2,y+hR,(z0+z1)/2]; B=[x1-D/2,y+hR,(z0+z1)/2]; T(c00,c10,B); T(c00,B,A); T(c11,c01,A); T(c11,A,B); T(c01,c00,A); T(c10,c11,B); }
+          else    { A=[(x0+x1)/2,y+hR,z0+W/2]; B=[(x0+x1)/2,y+hR,z1-W/2]; T(c10,c11,B); T(c10,B,A); T(c01,c00,A); T(c01,A,B); T(c00,c10,A); T(c11,c01,B); }
+        } else if(r.type==='diamant'){
+          const S=[(x0+x1)/2, y+Math.min(W,D)/2*p, (z0+z1)/2];
+          T(c00,c10,S); T(c10,c11,S); T(c11,c01,S); T(c01,c00,S);
+        } else if(r.type==='2pans'){
+          const enX = r.sens==='x' || (r.sens==='auto' && W>=D);
+          if(enX){ const hR=D/2*p, zm=(z0+z1)/2, A=[x0,y+hR,zm], B=[x1,y+hR,zm];
+            T(c00,c10,B); T(c00,B,A); T(c11,c01,A); T(c11,A,B);
+            // pignons au droit des murs
+            [z.x0, z.x1].forEach(x=>T([x,y,-(z.y1)],[x,y,-(z.y0)],[x,y+hR-d*p,zm],pig)); }
+          else { const hR=W/2*p, xm=(x0+x1)/2, A=[xm,y+hR,z0], B=[xm,y+hR,z1];
+            T(c10,c11,B); T(c10,B,A); T(c01,c00,A); T(c01,A,B);
+            [z.y0, z.y1].forEach(yy=>T([z.x0,y,-yy],[z.x1,y,-yy],[(z.x0+z.x1)/2,y+hR-d*p,-yy],pig)); }
+        } else if(r.type==='1pan'){
+          // le cote bas est celui choisi ; le toit monte vers le cote oppose
+          const bas=r.bas||'S';
+          if(bas==='S'||bas==='N'){
+            const hT=D*p, lo=bas==='S'?z1:z0, hi=bas==='S'?z0:z1;
+            T([x0,y,lo],[x1,y,lo],[x1,y+hT,hi]); T([x0,y,lo],[x1,y+hT,hi],[x0,y+hT,hi]);
+            const zl=bas==='S'?-z.y0:-z.y1, zh=bas==='S'?-z.y1:-z.y0, hw=(z.y1-z.y0+d)*p;
+            [z.x0,z.x1].forEach(x=>T([x,y,zl],[x,y,zh],[x,y+hw,zh],pig));
+            T([z.x0,y,zh],[z.x1,y,zh],[z.x1,y+hw,zh],pig); T([z.x0,y,zh],[z.x1,y+hw,zh],[z.x0,y+hw,zh],pig);
+          } else {
+            const hT=W*p, lo=bas==='E'?x1:x0, hi=bas==='E'?x0:x1;
+            T([lo,y,z0],[lo,y,z1],[hi,y+hT,z1]); T([lo,y,z0],[hi,y+hT,z1],[hi,y+hT,z0]);
+            const xl=bas==='E'?z.x1:z.x0, xh=bas==='E'?z.x0:z.x1, hw=(z.x1-z.x0+d)*p;
+            [z.y0,z.y1].forEach(yy=>T([xl,y,-yy],[xh,y,-yy],[xh,y+hw,-yy],pig));
+            T([xh,y,-z.y0],[xh,y,-z.y1],[xh,y+hw,-z.y1],pig); T([xh,y,-z.y0],[xh,y+hw,-z.y1],[xh,y+hw,-z.y0],pig);
+          }
+        }
+        const ajoute=(arr,mat)=>{ if(!arr.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr,3)); g.computeVertexNormals();
+          const me=new THREE.Mesh(g,mat); me.castShadow=true; me.receiveShadow=true; maison.add(me); };
+        ajoute(tri, mTuile);
+        ajoute(pig, new THREE.MeshStandardMaterial({ color:mFacade.color, roughness:0.9, side:THREE.DoubleSide }));
+      }
     }
 
     // terrain en pente : le niveau du bas est enterre cote amont (nord, haut du plan)

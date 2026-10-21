@@ -367,6 +367,7 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mAgrandir" onclick="setMode('agrandir')" title="Ajouter un garage ou une pièce : partez d'un mur, tracez vers l'extérieur et revenez sur un mur">Agrandir (garage, pièce)</button>
           <button id="mLibre" onclick="setMode('murlibre')" title="Un mur posé où vous voulez, accroché ou non : muret, mur de clôture, mur de terrasse">Mur libre</button>
           <button id="mTerrasse" onclick="setMode('terrasse')" title="Une terrasse : cliquez deux coins opposés">Terrasse</button>
+          <button id="mToiture" onclick="setMode('toiture')" title="Choisir la forme du toit : pans, pointe de diamant ou toit plat avec acrotère">Toiture</button>
           <button id="mDep" onclick="setMode('deplacer')" title="Cliquer un élément pour le régler, le glisser pour le déplacer">Sélection</button>
           <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
         </div>
@@ -438,6 +439,23 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
         <button type="button" onclick="supprimerMurSel()">Supprimer ce mur</button>
         <button type="button" onclick="murSel=null;recalcul()">Fermer</button>
         <span class="msg" id="editMsg" style="font-size:12px;color:var(--terre)"></span>
+      </div>
+      <div class="edit-mur" id="editToit" hidden>
+        <b id="etoTitre">Toiture</b>
+        <span id="etoMsg" style="font-size:12.5px;color:var(--terre)"></span>
+        <select id="etoType" class="eto-c" onchange="majToiture()" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:6px;border:1px solid var(--trait);border-radius:6px;width:100%">
+          <option value="4pans">Quatre pans</option><option value="2pans">Deux pans</option><option value="1pan">Un pan (monopente)</option>
+          <option value="diamant">Pointe de diamant</option><option value="plat">Toit plat en dalle (acrotère)</option>
+        </select>
+        <span id="etoPenteB" class="eto-c">Pente <input id="etoPente" type="text" inputmode="decimal" onchange="majToiture()"> %</span>
+        <span id="etoDebB" class="eto-c">Débord <input id="etoDeb" type="text" inputmode="decimal" onchange="majToiture()"> m</span>
+        <span id="etoSensB" class="eto-c">Faîtage <select id="etoSens" onchange="majToiture()"><option value="auto">Dans la longueur</option><option value="x">Horizontal sur le plan</option><option value="y">Vertical sur le plan</option></select></span>
+        <span id="etoBasB" class="eto-c">Pente vers <select id="etoBas" onchange="majToiture()"><option value="S">le bas du plan (sud)</option><option value="N">le haut du plan (nord)</option><option value="E">la droite (est)</option><option value="O">la gauche (ouest)</option></select></span>
+        <span id="etoAcroB" class="eto-c">Acrotère <input id="etoAcro" type="text" inputmode="decimal" onchange="majToiture()"> m</span>
+        <button type="button" id="etoTout" class="eto-c" onclick="toitPourTout()">Appliquer à toute la toiture</button>
+        <button type="button" id="etoGeneral" class="eto-c" onclick="toitGeneral()">Revenir au réglage général</button>
+        <span id="etoAide" class="eto-c" style="font-size:12px;color:var(--beton)"></span>
+        <div id="etoResume" class="eto-c" style="font-size:13px;width:100%"></div>
       </div>
       <div class="edit-mur" id="agrandirBarre" hidden>
         <b>Agrandir la maison</b>
@@ -853,6 +871,7 @@ function supprimerCloison(i, niv=N()){
    exterieur a l'autre, et les murs interieurs sont des cloisons. */
 function portePlancher(niv=N()){
   if(estVS(niv)) return true;
+  if(window.toitPlat && toitPlat(niv)) return true;     // un toit plat en dalle est un plancher
   const i = niveaux.indexOf(niv);
   return niveaux.slice(i+1).some(n=>n.murs.length);
 }
@@ -1634,6 +1653,7 @@ async function envoyerPlan(){
       refendLineaire: Number((totalRefends(n)+mursLibresDe(n).reduce((t,r)=>t+longueurPoly(r.pts),0)).toFixed(3)),
       mursLibres: mursLibresDe(n).map(r=>({ longueur:Number(longueurPoly(r.pts).toFixed(2)), hauteur:r.hauteur||null })),
       terrasses: terrassesDe(n).map(t=>({ longueur:Number((t.x1-t.x0).toFixed(2)), largeur:Number((t.y1-t.y0).toFixed(2)), surface:Number(surfaceTerrasse(t).toFixed(2)), couverte:!!t.couverte })),
+      toiture: window.toitureResume ? toitureResume(n) : null,
       pieces: piecesDe(n).map(pc=>({ nom: pc.nom, surface: Number(surfacePiece(n,pc).toFixed(2)) })),
       cloisonLineaire: Number(totalCloisons(n).toFixed(2)),
       gamme: n.gamme, voile_mm: n.epaisseur,
@@ -2661,6 +2681,7 @@ function rendreSceneBase(){
       g+=`<text x="${c.x}" y="${-c.y+po*1.2}" font-size="${po*.8}" font-family="IBM Plex Sans,sans-serif" fill="#3F6B4A" text-anchor="middle" style="pointer-events:none">intérieurs${ded>0.01?` · ≈ ${f(Math.max(0,sh-ded))} m² hors ${quoi}`:''}</text>`;
     }
   }
+  (window.dessinsPlan||[]).forEach(f=>{ try{ if(!horsEcran) g+=f(niv,{po,tr,u,ra})||''; }catch(err){ console.error(err); } });
   scene.innerHTML=g;
 }
 
@@ -3070,6 +3091,7 @@ function survolScene(e){
   const p=versMetres(e);
   if(calage){ curseur=null; scene.style.cursor='crosshair'; return; }
   if(mode==='piece'){ curseur=null; scene.style.cursor=pieceSous(p)!==null?'pointer':'cell'; return; }
+  if(mode==='toiture'){ curseur=null; scene.style.cursor='pointer'; return; }
   if(mode==='contour'&&N().ferme){
     const s=segmentSousCurseur(p); scene.style.cursor=(s&&s.sur==='mur')?'pointer':'';
   }
@@ -3196,6 +3218,7 @@ function actionClic(e){
     recalcul(); return;
   }
 
+  if(mode==='toiture'){ if(window.clicToiture) clicToiture(brut); return; }
   if(mode==='terrasse'){
     const q=contraindre(brut,e.shiftKey,null);
     const ts=terrasseSous(brut);
@@ -3736,7 +3759,7 @@ function voirResultats(){
 }
 
 function setMode(m){
-  if((m==='refend'||m==='cloison'||m==='ouverture'||m==='deplacer'||m==='piece'||m==='agrandir'||m==='murlibre'||m==='terrasse')&&!N().ferme){
+  if((m==='refend'||m==='cloison'||m==='ouverture'||m==='deplacer'||m==='piece'||m==='agrandir'||m==='murlibre'||m==='terrasse'||m==='toiture')&&!N().ferme){
     const vd=document.getElementById('verdict');
     vd.className='verdict ko'; vd.textContent="Refermez d'abord le contour de ce niveau.";
     return;
@@ -3747,7 +3770,7 @@ function setMode(m){
   document.getElementById('mRefend').classList.toggle('actif-bleu',m==='refend');
   document.getElementById('mCloison').classList.toggle('actif-cloison',m==='cloison');
   document.getElementById('mPiece').classList.toggle('actif-piece',m==='piece');
-  ['mAgrandir:agrandir','mLibre:murlibre','mTerrasse:terrasse'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById(id); if(b) b.classList.toggle('actif',m===k); });
+  ['mAgrandir:agrandir','mLibre:murlibre','mTerrasse:terrasse','mToiture:toiture'].forEach(x=>{ const [id,k]=x.split(':'); const b=document.getElementById(id); if(b) b.classList.toggle('actif',m===k); });
   document.getElementById('mOuv').classList.toggle('actif-ciel',m==='ouverture');
   document.getElementById('mDep').classList.toggle('actif-ocre',m==='deplacer');
   const bp=document.getElementById('mPlancher');
@@ -3789,6 +3812,8 @@ function majAide(){
   document.getElementById('aide').innerHTML = mode==='contour'
     ? (tactile ? `Posez le doigt et glissez : la longueur s'affiche, levez pour poser l'angle. Deux doigts pour zoomer.` : (frappe ? `Longueur tapée : <span class="frappe">${frappe} m</span> — <kbd>Entrée</kbd> pose le mur dans la direction de la souris, <kbd>Échap</kbd> efface.` : N().ferme ? `Contour fermé. Cliquez sur un mur pour corriger sa longueur ou le supprimer.` : `Visez avec la souris la direction du mur, tapez sa longueur au clavier (ex. 8,50) puis <kbd>Entrée</kbd>. Ou cliquez pour poser chaque angle${bas&&bas.murs.length?", le tracé s'accroche au niveau du dessous":''}. <kbd>Échap</kbd> annule.`))
       + (tactile ? ` Plus simple : tapez la longueur de chaque mur ci-dessous et choisissez sa direction, ou partez d'un rectangle.` : '')
+    : mode==='toiture'
+    ? `Choisissez la forme du toit. Cliquez une partie du toit sur le plan pour la régler à part (par exemple un garage en toit plat).`
     : mode==='agrandir'
     ? `Pour ajouter un garage ou une pièce : cliquez sur un mur de la maison, tracez l'extension vers l'extérieur (ou tapez les longueurs) et revenez cliquer sur un mur. L'ancien mur devient un mur intérieur. <kbd>Annuler</kbd> défait l'agrandissement.`
     : mode==='murlibre'
@@ -4022,6 +4047,7 @@ if ('serviceWorker' in navigator) {
 </script>
 <script src="/parcours.js"></script>
 <script src="/maison3d.js"></script>
+<script src="/toiture.js"></script>
 <script src="/barre-laterale.js"></script>
 </body>
 </html>

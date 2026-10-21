@@ -97,7 +97,7 @@
     const tete = panneau.querySelector('.panneau-tete'); if(tete) tete.remove();
 
     // reglages contextuels : tout ce qui etait sous le plan
-    ['porteeInfo','fondBarre','agrandirBarre','editTerr','editSel','editPiece','editOuv','editMur','cotesBarre'].forEach(id=>{
+    ['porteeInfo','fondBarre','editToit','agrandirBarre','editTerr','editSel','editPiece','editOuv','editMur','cotesBarre'].forEach(id=>{
       const e = document.getElementById(id); if(e) reglages.appendChild(e);
     });
     const pb = panneau.querySelector('.plancher-barre'); if(pb) reglages.appendChild(pb);

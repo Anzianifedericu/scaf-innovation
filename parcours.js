@@ -551,6 +551,7 @@
       const pc = (n.pieces||[]).map(p=>`${p.nom} ${surfacePiece(n,p).toFixed(1)} m²`).join(', ');
       lignes.push(`${n.nom} : ${habitableDe(n).toFixed(1)} m² habitables${pc?` — ${pc}`:''}`);
       (n.terrasses||[]).forEach(t=>lignes.push(`${n.nom} : terrasse${t.couverte?' couverte':''} ${(t.x1-t.x0).toFixed(2)} × ${(t.y1-t.y0).toFixed(2)} m = ${surfaceTerrasse(t).toFixed(1)} m²`));
+      if(window.texteToiture && n===niveaux[niveaux.length-1]){ const tt=texteToiture(); if(tt) lignes.push(tt); }
       if((n.mursLibres||[]).length) lignes.push(`${n.nom} : ${n.mursLibres.length} mur(s) libre(s), ${n.mursLibres.reduce((t,r)=>t+longueurPoly(r.pts),0).toFixed(2)} m`);
     });
     return lignes.filter(Boolean).join('\n');
