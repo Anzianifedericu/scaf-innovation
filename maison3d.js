@@ -151,10 +151,10 @@
   // Allege des ouvertures : linteau commun a 2,15 m, sauf portes et baies qui descendent au sol.
   function bornesOuv(o, h){
     if(o.nature==='passage') return [0.30, Math.min(h-0.1, 0.30+o.hauteur)];
-    const sol = ['porte','porte-entree','porte-garage','porte-fenetre','baie'].includes(o.nature);
-    if(sol) return [0, Math.min(h-0.05, o.hauteur)];
-    const haut = Math.min(h-0.2, 2.15);
-    return [Math.max(0.2, haut-o.hauteur), haut];
+    const t = typeof typeOuv==='function' ? typeOuv(o) : {};
+    if(t.sol) return [0, Math.min(h-0.05, o.hauteur)];
+    const bas = typeof allegeDe==='function' ? allegeDe(o) : Math.max(0.2, 2.15-o.hauteur);
+    return [Math.min(bas, h-0.3), Math.min(h-0.1, bas+o.hauteur)];
   }
 
   function construire(premier){
@@ -201,9 +201,9 @@
       if(u<L) pave(P(u),b,n,e,base,base+h,mExt);
     }
     function menuiserie(a,b,n,e,y0,y1,o){
-      if(o.nature==='passage') return;
+      if(o.nature==='passage' || (typeof modeOuv==='function' && modeOuv(o)==='libre')) return;
       const ep=0.07, recul=Math.min(0.12, e/3);
-      if(o.nature==='porte'||o.nature==='porte-entree'||o.nature==='porte-garage'){
+      if(o.nature==='porte'||o.nature==='porte-entree'||o.nature==='porte-service'||o.nature==='porte-garage'){
         pave(a,b,n,Math.min(ep,e),y0,y1, o.nature==='porte'&&o.sur!=='mur' ? new THREE.MeshStandardMaterial({color:C('#B98E5E'),roughness:.7}) : mMenu, recul);
         return;
       }

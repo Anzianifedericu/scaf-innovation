@@ -423,7 +423,18 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
       <div class="edit-mur" id="editOuv" hidden>
         <b id="eoTitre">Ouverture</b>
         <select id="eoType" onchange="majEditOuv('nature',this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px"></select>
+        <span id="eoOuvBloc" style="width:100%">Ouverture
+          <select id="eoOuv" onchange="majEditOuv('ouv',this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px"></select></span>
+        <span id="eoVantBloc">Vantaux
+          <select id="eoVant" onchange="majEditOuv('vantaux',this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></span>
+        <span id="eoSensBloc" style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" onclick="majEditOuv('gauche')" title="Changer le côté des gonds (ou le côté où s'efface la porte)">⇆ Gauche / droite</button>
+          <button type="button" id="eoCote" onclick="majEditOuv('cote')" title="Changer le côté vers lequel la porte s'ouvre">⇅ Côté d'ouverture</button></span>
         <span>L <input id="eoL" type="text" inputmode="decimal" onchange="majEditOuv('largeur',this.value)"> × H <input id="eoH" type="text" inputmode="decimal" onchange="majEditOuv('hauteur',this.value)"> m</span>
+        <span id="eoAllBloc" style="width:100%">Hauteur du bas (allège)
+          <select id="eoAllSel" onchange="majEditOuv('allegeSel',this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px;max-width:100%"></select>
+          <span id="eoAllLibre"><input id="eoAll" type="text" inputmode="decimal" onchange="majEditOuv('allege',this.value)"> m</span></span>
+        <span id="eoNote" style="font-size:12px;color:var(--terre);width:100%"></span>
         <span id="eoMatBloc">Menuiserie
           <select id="eoMat" onchange="majEditOuv('materiau',this.value)" style="font:500 13px 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid var(--trait);border-radius:6px">
             <option value="pvc">PVC</option><option value="alu">Alu</option><option value="bois">Bois</option>
@@ -965,23 +976,34 @@ function surfaceRefends(niv){
    moteur : comment le moteur de metre Nudura la traite (Porte = sans allege).
    vr : un volet roulant est possible. Au vide sanitaire, ce sont des passages. */
 const TYPES_OUV = {
-  'fenetre':      { l:'Fenêtre',             L:1.00, H:1.20, moteur:'Fenêtre', vr:true,  mat:true  },
-  'porte-fenetre':{ l:'Porte-fenêtre',       L:0.90, H:2.15, moteur:'Baie',    vr:true,  mat:true  },
-  'baie':         { l:'Baie coulissante',    L:2.40, H:2.15, moteur:'Baie',    vr:true,  mat:true  },
-  'fixe':         { l:'Châssis fixe',        L:1.00, H:1.00, moteur:'Fenêtre', vr:false, mat:true  },
-  'porte-entree': { l:"Porte d'entrée",      L:1.00, H:2.15, moteur:'Porte',   vr:false, mat:true  },
-  'porte':        { l:'Porte',               L:0.83, H:2.04, moteur:'Porte',   vr:false, mat:true  },
-  'porte-garage': { l:'Porte de garage',     L:2.40, H:2.00, moteur:'Porte',   vr:false, mat:true  },
-  'passage':      { l:'Passage',             L:0.80, H:0.60, moteur:'Fenêtre', vr:false, mat:false },
+  'fenetre':      { l:'Fenêtre',             L:1.00, H:1.20, moteur:'Fenêtre', vr:true,  mat:true,  ext:true,  ouv:['battant','oscillo','coulissant','fixe'], def:'oscillo' },
+  'porte-fenetre':{ l:'Porte-fenêtre',       L:0.90, H:2.15, moteur:'Baie',    vr:true,  mat:true,  ext:true,  sol:true, ouv:['battant','oscillo','coulissant','galandage'], def:'battant' },
+  'baie':         { l:'Baie vitrée',         L:2.40, H:2.15, moteur:'Baie',    vr:true,  mat:true,  ext:true,  sol:true, ouv:['coulissant','galandage','battant','fixe'], def:'coulissant' },
+  'fixe':         { l:'Châssis fixe',        L:1.00, H:1.00, moteur:'Fenêtre', vr:false, mat:true,  ext:true,  ouv:['fixe'], def:'fixe' },
+  'porte-entree': { l:"Porte d'entrée",      L:1.00, H:2.15, moteur:'Porte',   vr:false, mat:true,  ext:true,  sol:true, ouv:['battant'], def:'battant' },
+  'porte-service':{ l:'Porte de service',    L:0.90, H:2.15, moteur:'Porte',   vr:false, mat:true,  ext:true,  sol:true, ouv:['battant'], def:'battant' },
+  'porte-garage': { l:'Porte de garage',     L:2.40, H:2.00, moteur:'Porte',   vr:false, mat:true,  ext:true,  sol:true, ouv:['sectionnelle','basculante','enroulable','battant'], def:'sectionnelle' },
+  'porte':        { l:'Porte intérieure',    L:0.83, H:2.04, moteur:'Porte',   vr:false, mat:true,  int:true,  sol:true, ouv:['battant','coulissant','galandage','libre'], def:'battant' },
+  'passage':      { l:'Passage',             L:0.80, H:0.60, moteur:'Fenêtre', vr:false, mat:false, vs:true,  ouv:['libre'], def:'libre' },
 };
+const MODES_OUV = { battant:'Battante', oscillo:'Oscillo-battante', coulissant:'Coulissante', galandage:'À galandage', fixe:'Fixe',
+  libre:'Sans porte (passage)', sectionnelle:'Sectionnelle', basculante:'Basculante', enroulable:'Enroulable' };
+const ABR_OUV = { oscillo:'OB', coulissant:'coul.', galandage:'galand.', fixe:'fixe', libre:'passage', sectionnelle:'sect.', basculante:'bascul.', enroulable:'enroul.' };
+const modeOuv = o => { const t=typeOuv(o); return (o.ouv && t.ouv.includes(o.ouv)) ? o.ouv : t.def; };
+const vantauxDe = o => o.vantaux || (modeOuv(o)==='coulissant' ? (o.largeur>=1.2?2:1) : (['battant','oscillo'].includes(modeOuv(o)) && o.largeur>=1.1 && o.nature!=='porte-entree' ? 2 : 1));
+/* Allege : hauteur du bas de l'ouverture. Par defaut, les fenetres alignent leur linteau a 2,15 m. */
+const allegeDe = o => typeOuv(o).sol ? 0 : (o.nature==='passage' ? 0.30 : (o.allege!=null ? o.allege : Math.max(0, +(2.15-o.hauteur).toFixed(2))));
+const ALLEGES = [ ['auto','Linteau aligné (auto)'], ['0.95','Standard — 0,95 m'], ['1.10','Plan de travail, évier — 1,10 m'], ['1.60','Haute (WC, salle d\'eau) — 1,60 m'], ['0.45','Basse — 0,45 m'], ['libre','Autre hauteur…'] ];
 const MATERIAUX = { pvc:'PVC', alu:'Alu', bois:'Bois' };
 const estVS = (niv=N()) => /vide\s*sanitaire/i.test(niv.nom||'') || !(niv.hauteur >= 1.8);
 const typeOuv = o => TYPES_OUV[o.nature] || TYPES_OUV.fenetre;
-const sansAllege = o => ['porte','porte-entree','porte-garage'].includes(o.nature);
+const sansAllege = o => ['porte','porte-entree','porte-service','porte-garage'].includes(o.nature);
 function etiquetteOuv(o){
   const t=typeOuv(o), f=v=>v.toFixed(2).replace('.',',');
   if(o.nature==='passage') return `passage ${f(o.largeur)} × ${f(o.hauteur)}`;
-  return `${f(o.largeur)} × ${f(o.hauteur)}${t.mat&&o.materiau?' '+MATERIAUX[o.materiau]:''}${t.vr&&o.volet?' VR':''}`;
+  const m=modeOuv(o), v=vantauxDe(o);
+  const al = (!t.sol && o.allege!=null) ? ` all. ${f(o.allege)}` : '';
+  return `${f(o.largeur)} × ${f(o.hauteur)}${ABR_OUV[m]?' '+ABR_OUV[m]:''}${v>1&&m!=='fixe'?' '+v+'v':''}${t.mat&&o.materiau&&m!=='libre'?' '+MATERIAUX[o.materiau]:''}${t.vr&&o.volet?' VR':''}${al}`;
 }
 let ouvSel = null;
 function ouvertureSous(p){
@@ -999,8 +1021,27 @@ function rendreEditOuv(){
   if(!bar) return;
   if((mode!=='ouverture'&&mode!=='deplacer')||!o){ bar.hidden=true; return; }
   bar.hidden=false;
-  const vs=estVS(niv), t=typeOuv(o);
-  const types=Object.entries(TYPES_OUV).filter(([k])=> vs ? k==='passage' : k!=='passage' );
+  const vs=estVS(niv), t=typeOuv(o), m=modeOuv(o);
+  const types=Object.entries(TYPES_OUV).filter(([k,v])=> vs ? v.vs : (o.sur==='mur' ? v.ext : v.int));
+  const ouvs=t.ouv;
+  document.getElementById('eoOuvBloc').hidden = ouvs.length<2;
+  document.getElementById('eoOuv').innerHTML = ouvs.map(k=>`<option value="${k}" ${m===k?'selected':''}>${MODES_OUV[k]}</option>`).join('');
+  document.getElementById('eoVantBloc').hidden = !['battant','oscillo','coulissant'].includes(m);
+  document.getElementById('eoVant').value = String(vantauxDe(o));
+  document.getElementById('eoSensBloc').hidden = !['battant','oscillo','coulissant','galandage'].includes(m);
+  document.getElementById('eoCote').hidden = !['battant','oscillo'].includes(m);
+  const ab=document.getElementById('eoAllBloc'); ab.hidden = !!t.sol || vs;
+  if(!ab.hidden){
+    const v = o.allege==null ? 'auto' : (ALLEGES.some(([k])=>k!=='auto'&&k!=='libre'&&Math.abs(+k-o.allege)<1e-6) ? String(o.allege.toFixed(2)).replace(/0$/,'') : 'libre');
+    const sel=document.getElementById('eoAllSel'); sel.innerHTML = ALLEGES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+    sel.value = ALLEGES.some(([k])=>k===v) ? v : (o.allege==null?'auto':'libre');
+    const ch=document.getElementById('eoAll'); if(document.activeElement!==ch) ch.value = allegeDe(o).toFixed(2).replace('.',',');
+    document.getElementById('eoAllLibre').hidden = sel.value!=='libre';
+  }
+  const haut = allegeDe(o)+o.hauteur;
+  document.getElementById('eoNote').textContent =
+    (m==='galandage' && o.sur!=='cloison') ? "À galandage dans un mur Nudura : prévoir un doublage pour loger le caisson de la porte." :
+    (!t.sol && haut>niv.hauteur-0.1) ? `Le haut de l'ouverture (${haut.toFixed(2).replace('.',',')} m) dépasse la hauteur du niveau.` : '';
   document.getElementById('eoType').innerHTML=types.map(([k,v])=>`<option value="${k}" ${o.nature===k?'selected':''}>${v.l}</option>`).join('');
   document.getElementById('eoL').value=o.largeur.toFixed(2).replace('.',',');
   document.getElementById('eoH').value=o.hauteur.toFixed(2).replace('.',',');
@@ -1012,9 +1053,15 @@ function rendreEditOuv(){
 }
 function majEditOuv(champ, v){
   const o=N().ouvertures[ouvSel]; if(!o) return;
-  if(champ==='nature'){
+  if(champ==='ouv'){ o.ouv=v; delete o.vantaux; }
+  else if(champ==='vantaux'){ o.vantaux=+v; }
+  else if(champ==='gauche'){ o.gauche=!o.gauche; }
+  else if(champ==='cote'){ o.cote = (o.cote||1)*-1; }
+  else if(champ==='allegeSel'){ if(v==='auto') delete o.allege; else if(v!=='libre') o.allege=+v; else o.allege=allegeDe(o); }
+  else if(champ==='allege'){ const x=parseFloat(String(v).replace(',','.')); if(x>=0) o.allege=x; }
+  else if(champ==='nature'){
     o.nature=v; const t=typeOuv(o);
-    o.largeur=t.L; o.hauteur=t.H;
+    o.largeur=t.L; o.hauteur=t.H; delete o.ouv; delete o.vantaux; delete o.allege;
     if(!t.vr) o.volet=false;
     if(t.mat&&!o.materiau) o.materiau = o.sur!=='mur' ? 'bois' : 'pvc';
     if(!t.mat) delete o.materiau;
@@ -1665,7 +1712,8 @@ async function envoyerPlan(){
       })),
       ouvertures: n.ouvertures.map(o=>({
         type: sansAllege(o) ? 'porte' : 'fenetre', sur: o.sur,
-        nature: o.nature, menuiserie: typeOuv(o).mat ? (o.materiau||'pvc') : null,
+        nature: o.nature, ouverture: modeOuv(o), vantaux: vantauxDe(o), allege: Number(allegeDe(o).toFixed(2)),
+        sens: o.gauche ? 'gauche' : 'droite', menuiserie: typeOuv(o).mat ? (o.materiau||'pvc') : null,
         volet_roulant: !!(typeOuv(o).vr && o.volet),
         largeur: o.largeur, hauteur: o.hauteur, qte: 1,
       })),
@@ -2559,21 +2607,45 @@ function rendreSceneBase(){
 
     const coul = sv ? 'var(--ciel)' : 'var(--bleu)';
 
-    if(o.nature === 'porte' || o.nature === 'porte-entree'){
-      // vantail ouvert a 90 degres, et son arc de debattement
-      const vx = x1 + nIn.x*e, vy = y1 + nIn.y*e;         // gond, cote interieur
-      const bx = vx + nIn.x*o.largeur, by = vy + nIn.y*o.largeur;
-      g+=`<line x1="${vx}" y1="${-vy}" x2="${bx}" y2="${-by}"
-            stroke="${coul}" stroke-width="${tr*1.3}"/>`;
-      const ex = vx + s.dx*o.largeur, ey = vy + s.dy*o.largeur;
-      g+=`<path d="M ${bx},${-by} A ${o.largeur},${o.largeur} 0 0 ${sg>0?1:0} ${ex},${-ey}"
-            fill="none" stroke="${coul}" stroke-width="${tr*0.6}" stroke-dasharray="${u/150} ${u/190}"/>`;
-    } else {
-      // fenetre : le vitrage, trois traits fins dans l'epaisseur
-      [0.34, 0.5, 0.66].forEach((k, idx)=>{
-        const ox = nIn.x*e*k, oy = nIn.y*e*k;
-        g+=`<line x1="${x1+ox}" y1="${-(y1+oy)}" x2="${x2+ox}" y2="${-(y2+oy)}"
-              stroke="${coul}" stroke-width="${tr*(idx===1?1.1:0.55)}"/>`; });
+    // menuiserie dessinee selon son mode d'ouverture
+    {
+      const m=modeOuv(o), nv=vantauxDe(o), cote=o.cote||1, L=o.largeur;
+      const axe = s.sur!=='mur';
+      // position (en profondeur) de la face d'ou part le vantail, et sens du debattement
+      const face = axe ? cote*e/2 : (cote>0 ? e : 0), dir={x:nIn.x*cote, y:nIn.y*cote};
+      const along={x:s.dx,y:s.dy}, P1={x:x1,y:y1}, P2={x:x2,y:y2};
+      const off=(p,k)=>({x:p.x+nIn.x*k, y:p.y+nIn.y*k});
+      const lg=(a,b,w,dash)=>`<line x1="${a.x}" y1="${-a.y}" x2="${b.x}" y2="${-b.y}" stroke="${coul}" stroke-width="${tr*w}" ${dash?`stroke-dasharray="${u/150} ${u/190}"`:''}/>`;
+      const arc=(H,u1,w)=>{ let d=''; for(let k=0;k<=12;k++){ const th=k/12*Math.PI/2; const q={x:H.x+w*(Math.cos(th)*u1.x+Math.sin(th)*dir.x), y:H.y+w*(Math.cos(th)*u1.y+Math.sin(th)*dir.y)}; d+=(k?' L ':'M ')+q.x+','+(-q.y); }
+        return `<path d="${d}" fill="none" stroke="${coul}" stroke-width="${tr*0.6}" stroke-dasharray="${u/150} ${u/190}"/>`; };
+      const vitrage=()=>{ const k=axe?0:e*0.5; g+=lg(off(P1,k),off(P2,k),1.0); };
+      const vantail=(H,u1,w)=>{ const Hf=off(H,face); g+=lg(Hf,{x:Hf.x+dir.x*w,y:Hf.y+dir.y*w},1.3)+arc(Hf,u1,w); };
+      if(m==='battant'||m==='oscillo'){
+        if(o.nature!=='porte' && o.nature!=='porte-entree' && o.nature!=='porte-service') vitrage();
+        if(nv>=2){ vantail(P1,along,L/2); vantail(P2,{x:-along.x,y:-along.y},L/2); }
+        else if(o.gauche) vantail(P1,along,L); else vantail(P2,{x:-along.x,y:-along.y},L);
+        if(m==='oscillo') { const c2=off({x:(x1+x2)/2,y:(y1+y2)/2}, face+cote*Math.min(L,0.6)*0.35); g+=`<text x="${c2.x}" y="${-c2.y}" font-size="${po*.5}" fill="${coul}" text-anchor="middle" dominant-baseline="middle">OB</text>`; }
+      } else if(m==='coulissant'){
+        if(axe && nv<2){
+          // porte coulissante en applique : le vantail glisse le long du mur
+          const k=face+cote*0.04, sh=o.gauche?-1:1;
+          const A=off({x:x1+along.x*sh*L*0.55,y:y1+along.y*sh*L*0.55},k), B=off({x:x2+along.x*sh*L*0.55,y:y2+along.y*sh*L*0.55},k);
+          g+=lg(off(P1,k),off(P2,k),0.5,true)+lg(A,B,1.6);
+        } else {
+          const n2=Math.max(2,nv), w=L/n2;
+          for(let k=0;k<n2;k++){ const a={x:x1+along.x*(k*w-(k?0.04:0)),y:y1+along.y*(k*w-(k?0.04:0))}, b={x:x1+along.x*((k+1)*w+(k<n2-1?0.04:0)),y:y1+along.y*((k+1)*w+(k<n2-1?0.04:0))};
+            const prof=(axe?0:e*0.5)+(k%2?1:-1)*Math.min(0.05,e*0.15); g+=lg(off(a,prof),off(b,prof),1.2); }
+        }
+      } else if(m==='galandage'){
+        // le vantail s'efface dans le mur, du cote choisi
+        const k=axe?0:e*0.5, sh=o.gauche?-1:1;
+        const A=sh>0?P1:P2, B=sh>0?P2:P1, Bf={x:B.x+along.x*sh*L*0.92, y:B.y+along.y*sh*L*0.92};
+        g+=lg(off(A,k),off(B,k),1.4)+lg(off(B,k),off(Bf,k),1.0,true);
+      } else if(m==='fixe'){
+        [0.34,0.5,0.66].forEach((kk,idx)=>{ const k=axe?(kk-0.5)*e:e*kk; g+=lg(off(P1,k),off(P2,k),idx===1?1.1:0.55); });
+      } else if(['sectionnelle','basculante','enroulable'].includes(m)){
+        const k=e+0.08; g+=lg(off(P1,k),off(P2,k),1.0,true);
+      }
     }
 
     // cote de la baie, rejetee du cote exterieur
@@ -2905,7 +2977,7 @@ function rendrePanneaux(){
       niv.ouvertures.map((o,i)=>`<tr>
         <td class="num" style="color:${o.sur==='refend'?'var(--bleu)':'var(--beton)'}">${o.sur==='mur'?'M':o.sur==='cloison'?'C':'R'}${o.i+1}</td>
         <td><select onchange="ouvSel=${i};majEditOuv('nature',this.value)" style="max-width:118px">
-          ${Object.entries(TYPES_OUV).filter(([k])=>estVS(niv)?k==='passage':k!=='passage').map(([k,v])=>`<option value="${k}" ${o.nature===k?'selected':''}>${v.l}</option>`).join('')}
+          ${Object.entries(TYPES_OUV).filter(([k,v])=>estVS(niv)?v.vs:(o.sur==='mur'?v.ext:v.int)).map(([k,v])=>`<option value="${k}" ${o.nature===k?'selected':''}>${v.l}</option>`).join('')}
         </select><div style="font-size:11px;color:var(--beton)">${typeOuv(o).mat&&o.materiau?MATERIAUX[o.materiau]:''}${typeOuv(o).vr&&o.volet?' · VR':''}</div></td>
         <td><input type="number" step="0.01" min="0.1" value="${o.largeur.toFixed(2)}" onchange="majOuv(${i},'largeur',this.value)"></td>
         <td><input type="number" step="0.01" min="0.1" value="${o.hauteur.toFixed(2)}" onchange="majOuv(${i},'hauteur',this.value)"></td>
