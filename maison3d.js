@@ -145,7 +145,7 @@
   }
 
   /* ---------------- geometrie ---------------- */
-  function sommetsPlan(niv){ let x=0,y=0; const p=[{x,y}]; niv.murs.forEach(m=>{ x+=m.dx*m.longueur; y+=m.dy*m.longueur; p.push({x,y}); }); return p.slice(0,-1); }
+  function sommetsPlan(niv){ return sommetsDe(niv).slice(0,-1); }
   function dansPoly(poly,x,y){ let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const P=poly[i],Q=poly[j]; if((P.y>y)!==(Q.y>y)&&x<(Q.x-P.x)*(y-P.y)/(Q.y-P.y)+P.x) c=!c; } return c; }
 
   // Allege des ouvertures : linteau commun a 2,15 m, sauf portes et baies qui descendent au sol.
@@ -268,6 +268,24 @@
         murPerce({x:a.x-n.x*0.035,y:a.y-n.y*0.035},{x:b.x-n.x*0.035,y:b.y-n.y*0.035},n,0.07,base,Math.min(h,2.5),
           niv.ouvertures.filter(o=>o.sur==='cloison'&&o.i===ci&&(o.seg??1)===s), mCloison);
       }});
+      // murs libres : murs Nudura a leur hauteur propre
+      (niv.mursLibres||[]).forEach(r=>{ for(let s=1;s<r.pts.length;s++){
+        const a=r.pts[s-1], b=r.pts[s], L=Math.hypot(b.x-a.x,b.y-a.y); if(L<0.05) continue;
+        const n={x:-(b.y-a.y)/L,y:(b.x-a.x)/L};
+        murPerce({x:a.x-n.x*e/2,y:a.y-n.y*e/2},{x:b.x-n.x*e/2,y:b.y-n.y*e/2},n,e,base,Math.min(h,r.hauteur||h),[], vs?mVS:mFacade);
+      }});
+      // terrasses : dalle exterieure, et pour une terrasse couverte des poteaux et une couverture
+      if(!vs) (niv.terrasses||[]).forEach(t=>{
+        const w=t.x1-t.x0, d=t.y1-t.y0, mT=new THREE.MeshStandardMaterial({color:C('#CDBFA6'),roughness:.95});
+        const dal=new THREE.Mesh(new THREE.BoxGeometry(w,0.16,d), mT);
+        dal.position.set((t.x0+t.x1)/2, base-0.1, -(t.y0+t.y1)/2); maison.add(ombre(dal));
+        if(t.couverte){
+          const mP=new THREE.MeshStandardMaterial({color:C('#9C6B3E'),roughness:.8}), hc=Math.min(h,2.5);
+          [[t.x0+0.1,t.y0+0.1],[t.x1-0.1,t.y0+0.1],[t.x1-0.1,t.y1-0.1],[t.x0+0.1,t.y1-0.1]].forEach(([x,y])=>{
+            const po=new THREE.Mesh(new THREE.BoxGeometry(0.14,hc,0.14), mP); po.position.set(x, base+hc/2, -y); maison.add(ombre(po)); });
+          const cv=new THREE.Mesh(new THREE.BoxGeometry(w+0.2,0.1,d+0.2), mP); cv.position.set((t.x0+t.x1)/2, base+hc+0.05, -(t.y0+t.y1)/2); maison.add(ombre(cv));
+        }
+      });
       // pieces nommees, en vue interieure
       if(!vs && reglages.vue==='interieur' && (iMax<0 || k===iMax)) (niv.pieces||[]).forEach(pc=>{
         const s = surfacePiece(niv,pc); if(!s) return;

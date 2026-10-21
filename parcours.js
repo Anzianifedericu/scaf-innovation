@@ -44,7 +44,7 @@
     niv.gamme = gamme; niv.epaisseur = ep;
     const apres = horsTout(niv), d = apres - avant;
     if(Math.abs(d) < 1e-6 || !niv.ferme) return;
-    let x=0,y=0; const P=[{x,y}]; niv.murs.forEach(m=>{ x+=m.dx*m.longueur; y+=m.dy*m.longueur; P.push({x,y}); });
+    const P=sommetsDe(niv);
     const poly = P.slice(0,-1);
     const dans=(px,py)=>{ let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const A=poly[i],B=poly[j]; if((A.y>py)!==(B.y>py)&&px<(B.x-A.x)*(py-A.y)/(B.y-A.y)+A.x) c=!c; } return c; };
     const aretes = poly.map((a,i)=>{ const b=poly[(i+1)%poly.length], L=Math.hypot(b.x-a.x,b.y-a.y);
@@ -550,6 +550,8 @@
     niveaux.filter(n=>n.ferme&&n.murs.length&&n.hauteur>=1.8).forEach(n=>{
       const pc = (n.pieces||[]).map(p=>`${p.nom} ${surfacePiece(n,p).toFixed(1)} m²`).join(', ');
       lignes.push(`${n.nom} : ${habitableDe(n).toFixed(1)} m² habitables${pc?` — ${pc}`:''}`);
+      (n.terrasses||[]).forEach(t=>lignes.push(`${n.nom} : terrasse${t.couverte?' couverte':''} ${(t.x1-t.x0).toFixed(2)} × ${(t.y1-t.y0).toFixed(2)} m = ${surfaceTerrasse(t).toFixed(1)} m²`));
+      if((n.mursLibres||[]).length) lignes.push(`${n.nom} : ${n.mursLibres.length} mur(s) libre(s), ${n.mursLibres.reduce((t,r)=>t+longueurPoly(r.pts),0).toFixed(2)} m`);
     });
     return lignes.filter(Boolean).join('\n');
   }
