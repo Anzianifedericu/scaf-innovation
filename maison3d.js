@@ -77,7 +77,7 @@
     voile.querySelector('.m3-fermer').onclick = ()=>{ fermer(); };
     voile.querySelector('.m3-suite').onclick = ()=>{ fermer(); window.ouvrirMonProjet && window.ouvrirMonProjet(); };
 
-    try{ await chargerThree(); }
+    try{ await chargerThree(); if(window.chargerSquelette) await chargerSquelette(); }
     catch(e){ voile.querySelector('.m3-charge').textContent = "La 3D n'a pas pu se charger. Vérifiez votre connexion."; return; }
     voile.querySelector('.m3-charge').remove();
 
@@ -303,13 +303,47 @@
       aToit.forEach(({niv, base:b0, h:hN, e})=>{
         const yT = b0 + hN;
         (window.zonesToiture ? zonesToiture(niv) : []).forEach(z=>{
-          const r = reglageToiture(niv, z);
           const W=z.x1-z.x0, D=z.y1-z.y0;
           const pl=new THREE.Mesh(new THREE.BoxGeometry(W,0.22,D), [mFacade,mFacade,mDalle,mDalle,mFacade,mFacade]);
           pl.position.set((z.x0+z.x1)/2, yT+0.11, -(z.y0+z.y1)/2); maison.add(ombre(pl));
-          toitZone(z, yT+0.22, r, niv, e);
+        });
+        // un seul toit par forme : une maison en L a un toit en L
+        (window.groupesToiture ? groupesToiture(niv) : []).forEach(gr=>{
+          const r=gr.reglage;
+          gr.formes.forEach(f=>{
+            if(r.type==='plat') return toitPlatForme(f, yT+0.22, r, niv, e);
+            const fc=facesToit(f, r); if(!fc) return;
+            maillage(fc.tuiles, yT+0.22, mTuile, false);
+            maillage(fc.pignons, yT+0.22, new THREE.MeshStandardMaterial({ color:mFacade.color, roughness:0.9, side:THREE.DoubleSide }), true);
+          });
         });
       });
+      // faces [x,y,h] du plan vers la 3D ; les faces verticales en eventail
+      function maillage(faces, y0, mat, vertical){
+        const pos=[];
+        faces.forEach(fa=>{
+          if(fa.length<3) return;
+          let tris;
+          if(vertical) { tris=[]; for(let k=1;k+1<fa.length;k++) tris.push([0,k,k+1]); }
+          else { try{ tris=THREE.ShapeUtils.triangulateShape(fa.map(q=>new THREE.Vector2(q[0],q[1])), []); }catch(err){ tris=[]; }
+                 if(!tris.length){ tris=[]; for(let k=1;k+1<fa.length;k++) tris.push([0,k,k+1]); } }
+          tris.forEach(t=>t.forEach(k=>{ const q=fa[k]; pos.push(q[0], y0+q[2], -q[1]); }));
+        });
+        if(!pos.length) return;
+        const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+        const me=new THREE.Mesh(g,mat); me.castShadow=true; me.receiveShadow=true; maison.add(me);
+      }
+      function toitPlatForme(f, y, r, niv, e){
+        const sh=new THREE.Shape(f.ext.map(q=>new THREE.Vector2(q.x,q.y)));
+        (f.trous||[]).forEach(h=>sh.holes.push(new THREE.Path(h.map(q=>new THREE.Vector2(q.x,q.y)))));
+        const s=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:0.04,bevelEnabled:false}), mEtanch);
+        s.rotation.x=-Math.PI/2; s.position.y=y; maison.add(ombre(s));
+        const ha=Math.max(0.05, r.acrotere), ccw=aireToit(f.ext)>0;
+        acroteresForme(niv,f).forEach(([a,b])=>{
+          const L=Math.hypot(b.x-a.x,b.y-a.y)||1; let n={x:-(b.y-a.y)/L,y:(b.x-a.x)/L}; if(!ccw) n={x:-n.x,y:-n.y};
+          pave(a,b,n,e,y-0.22,y+ha,mFacade);
+        });
+      }
       // toit plat : etancheite et acrotere sur les aretes de facade
       function toitPlat(z, y, r, niv, e){
         const W=z.x1-z.x0, D=z.y1-z.y0;
