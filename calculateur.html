@@ -2065,6 +2065,16 @@ function rendreSceneBase(){
   const w=Math.max(12,maxX-minX), hh=Math.max(8,maxY-minY);
   const pad=Math.max(w,hh)*0.18+1.2;
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
+  // a l'ecran, le cadre prend les proportions de la zone de dessin : le plan
+  // et sa grille occupent toute la largeur disponible
+  if(!horsEcran){
+    const zr=scene.getBoundingClientRect();
+    if(zr.width>50&&zr.height>50){
+      const ar=zr.width/zr.height, ca=cadreAuto;
+      if(ca.w/ca.h<ar){ const w2=ca.h*ar; ca.x-=(w2-ca.w)/2; ca.w=w2; }
+      else { const h2=ca.w/ar; ca.y-=(h2-ca.h)/2; ca.h=h2; }
+    }
+  }
   const c = cadre || cadreAuto;
   scene.setAttribute('viewBox',`${c.x} ${c.y} ${c.w} ${c.h}`);
   const vbW=c.w, vbH=c.h;
@@ -2073,8 +2083,8 @@ function rendreSceneBase(){
   const u=(!horsEcran&&kEc)?620/kEc:Math.max(vbW,vbH), tr=u/300, po=u/48, ra=u/140, dec=po*1.55;
 
   let g='';
-  const g0=Math.floor(minX-pad), g1=Math.ceil(maxX+pad);
-  const h0=Math.floor(minY-pad), h1=Math.ceil(maxY+pad);
+  const g0=Math.floor(Math.min(minX-pad,c.x)), g1=Math.ceil(Math.max(maxX+pad,c.x+c.w));
+  const h0=Math.floor(Math.min(minY-pad,-(c.y+c.h))), h1=Math.ceil(Math.max(maxY+pad,-c.y));
   for(let x=g0;x<=g1;x++) g+=`<line x1="${x}" y1="${-h0}" x2="${x}" y2="${-h1}" stroke="#E6E1D6" stroke-width="${tr*.35}"/>`;
   for(let y=h0;y<=h1;y++) g+=`<line x1="${g0}" y1="${-y}" x2="${g1}" y2="${-y}" stroke="#E6E1D6" stroke-width="${tr*.35}"/>`;
   g+=`<text x="${c.x+0.35}" y="${c.y+po}" font-size="${po*0.95}" font-family="Fraunces,Georgia,serif" fill="#1A1916">${niv.nom}</text>`;
@@ -3755,5 +3765,6 @@ if ('serviceWorker' in navigator) {
 </script>
 <script src="/parcours.js"></script>
 <script src="/maison3d.js"></script>
+<script src="/barre-laterale.js"></script>
 </body>
 </html>
