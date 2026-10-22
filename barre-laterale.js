@@ -43,6 +43,10 @@
   #barreLat .legende{display:flex;flex-direction:column;gap:4px;padding:0}
   #barreLat .enveloppe{padding:0 0 8px;font-size:12px}
   #onglets{display:none !important}
+  #barreLat .bl-grp{font:600 11px 'IBM Plex Sans',sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#9A9286;margin:6px 2px 0}
+  #barreLat select#blOutil{margin-bottom:4px}
+  #barreLat #editPlEsc label{display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+  #barreLat #editPlEsc select{width:100%;padding:6px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff}
   @media (max-width:760px){
     #vue-plan > .panneau{flex-direction:column !important}
     #barreLat{flex:none;width:auto;max-height:42vh;border-right:0;border-bottom:1px solid var(--trait)}
@@ -82,7 +86,8 @@
     const sLeg = section('Légende', false);
 
     // outils de trace
-    const modes = panneau.querySelector('.panneau-tete .modes'); if(modes) sTracer.appendChild(modes);
+    const modes = panneau.querySelector('.panneau-tete .modes');
+    if(modes){ sTracer.appendChild(listeOutils()); grouper(modes); sTracer.appendChild(modes); }
     // actions et menu « Plus » deplie
     const barre = panneau.querySelector('.panneau-tete .barre');
     if(barre){
@@ -122,6 +127,48 @@
     if(typeof rendreScene==='function') requestAnimationFrame(()=>rendreScene());
   }
 
+  /* Une liste deroulante de tous les outils, avec leurs variantes :
+     type d'ouverture, de plancher, d'escalier. */
+  function listeOutils(){
+    const sel = document.createElement('select'); sel.id='blOutil'; sel.className='bl-niv'; sel.setAttribute('aria-label','Outil de tracé');
+    const g = (titre, items)=>`<optgroup label="${titre}">${items.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</optgroup>`;
+    const T = (typeof TYPES_OUV!=='undefined') ? TYPES_OUV : {};
+    const P = window.TYPES_PLANCHER || {}, E = window.TYPES_ESCALIER || {};
+    sel.innerHTML =
+      g('Murs', [['contour','Contour de la maison'],['refend','Murs porteurs (refends)'],['cloison','Cloisons'],['agrandir','Agrandir (garage, pièce)'],['murlibre','Mur libre (muret, clôture)']]) +
+      g('Ouvertures', [['ouverture','Ouverture (type automatique)'], ...Object.entries(T).map(([k,v])=>['ouverture|'+k, v.l])]) +
+      g('Pièces', [['piece','Nommer les pièces']]) +
+      g('Planchers', [...Object.entries(P).map(([k,v])=>['zone|'+k, v.l]), ['plancher','Poutrelles une à une (détail)']]) +
+      g('Escaliers', Object.entries(E).map(([k,v])=>['escalier|'+k, v.l])) +
+      g('Extérieur et toit', [['terrasse','Terrasse (surface)'],['toiture','Toiture']]) +
+      g('Modifier', [['deplacer','Sélection : choisir, glisser, régler']]);
+    sel.onchange = ()=>{
+      const [m, sous] = sel.value.split('|');
+      if(m==='ouverture') window.natureOuvChoisie = sous || null;
+      if(m==='zone' && sous) window.plTypeChoisi = sous;
+      if(m==='escalier' && sous) window.escTypeChoisi = sous;
+      setMode(m);
+      syncOutil();
+    };
+    return sel;
+  }
+  window.syncOutil = function(){
+    const sel = document.getElementById('blOutil'); if(!sel || typeof mode==='undefined') return;
+    const sous = mode==='ouverture' ? window.natureOuvChoisie : mode==='zone' ? window.plTypeChoisi : mode==='escalier' ? window.escTypeChoisi : null;
+    const v = sous ? mode+'|'+sous : mode;
+    if([...sel.options].some(o=>o.value===v)) sel.value = v;
+    else if([...sel.options].some(o=>o.value===mode)) sel.value = mode;
+  };
+  // les boutons d'outils rangés par famille
+  function grouper(modes){
+    const familles = [['Murs',['mContour','mRefend','mCloison','mAgrandir','mLibre']], ['Ouvertures et pièces',['mOuv','mPiece']],
+      ['Planchers et escaliers',['mZone','mEscalier','mPlancher']], ['Extérieur et toit',['mTerrasse','mToiture']], ['Modifier',['mDep']]];
+    familles.forEach(([titre, ids])=>{
+      const h = document.createElement('div'); h.className='bl-grp'; h.textContent=titre; modes.appendChild(h);
+      ids.forEach(id=>{ const b=modes.querySelector('#'+id); if(b) modes.appendChild(b); });
+    });
+  }
+
   function rangerParcours(){
     const bar = document.getElementById('pmBarre'), sec = document.getElementById('blParcours');
     if(!bar || !sec) return;
@@ -147,7 +194,7 @@
 
   (window.apresRecalcul = window.apresRecalcul || []).push(()=>{
     if(!pret) installer();
-    majNiveaux(); rangerParcours();
+    majNiveaux(); rangerParcours(); window.syncOutil();
   });
   if(document.readyState === 'complete') setTimeout(()=>{ if(!pret) installer(); }, 0);
   else addEventListener('load', ()=>{ if(!pret) installer(); });

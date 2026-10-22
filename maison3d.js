@@ -246,6 +246,9 @@
       if(cache){ base += h + 0.22; return; }
       // dalle basse
       const forme = new THREE.Shape(pts.map(p=>new THREE.Vector2(p.x,p.y)));
+      // tremies des escaliers du niveau du dessous
+      if(window.tremies3D){ const cw=THREE.ShapeUtils.isClockWise(pts.map(p=>new THREE.Vector2(p.x,p.y)));
+        tremies3D(niv).forEach(T=>{ let v=T.map(p=>new THREE.Vector2(p.x,p.y)); if(THREE.ShapeUtils.isClockWise(v)===cw) v=v.reverse(); forme.holes.push(new THREE.Path(v)); }); }
       const dalle = new THREE.Mesh(new THREE.ExtrudeGeometry(forme,{depth:0.22,bevelEnabled:false}), vs?[mDalle,mVS]:[mSol,mFacade]);
       dalle.rotation.x = -Math.PI/2; dalle.position.y = base - 0.22; maison.add(ombre(dalle));
       // murs exterieurs
@@ -287,6 +290,8 @@
           const cv=new THREE.Mesh(new THREE.BoxGeometry(w+0.2,0.1,d+0.2), mP); cv.position.set((t.x0+t.x1)/2, base+hc+0.05, -(t.y0+t.y1)/2); maison.add(ombre(cv));
         }
       });
+      // planchers libres, balcons, escaliers
+      (window.objets3D||[]).forEach(f=>{ try{ f({THREE, maison, niv, base, h, vs, C, ombre, pts, dessusPret: !!(prets[k+1] && prets[k+1].hauteur>=1.8)}); }catch(err){ console.error(err); } });
       // pieces nommees, en vue interieure
       if(!vs && reglages.vue==='interieur' && (iMax<0 || k===iMax)) (niv.pieces||[]).forEach(pc=>{
         const s = surfacePiece(niv,pc); if(!s) return;

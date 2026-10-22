@@ -554,6 +554,7 @@
       if(window.texteToiture && n===niveaux[niveaux.length-1]){ const tt=texteToiture(); if(tt) lignes.push(tt); }
       if((n.mursLibres||[]).length) lignes.push(`${n.nom} : ${n.mursLibres.length} mur(s) libre(s), ${n.mursLibres.reduce((t,r)=>t+longueurPoly(r.pts),0).toFixed(2)} m`);
     });
+    if(window.textePlanchersEscaliers) lignes.push(...textePlanchersEscaliers());
     return lignes.filter(Boolean).join('\n');
   }
   window.resumeProjetMaison = resume;

@@ -369,7 +369,9 @@ details.niv > summary .res{font:500 12px 'IBM Plex Mono',monospace;color:var(--b
           <button id="mTerrasse" onclick="setMode('terrasse')" title="Une terrasse : cliquez deux coins opposés">Terrasse</button>
           <button id="mToiture" onclick="setMode('toiture')" title="Choisir la forme du toit : pans, pointe de diamant ou toit plat avec acrotère">Toiture</button>
           <button id="mDep" onclick="setMode('deplacer')" title="Cliquer un élément pour le régler, le glisser pour le déplacer">Sélection</button>
-          <button id="mPlancher" onclick="setMode('plancher')">Plancher</button>
+          <button id="mZone" onclick="setMode('zone')" title="Poser un plancher où vous voulez : vide sanitaire, étage, terrasse, balcon, dalle">Planchers</button>
+          <button id="mEscalier" onclick="setMode('escalier')" title="Poser un escalier : droit, quart tournant, en U, hélicoïdal">Escaliers</button>
+          <button id="mPlancher" onclick="setMode('plancher')" title="Pose détaillée des poutrelles, une à une">Poutrelles (détail)</button>
         </div>
         <div class="barre">
           <button id="bFond" onclick="ouvrirFond()" title="Charger le plan du client (image ou PDF) et tracer par-dessus">Fond de plan</button>
@@ -1701,6 +1703,7 @@ async function envoyerPlan(){
       mursLibres: mursLibresDe(n).map(r=>({ longueur:Number(longueurPoly(r.pts).toFixed(2)), hauteur:r.hauteur||null })),
       terrasses: terrassesDe(n).map(t=>({ longueur:Number((t.x1-t.x0).toFixed(2)), largeur:Number((t.y1-t.y0).toFixed(2)), surface:Number(surfaceTerrasse(t).toFixed(2)), couverte:!!t.couverte })),
       toiture: window.toitureResume ? toitureResume(n) : null,
+      ...(window.resumePlanchersEscaliers ? resumePlanchersEscaliers(n) : {}),
       pieces: piecesDe(n).map(pc=>({ nom: pc.nom, surface: Number(surfacePiece(n,pc).toFixed(2)) })),
       cloisonLineaire: Number(totalCloisons(n).toFixed(2)),
       gamme: n.gamme, voile_mm: n.epaisseur,
@@ -2304,6 +2307,7 @@ function rendreSceneBase(){
   niv.refends.forEach(r=>tous.push(...r.pts));
   mursLibresDe(niv).forEach(r=>tous.push(...r.pts));
   terrassesDe(niv).forEach(t=>tous.push({x:t.x0,y:t.y0},{x:t.x1,y:t.y1}));
+  (niv.planchers||[]).forEach(t=>tous.push({x:t.x0,y:t.y0},{x:t.x1,y:t.y1}));
   if(refEnCours) tous.push(...refEnCours.pts);
   const bas=dessous(); if(bas) tous.push(...sommetsDe(bas));
   const ht=dessus();   if(ht)  tous.push(...sommetsDe(ht));
@@ -2315,7 +2319,7 @@ function rendreSceneBase(){
   const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
   const w=Math.max(12,maxX-minX), hh=Math.max(8,maxY-minY);
   // plus de marge pour dessiner hors de la maison (garage, terrasse, mur libre)
-  const pad=Math.max(w,hh)*((mode==='agrandir'||mode==='murlibre'||mode==='terrasse')?0.45:0.18)+((mode==='agrandir'||mode==='murlibre'||mode==='terrasse')?2:1.2);
+  const pad=Math.max(w,hh)*((mode==='agrandir'||mode==='murlibre'||mode==='terrasse'||mode==='zone')?0.45:0.18)+((mode==='agrandir'||mode==='murlibre'||mode==='terrasse'||mode==='zone')?2:1.2);
   cadreAuto = { x:minX-pad, y:-(maxY+pad), w:w+pad*2, h:hh+pad*2 };
   // a l'ecran, le cadre prend les proportions de la zone de dessin : le plan
   // et sa grille occupent toute la largeur disponible
@@ -3280,7 +3284,10 @@ function actionClic(e){
     const s=segmentSousCurseur(brut); if(!s) return;
     const reste=s.longueur-largeurOccupee(niv,s);
     if(reste<0.5) return;
-    const nature = estVS(niv) ? 'passage' : s.sur!=='mur' ? 'porte' : 'fenetre';
+    let nature = estVS(niv) ? 'passage' : s.sur!=='mur' ? 'porte' : 'fenetre';
+    // type choisi dans la liste des outils, s'il convient a ce mur
+    const voulu = window.natureOuvChoisie, tv = voulu && TYPES_OUV[voulu];
+    if(tv && (estVS(niv) ? tv.vs : (s.sur==='mur' ? tv.ext : tv.int))) nature = voulu;
     const t=TYPES_OUV[nature];
     const o={ sur:s.sur, i:s.i, seg:s.seg, t:s.t,
       largeur:Math.min(t.L, Math.max(0.5,reste-0.2)), hauteur:t.H, nature };
@@ -4008,7 +4015,7 @@ function fermerTrace(){
 
 function effacerNiveau(){
   const niv=N();
-  niv.murs=[]; niv.refends=[]; niv.cloisons=[]; niv.pieces=[]; niv.ouvertures=[]; niv.poutres=[]; niv.mursLibres=[]; niv.terrasses=[]; niv.ferme=false; delete niv.origine;
+  niv.murs=[]; niv.refends=[]; niv.cloisons=[]; niv.pieces=[]; niv.ouvertures=[]; niv.poutres=[]; niv.mursLibres=[]; niv.terrasses=[]; niv.planchers=[]; niv.escaliers=[]; niv.ferme=false; delete niv.origine;
   refEnCours=null; curseur=null; murSel=null; setMode('contour');
 }
 
@@ -4120,6 +4127,7 @@ if ('serviceWorker' in navigator) {
 <script src="/parcours.js"></script>
 <script src="/maison3d.js"></script>
 <script src="/toiture.js"></script>
+<script src="/planchers-escaliers.js"></script>
 <script src="/barre-laterale.js"></script>
 </body>
 </html>
