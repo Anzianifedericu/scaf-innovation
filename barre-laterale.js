@@ -43,6 +43,25 @@
   #barreLat .legende{display:flex;flex-direction:column;gap:4px;padding:0}
   #barreLat .enveloppe{padding:0 0 8px;font-size:12px}
   #onglets{display:none !important}
+  /* navigation en haut : parcours, vues, niveaux */
+  header.hd-nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 16px}
+  body:not(.plein) header.hd-nav .sub{display:none}
+  header .hd-centre{flex:1;display:flex;justify-content:center;min-width:0}
+  header .pm-barre{padding:0;border:0;background:none;gap:4px;overflow-x:auto}
+  header .pm-barre button{flex:none;padding:5px 10px;font-size:12.5px}
+  header .pm-barre button i{width:19px;height:19px;font-size:11px}
+  header .hd-droite{display:flex;gap:8px;align-items:center}
+  #navNiv{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--trait);background:#FBF8F1;overflow-x:auto;flex:none}
+  #navNiv .nn-tit{font:600 11.5px 'IBM Plex Sans',sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#9A9286;margin-right:4px}
+  #navNiv button.nn{padding:6px 13px;border-radius:7px;border:1px solid var(--trait);background:#fff;font:500 13px 'IBM Plex Sans',sans-serif;white-space:nowrap}
+  #navNiv button.nn.actif{background:var(--encre);color:#fff;border-color:var(--encre)}
+  #navNiv button.nn small{opacity:.7;margin-left:5px;font-size:11px}
+  #navNiv button.nn-plus{border-style:dashed}
+  #navNiv .nn-etat{margin-left:auto;font-size:12px;color:#6B6459;white-space:nowrap}
+  /* outils de trace sur deux colonnes */
+  #barreLat .modes{display:grid !important;grid-template-columns:1fr 1fr}
+  #barreLat .modes .bl-grp{grid-column:1/-1}
+  #barreLat .modes button{padding:7px 8px;font-size:12.5px;line-height:1.2}
   #barreLat .bl-grp{font:600 11px 'IBM Plex Sans',sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#9A9286;margin:6px 2px 0}
   #barreLat select#blOutil{margin-bottom:4px}
   #barreLat #editPlEsc label{display:flex;flex-direction:column;gap:3px;font-size:12.5px}
@@ -53,7 +72,7 @@
   }
   @media print{ #barreLat{display:none !important} }
   `;
-  let pret = false, aside, zone, selNiv, etatNiv;
+  let pret = false, aside, zone, selNiv;
 
   function section(titre, ouvert){
     const d = document.createElement('details');
@@ -73,14 +92,8 @@
     aside = document.createElement('aside'); aside.id = 'barreLat';
     zone = document.createElement('div'); zone.id = 'zonePlan';
 
-    // ordre des sections
-    const sParcours = section('Mon parcours', false); sParcours.parentNode.id = 'blParcours'; sParcours.parentNode.hidden = true;
-    const sNiv = section('Niveau', true);
-    sNiv.innerHTML = `<select class="bl-niv" aria-label="Niveau affiché"></select><div class="bl-niv-etat"></div>
-      <button type="button" onclick="ajouterNiveau()">+ Ajouter un niveau au-dessus</button>`;
-    selNiv = sNiv.querySelector('select'); etatNiv = sNiv.querySelector('.bl-niv-etat');
-    selNiv.onchange = ()=> allerNiveau(Number(selNiv.value));
-    const sTracer = section('Tracer', true);
+    // a gauche : uniquement ce qui sert a construire
+    const sTracer = section('Construire', true);
     const sOutils = section('Outils', false);
     const reglages = document.createElement('div'); reglages.className = 'bl-reglages'; aside.appendChild(reglages);
     const sLeg = section('Légende', false);
@@ -110,6 +123,19 @@
     const env = document.getElementById('enveloppe'); if(env) sLeg.appendChild(env);
     const leg = panneau.querySelector('.legende'); if(leg) sLeg.appendChild(leg);
 
+    // au-dessus du plan : la navigation entre les niveaux
+    const nav = document.createElement('div'); nav.id = 'navNiv';
+    zone.appendChild(nav); selNiv = nav;
+    // dans l'en-tete : le parcours au centre, les vues a droite
+    const hd = document.querySelector('header');
+    if(hd){
+      hd.classList.add('hd-nav');
+      const centre = document.createElement('div'); centre.className = 'hd-centre'; centre.id = 'hdParcours';
+      const vues = hd.querySelector('.vues');
+      const droite = document.createElement('div'); droite.className = 'hd-droite';
+      if(vues) droite.appendChild(vues);
+      hd.appendChild(centre); hd.appendChild(droite);
+    }
     // le plan prend toute la place restante
     zone.appendChild(scene);
     const fichier = document.getElementById('fichierFond'); if(fichier) zone.appendChild(fichier);
@@ -118,7 +144,7 @@
 
     // on se souvient des sections ouvertes ou fermees
     aside.querySelectorAll('.bl-sec').forEach((d,i)=>{
-      const cle = 'bl_sec_'+i;
+      const cle = 'bl2_sec_'+i;
       try{ const v = localStorage.getItem(cle); if(v!==null) d.open = v==='1'; }catch(e){}
       d.addEventListener('toggle', ()=>{ try{ localStorage.setItem(cle, d.open?'1':'0'); }catch(e){} });
     });
@@ -170,14 +196,8 @@
   }
 
   function rangerParcours(){
-    const bar = document.getElementById('pmBarre'), sec = document.getElementById('blParcours');
-    if(!bar || !sec) return;
-    if(bar.parentNode !== sec.querySelector('.bl-corps')){
-      sec.querySelector('.bl-corps').appendChild(bar); sec.hidden = false;
-      // ouvert par defaut pour le client, replie pour SCAF, sauf choix deja fait
-      let choix = null; try{ choix = localStorage.getItem('bl_sec_0'); }catch(e){}
-      if(choix === null) sec.open = !(typeof vuePro==='function' && vuePro());
-    }
+    const bar = document.getElementById('pmBarre'), dest = document.getElementById('hdParcours');
+    if(bar && dest && bar.parentNode !== dest) dest.appendChild(bar);
   }
 
   function majNiveaux(){
@@ -185,11 +205,14 @@
     const etat = n => n.ferme
       ? (n.hauteur>=1.8 ? `${perimetre(n).toFixed(1).replace('.',',')} m de murs · ${surfaceHabitable(n).toFixed(1).replace('.',',')} m²` : `${perimetre(n).toFixed(1).replace('.',',')} m de murs`)
       : (n.murs.length ? 'tracé en cours' : 'vide');
-    let h = '';
-    for(let i=niveaux.length-1;i>=0;i--) h += `<option value="${i}" ${i===iNiveau?'selected':''}>${niveaux[i].nom}</option>`;
-    if(selNiv.innerHTML !== h) selNiv.innerHTML = h;
-    selNiv.value = String(iNiveau);
-    etatNiv.textContent = niveaux[iNiveau] ? etat(niveaux[iNiveau]) : '';
+    const court = n => !n.ferme ? (n.murs.length?'en cours':'vide') : (n.hauteur>=1.8 ? `${surfaceHabitable(n).toFixed(0)} m²` : '✓');
+    let h = '<span class="nn-tit">Niveaux</span>';
+    niveaux.forEach((n,i)=>{ h += `<button type="button" class="nn ${i===iNiveau?'actif':''}" data-i="${i}">${n.nom}<small>${court(n)}</small></button>`; });
+    h += `<button type="button" class="nn nn-plus" data-plus="1">+ Niveau</button>`;
+    h += `<span class="nn-etat">${niveaux[iNiveau] ? niveaux[iNiveau].nom+' · '+etat(niveaux[iNiveau]) : ''}</span>`;
+    if(selNiv.dataset.h !== h){ selNiv.innerHTML = h; selNiv.dataset.h = h;
+      selNiv.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>allerNiveau(Number(b.dataset.i)));
+      const pl = selNiv.querySelector('[data-plus]'); if(pl) pl.onclick=()=>ajouterNiveau(); }
   }
 
   (window.apresRecalcul = window.apresRecalcul || []).push(()=>{
