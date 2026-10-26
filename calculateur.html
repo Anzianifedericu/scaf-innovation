@@ -1563,6 +1563,9 @@ function niveauPourServeur(niv){
     corniche: !!niv.corniche,
     murs, refends,
     ouvertures: Object.values(paquets),
+    // Planchers Air-Crab traces sur ce niveau : le serveur en tire cupolas,
+    // pieds, bases, beton et treillis (table aircrab_parametres).
+    ...(window.aircrabDe && window.aircrabDe(niv).length ? { planchers_aircrab: window.aircrabDe(niv) } : {}),
   };
 }
 
@@ -2112,8 +2115,8 @@ function rendreQuantitatif(){
   // carres habitables, pas des references catalogue.
   if(!vuePro()){
     const m2 = x => x.toFixed(1).replace('.', ',');
-    let total = 0, beton = 0;
-    resultat.forEach(({data})=> beton += data.recapitulatif.beton_m3);
+    let total = 0, beton = 0, acS = 0;
+    resultat.forEach(({data})=>{ beton += data.recapitulatif.beton_m3; acS += data.recapitulatif.aircrab_surface_m2 || 0; });
 
     let lignes = '';
     niveaux.forEach(n=>{
@@ -2147,6 +2150,8 @@ function rendreQuantitatif(){
         ni aux planchers.</div>
       <div class="arg"><b>${beton.toFixed(1).replace('.', ',')} m³ de béton armé.</b>
         Une structure monolithique, coulée d'un seul tenant.</div>
+      ${acS > 0 ? `<div class="arg"><b>${m2(acS)} m² de plancher Air-Crab.</b>
+        Un vide sanitaire ventilé sous le plancher, qui évacue l'humidité du sol.</div>` : ''}
       <div class="arg"><b>Des murs montés en quelques jours.</b>
         Coffrage, isolation intérieure et extérieure posés en une seule opération.</div>
 
@@ -2185,7 +2190,10 @@ function rendreQuantitatif(){
             ${n.rangs} rang${n.rangs > 1 ? 's' : ''}${n.demi_rang ? ', dont un demi' : ''} —
             voile ${n.epaisseur} mm<br>
             ${n.surface_mur_m2.toFixed(1).replace('.', ',')} m² de blocs ·
-            ${n.beton_m3.toFixed(1).replace('.', ',')} m³ de béton</div>`;
+            ${n.beton_m3.toFixed(1).replace('.', ',')} m³ de béton${n.aircrab ? `<br>
+            Plancher Air-Crab ${n.aircrab.surface_m2.toFixed(1).replace('.', ',')} m² ·
+            ${n.aircrab.beton_m3.toFixed(2).replace('.', ',')} m³ de béton ·
+            ${n.aircrab.treillis_m2.toFixed(1).replace('.', ',')} m² de treillis (non fournis)` : ''}</div>`;
 
     let sousTotal = 0;
     n.fournitures.forEach(f=>{
@@ -2243,6 +2251,13 @@ function rendreQuantitatif(){
 
   h += lig('Surface de mur', surf.toFixed(1) + ' m²', '');
   h += lig('Béton', beton.toFixed(2) + ' m³', 'non fourni par SCAF');
+  let acS = 0, acB = 0, acT = 0;
+  resultat.forEach(({data})=>{ const r = data.recapitulatif; acS += r.aircrab_surface_m2||0; acB += r.aircrab_beton_m3||0; acT += r.aircrab_treillis_m2||0; });
+  if(acS > 0){
+    h += lig('Plancher Air-Crab', acS.toFixed(1) + ' m²', '');
+    h += lig('Béton Air-Crab (remplissage + table)', acB.toFixed(2) + ' m³', 'non fourni par SCAF');
+    h += lig('Treillis soudé 20×20', acT.toFixed(1) + ' m²', 'non fourni par SCAF');
+  }
 
   // Materiel reutilisable : on retient le plus grand besoin, pas la somme.
   const prevoir = [];

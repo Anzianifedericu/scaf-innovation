@@ -20,7 +20,19 @@
     terrasse: { l:'Plancher terrasse',           c:'dalle extérieure',             coul:'#9A7A3C', limite:6.5, alt:'bas',  poutrelles:true },
     balcon:   { l:'Balcon (porte-à-faux)',       c:'dalle en console',             coul:'#8E3F74', limite:1.8, alt:'haut', poutrelles:false },
     dalle:    { l:'Dalle pleine béton',          c:'coulée en place',              coul:'#6B655A', limite:5.0, alt:'haut', poutrelles:false },
+    aircrab:  { l:'Plancher Air-Crab (vide sanitaire ventilé)', c:'coffrage perdu Air-Crab, coulé sur le sol', coul:'#2E7D7A', limite:999, alt:'bas', poutrelles:false, aircrab:true },
   };
+  /* Air-Crab : hauteurs de vide d'air disponibles (table aircrab_parametres,
+     seule source des quantites, cote serveur). Le Mini se vend au m2. */
+  const HAUTEURS_AC = { aircrab:[5,10,15,20,25,30], mini:[5,7.5,10,12.5] };
+  const SYS_AC = { aircrab:'Air-Crab (cupola + pieds)', mini:'Mini Air-Crab' };
+  const acChoisi = { sys:'aircrab', h:10 };
+  const avecAC = (z,t)=>{ if(TYPES_PL[t]&&TYPES_PL[t].aircrab){ z.acSys=z.acSys||acChoisi.sys; if(!HAUTEURS_AC[z.acSys].includes(z.acH)) z.acH=HAUTEURS_AC[z.acSys].includes(acChoisi.h)?acChoisi.h:HAUTEURS_AC[z.acSys][0]; } return z; };
+  const fh = v => String(v).replace('.',',');
+  /* Zones Air-Crab d'un niveau, au format attendu par estimer-nudura. */
+  window.aircrabDe = niv => (niv.planchers||[]).filter(z=>z.type==='aircrab').map((z,i)=>({
+    nom:'Air-Crab '+(i+1), systeme:z.acSys||'aircrab', hauteur_cm:z.acH||10,
+    surface_m2:+(Math.abs(z.x1-z.x0)*Math.abs(z.y1-z.y0)).toFixed(2) }));
   const TYPES_ESC = {
     droit:  { l:'Escalier droit' },
     quart:  { l:'Escalier quart tournant' },
@@ -182,7 +194,7 @@
     const niv=N(), t=window.plTypeChoisi||'etage';
     const rs=rectanglesContour(niv);
     if(!rs.length){ verdict('ko',"Fermez d'abord le contour du niveau."); return; }
-    rs.forEach(r=>planchersDe(niv).push({ ...r, type:t, sens:'auto', alt:TYPES_PL[t].alt }));
+    rs.forEach(r=>planchersDe(niv).push(avecAC({ ...r, type:t, sens:'auto', alt:TYPES_PL[t].alt }, t)));
     plSel=planchersDe(niv).length-1; recalcul();
   };
 
@@ -207,7 +219,7 @@
         else g+=`<line x1="${z.x0}" y1="${-z.y0}" x2="${z.x1}" y2="${-z.y1}" stroke="${t.coul}" stroke-opacity=".35" stroke-width="${tr*.8}"/><line x1="${z.x0}" y1="${-z.y1}" x2="${z.x1}" y2="${-z.y0}" stroke="${t.coul}" stroke-opacity=".35" stroke-width="${tr*.8}"/>`;
         const fs=Math.min(po*.85, Math.max(0.12, Math.min(W,D)/5));
         g+=`<text x="${(z.x0+z.x1)/2}" y="${-(z.y0+z.y1)/2-fs*.2}" font-size="${fs}" font-family="IBM Plex Sans,sans-serif" font-weight="600" fill="${col}" text-anchor="middle" style="pointer-events:none">${t.l.replace(/ \(.*\)/,'')}</text>`;
-        g+=`<text x="${(z.x0+z.x1)/2}" y="${-(z.y0+z.y1)/2+fs*1.0}" font-size="${fs*.85}" font-family="IBM Plex Sans,sans-serif" fill="${col}" text-anchor="middle" style="pointer-events:none">${f1(m.surface)} m² · ${z.type==='balcon'?'avancée':'portée'} ${f2(m.portee)} m${m.alerte?' ⚠':''}</text>`;
+        g+=`<text x="${(z.x0+z.x1)/2}" y="${-(z.y0+z.y1)/2+fs*1.0}" font-size="${fs*.85}" font-family="IBM Plex Sans,sans-serif" fill="${col}" text-anchor="middle" style="pointer-events:none">${f1(m.surface)} m² · ${z.type==='aircrab'?`${z.acSys==='mini'?'Mini ':''}Air-Crab ${fh(z.acH||10)} cm`:`${z.type==='balcon'?'avancée':'portée'} ${f2(m.portee)} m${m.alerte?' ⚠':''}`}</text>`;
         if(s) [[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].forEach(([x,y])=>g+=`<rect x="${x-po*.25}" y="${-y-po*.25}" width="${po*.5}" height="${po*.5}" fill="#fff" stroke="#C0392B" stroke-width="${tr}"/>`);
       }
     });
@@ -275,10 +287,16 @@
         <label>Type <select data-pl="type">${opt(TYPES_PL,t)}</select></label>
         <small style="color:#6B6459">${TYPES_PL[t].c}</small>
         <label>Hauteur <select data-pl="alt"><option value="haut" ${(z?z.alt||TYPES_PL[z.type].alt:TYPES_PL[t].alt)==='haut'?'selected':''}>en haut de ce niveau (plancher haut)</option><option value="bas" ${(z?z.alt||TYPES_PL[z.type].alt:TYPES_PL[t].alt)==='bas'?'selected':''}>au sol de ce niveau</option></select></label>`;
+      if(TYPES_PL[t].aircrab){
+        const sys = z ? (z.acSys||'aircrab') : acChoisi.sys, hh = z ? z.acH : acChoisi.h;
+        h+=`<label>Système <select data-pl="acSys">${Object.entries(SYS_AC).map(([k,l])=>`<option value="${k}" ${k===sys?'selected':''}>${l}</option>`).join('')}</select></label>
+          <label>Vide d'air <select data-pl="acH">${HAUTEURS_AC[sys].map(v=>`<option value="${v}" ${v===hh?'selected':''}>${fh(v)} cm</option>`).join('')}</select></label>
+          <small style="color:#6B6459">Quantités (cupolas, pieds, bases, béton, treillis) calculées au métré.</small>`;
+      }
       if(TYPES_PL[t].poutrelles) h+=`<label>Poutrelles <select data-pl="sens"><option value="auto" ${!z||!z.sens||z.sens==='auto'?'selected':''}>sens le plus court (auto)</option><option value="x" ${z&&z.sens==='x'?'selected':''}>de gauche à droite</option><option value="y" ${z&&z.sens==='y'?'selected':''}>de haut en bas</option></select></label>`;
       if(z){
         h+=`<div style="display:flex;gap:6px;align-items:center">L <input data-pl="W" value="${f2(m.W)}" style="width:64px"> × l <input data-pl="D" value="${f2(m.D)}" style="width:64px"> m</div>
-          <div style="font-size:12.5px">${f1(m.surface)} m² · ${z.type==='balcon'?'avancée':'portée'} ${f2(m.portee)} m${m.n?` · ≈ ${m.n} poutrelles`:''}</div>
+          <div style="font-size:12.5px">${f1(m.surface)} m²${z.type==='aircrab'?'':` · ${z.type==='balcon'?'avancée':'portée'} ${f2(m.portee)} m${m.n?` · ≈ ${m.n} poutrelles`:''}`}</div>
           ${m.alerte?`<div style="font-size:12.5px;color:#B03A2E">⚠ ${m.alerte}</div>`:''}
           <div style="display:flex;gap:6px"><button type="button" data-act="supPl">Supprimer</button><button type="button" data-act="fermer">Fermer</button></div>`;
       } else {
@@ -307,7 +325,10 @@
     const n=v=>parseFloat(String(v).replace(',','.'));
     if(el.dataset.pl){
       const k=el.dataset.pl;
-      if(k==='type'){ if(z){ z.type=el.value; z.alt=TYPES_PL[el.value].alt; } else window.plTypeChoisi=el.value; }
+      if(k==='type'){ if(z){ z.type=el.value; z.alt=TYPES_PL[el.value].alt; avecAC(z, el.value); } else window.plTypeChoisi=el.value; }
+      else if(k==='acSys'){ const c=z||acChoisi; if(z) z.acSys=el.value; else acChoisi.sys=el.value;
+        const L=HAUTEURS_AC[el.value]; const hc=z?z.acH:acChoisi.h; if(!L.includes(hc)){ if(z) z.acH=L[0]; else acChoisi.h=L[0]; } }
+      else if(k==='acH'){ const v=parseFloat(el.value); if(z) z.acH=v; else acChoisi.h=v; }
       else if(k==='alt'){ if(z) z.alt=el.value; else plAltChoisie=el.value; }
       else if(k==='sens'){ if(z) z.sens=el.value; else plSensChoisi=el.value; }
       else if(z&&(k==='W'||k==='D')){ const v=n(el.value); if(v>0.2){ if(k==='W') z.x1=z.x0+v; else z.y1=z.y0+v; } }
@@ -448,8 +469,8 @@
       if(!plA){ plA=p; plSel=null; recalcul(); return; }
       if(Math.abs(p.x-plA.x)<0.3||Math.abs(p.y-plA.y)<0.3) return;
       const t=window.plTypeChoisi||'etage';
-      planchersDe(niv).push({ x0:Math.min(plA.x,p.x), y0:Math.min(plA.y,p.y), x1:Math.max(plA.x,p.x), y1:Math.max(plA.y,p.y),
-        type:t, sens:plSensChoisi||'auto', alt:plAltChoisie||TYPES_PL[t].alt });
+      planchersDe(niv).push(avecAC({ x0:Math.min(plA.x,p.x), y0:Math.min(plA.y,p.y), x1:Math.max(plA.x,p.x), y1:Math.max(plA.y,p.y),
+        type:t, sens:plSensChoisi||'auto', alt:plAltChoisie||TYPES_PL[t].alt }, t));
       plA=null; plSel=planchersDe(niv).length-1; recalcul(); return;
     }
     if(mode==='escalier'){
