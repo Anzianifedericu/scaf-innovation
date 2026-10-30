@@ -45,6 +45,7 @@
     etat.renderer.dispose();
     etat.voile.remove();
     etat = null;
+    if(window.apercu3dMaj) window.apercu3dMaj();
   }
 
   async function ouvrir(){
@@ -133,14 +134,14 @@
     boucle();
   }
 
-  function placerSoleil(){
-    const h = reglages.heure, a = (h-6)/14*Math.PI, R = 60;
-    const c = etat.centre || new THREE.Vector3();
-    etat.soleil.position.set(c.x + Math.cos(a)*R, Math.max(4, Math.sin(a)*R*0.85), c.z + Math.sin(a)*R*0.75);
-    etat.soleil.target.position.copy(c);
-    etat.soleil.intensity = 0.35 + 0.75*Math.max(0, Math.sin(a));
-    etat.soleil.color.set(h<8.5||h>18.5 ? '#FFD2A1' : '#FFF4DE');
-    const lab = document.getElementById('m3h');
+  function placerSoleil(ctx=etat){
+    const h = (ctx.reglages||reglages).heure, a = (h-6)/14*Math.PI, R = 60;
+    const c = ctx.centre || new THREE.Vector3();
+    ctx.soleil.position.set(c.x + Math.cos(a)*R, Math.max(4, Math.sin(a)*R*0.85), c.z + Math.sin(a)*R*0.75);
+    ctx.soleil.target.position.copy(c);
+    ctx.soleil.intensity = 0.35 + 0.75*Math.max(0, Math.sin(a));
+    ctx.soleil.color.set(h<8.5||h>18.5 ? '#FFD2A1' : '#FFF4DE');
+    const lab = ctx===etat && document.getElementById('m3h');
     if(lab){ const hh=Math.floor(h), mm=Math.round((h-hh)*60); lab.textContent = `${hh} h${mm?String(mm).padStart(2,'0'):''}`; }
   }
 
@@ -157,11 +158,12 @@
     return [Math.min(bas, h-0.3), Math.min(h-0.1, bas+o.hauteur)];
   }
 
-  function construire(premier){
+  function construire(premier, ctx=etat){
+    const rg = ctx.reglages || reglages;
     const pr = window.projetMaison || {};
     const { FACADES, MENUISERIES, TUILES } = window.PALETTES_MAISON;
-    if(etat.maison){ etat.scene.remove(etat.maison); etat.maison.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
-    const maison = new THREE.Group(); etat.maison = maison; etat.scene.add(maison);
+    if(ctx.maison){ ctx.scene.remove(ctx.maison); ctx.maison.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+    const maison = new THREE.Group(); ctx.maison = maison; ctx.scene.add(maison);
 
     const C = c => new THREE.Color(c).convertSRGBToLinear();
     const mat = c => new THREE.MeshStandardMaterial({ color:C(c), roughness:0.9, metalness:0 });
@@ -232,7 +234,7 @@
 
     // empilement des niveaux : le vide sanitaire est a demi enterre
     const prets = niveaux.filter(n=>n.ferme&&n.murs.length);
-    const iMax = prets.findIndex(n=>n.nom===reglages.niveauMax);
+    const iMax = prets.findIndex(n=>n.nom===rg.niveauMax);
     const aToit = [];
     let base = 0, solY = null, sommet = null, minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
     prets.forEach((niv, k)=>{
@@ -240,7 +242,7 @@
       const h = niv.hauteur;
       if(vs && solY===null) solY = base + h*0.5;
       if(!vs && solY===null) solY = base;
-      const cache = reglages.vue==='interieur' && iMax>=0 && k>iMax && !vs;
+      const cache = rg.vue==='interieur' && iMax>=0 && k>iMax && !vs;
       const pts = sommetsPlan(niv), e = horsTout(niv);
       pts.forEach(p=>{ minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y); });
       if(cache){ base += h + 0.22; return; }
@@ -293,7 +295,7 @@
       // planchers libres, balcons, escaliers
       (window.objets3D||[]).forEach(f=>{ try{ f({THREE, maison, niv, base, h, vs, C, ombre, pts, dessusPret: !!(prets[k+1] && prets[k+1].hauteur>=1.8)}); }catch(err){ console.error(err); } });
       // pieces nommees, en vue interieure
-      if(!vs && reglages.vue==='interieur' && (iMax<0 || k===iMax)) (niv.pieces||[]).forEach(pc=>{
+      if(!vs && rg.vue==='interieur' && (iMax<0 || k===iMax)) (niv.pieces||[]).forEach(pc=>{
         const s = surfacePiece(niv,pc); if(!s) return;
         const sp = texte(pc.nom, s.toFixed(1).replace('.',',')+' m²'); sp.position.set(pc.x, base+1.1, -pc.y); maison.add(sp);
       });
@@ -303,7 +305,7 @@
     });
 
     // toiture : chaque partie non couverte par un etage recoit la forme choisie
-    if(reglages.vue==='exterieur'){
+    if(rg.vue==='exterieur'){
       const mEtanch = new THREE.MeshStandardMaterial({ color:C('#7E7A72'), roughness:0.9 });
       aToit.forEach(({niv, base:b0, h:hN, e})=>{
         const yT = b0 + hN;
@@ -413,20 +415,20 @@
     const bas0 = prets[0];
     if(bas0 && bas0.enterre){
       const prof = Math.max(1, maxY-minY), h0 = bas0.hauteur, th = Math.atan(h0/prof);
-      etat.sol.rotation.set(-Math.PI/2 + th, 0, 0);
-      etat.sol.position.set((minX+maxX)/2, h0/2 - 0.02, -(minY+maxY)/2);
+      ctx.sol.rotation.set(-Math.PI/2 + th, 0, 0);
+      ctx.sol.position.set((minX+maxX)/2, h0/2 - 0.02, -(minY+maxY)/2);
     } else {
-      etat.sol.rotation.set(-Math.PI/2, 0, 0);
-      etat.sol.position.set(0, (solY ?? 0) - 0.01, 0);
+      ctx.sol.rotation.set(-Math.PI/2, 0, 0);
+      ctx.sol.position.set(0, (solY ?? 0) - 0.01, 0);
     }
     const c = new THREE.Vector3((minX+maxX)/2, (solY??0)+2, -(minY+maxY)/2);
-    etat.centre = c;
+    ctx.centre = c;
     if(premier){
       const t = Math.max(maxX-minX, maxY-minY, 8);
-      etat.camera.position.set(c.x + t*0.95, c.y + t*0.75, c.z + t*1.25);
-      etat.controls.target.copy(c); etat.controls.update();
+      ctx.camera.position.set(c.x + t*0.95, c.y + t*0.75, c.z + t*1.25);
+      ctx.controls.target.copy(c); ctx.controls.update();
     }
-    placerSoleil();
+    placerSoleil(ctx);
 
     // decoupe d'un polygone a angles droits en rectangles (bandes horizontales fusionnees)
     function rectangles(pts){
@@ -463,6 +465,8 @@
     }
   }
 
+  // utilises par l'apercu 3D en direct (apercu3d.js)
+  window.maison3D = { chargerThree, construire, placerSoleil, css:()=>css, ouvert:()=>!!etat };
   window.ouvrirMaison3D = ouvrir;
   window.fermerMaison3D = fermer;
 })();
