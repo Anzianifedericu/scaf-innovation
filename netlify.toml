@@ -36,6 +36,22 @@
 
 # Le service worker commande la mise a jour du site installe : il ne doit
 # jamais etre servi depuis un cache.
+# 09/11/2026 : boutique Parex et page commerce retirées du site vitrine (décision du 02/10) — désindexées, toujours accessibles par lien direct
+[[headers]]
+  for = "/boutique/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/ouvrir-un-commerce-corse"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/ouvrir-un-commerce-corse.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
 [[headers]]
   for = "/sw.js"
   [headers.values]
