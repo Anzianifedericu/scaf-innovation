@@ -41,6 +41,25 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# 09/11/2026 : guides SEO (constructeur, construction durable, comparatif parpaing)
+[[redirects]]
+  from = "/constructeur-maison-corse.html"
+  to = "/constructeur-maison-corse"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/construction-durable-corse.html"
+  to = "/construction-durable-corse"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/maison-beton-isole-ou-parpaing.html"
+  to = "/maison-beton-isole-ou-parpaing"
+  status = 301
+  force = true
+
 # Audit 07/09/2026 : une seule URL par page (sans .html), sinon Google
 # indexe des doublons. /tracer est fusionne dans le calculateur.
 # 15/09/2026 : estimation immédiate mise en retrait (décision de Frédéric) — la page reste dans le dépôt, prête à revenir
