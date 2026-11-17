@@ -35,6 +35,13 @@ foi — elles ont plusieurs fois révélé des erreurs invisibles au code.
 Netlify réécrit les URL : `/calculateur.html` est servi sous `/calculateur`.
 En cherchant un lien dans le HTML servi, chercher les deux formes.
 
+**Langues (depuis le 17/11/2026).** Le français est la langue d'accueil :
+`/` redirige en 301 vers `/fr` (`fr.html`). La version corse reste dans
+`index.html` mais est servie sous `/co` (réécriture 200 dans
+`netlify.toml`). Ces deux règles doivent rester en tête du fichier. Tout
+bouton « CO » et tout lien d'accueil d'une page corse (`merci.html`,
+`produits.html`) pointe vers `/co`, jamais vers `/`.
+
 Le déploiement prend 60 à 120 secondes après un commit. Il arrive qu'il
 échoue avec « Unable to access repository » — relancer suffit.
 
