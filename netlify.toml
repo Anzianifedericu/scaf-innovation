@@ -7,6 +7,22 @@
   node_bundler = "esbuild"
   included_files = ["nudura-engine.js"]
 
+# 17/11/2026 : le français devient la langue d'accueil. La racine renvoie
+# vers /fr ; la version corse (index.html) est servie sous /co.
+# Ces deux règles doivent rester en tête : Netlify applique la première
+# règle qui correspond.
+[[redirects]]
+  from = "/co"
+  to = "/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/"
+  to = "/fr"
+  status = 301
+  force = true
+
 # URL courte pour les appels Make / Telegram
 [[redirects]]
   from = "/api/chiffrage"
